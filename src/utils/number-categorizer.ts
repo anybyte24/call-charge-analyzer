@@ -1,3 +1,4 @@
+
 import { PrefixConfig } from '@/types/call-analysis';
 
 export class NumberCategorizer {
@@ -13,157 +14,607 @@ export class NumberCategorizer {
     { prefix: '187', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
     { prefix: '188', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
     
-    // SPAGNA (0034) - Prima i prefissi specifici, poi quelli generici
-    // Fissi Spagna - principali città
-    { prefix: '003491', category: 'international', description: 'Spagna Fisso - Madrid', costPerMinute: 0.18 },
-    { prefix: '003493', category: 'international', description: 'Spagna Fisso - Barcelona', costPerMinute: 0.18 },
-    { prefix: '003495', category: 'international', description: 'Spagna Fisso - Valencia', costPerMinute: 0.18 },
-    { prefix: '003496', category: 'international', description: 'Spagna Fisso - Alicante', costPerMinute: 0.18 },
-    { prefix: '003494', category: 'international', description: 'Spagna Fisso - Siviglia', costPerMinute: 0.18 },
-    { prefix: '003498', category: 'international', description: 'Spagna Fisso - Bilbao', costPerMinute: 0.18 },
-    { prefix: '003497', category: 'international', description: 'Spagna Fisso - Asturias', costPerMinute: 0.18 },
-    { prefix: '003492', category: 'international', description: 'Spagna Fisso - La Coruña', costPerMinute: 0.18 },
-    // Mobili Spagna
-    { prefix: '00346', category: 'international', description: 'Spagna Mobile', costPerMinute: 0.22 },
-    { prefix: '00347', category: 'international', description: 'Spagna Mobile', costPerMinute: 0.22 },
-    { prefix: '00348', category: 'international', description: 'Spagna Mobile', costPerMinute: 0.22 },
-    { prefix: '00349', category: 'international', description: 'Spagna Mobile', costPerMinute: 0.22 },
-    // Spagna generica (DOPO i prefissi specifici)
-    { prefix: '0034', category: 'international', description: 'Spagna', costPerMinute: 0.18 },
+    // PREFISSI INTERNAZIONALI DETTAGLIATI (ordine per lunghezza - più lunghi prima)
     
-    // FRANCIA (0033) - Prima i prefissi specifici, poi quelli generici
-    // Fissi Francia - regioni principali
-    { prefix: '003301', category: 'international', description: 'Francia Fisso - Parigi', costPerMinute: 0.18 },
-    { prefix: '003302', category: 'international', description: 'Francia Fisso - Nord-Ovest', costPerMinute: 0.18 },
-    { prefix: '003303', category: 'international', description: 'Francia Fisso - Nord-Est', costPerMinute: 0.18 },
-    { prefix: '003304', category: 'international', description: 'Francia Fisso - Sud-Est', costPerMinute: 0.18 },
-    { prefix: '003305', category: 'international', description: 'Francia Fisso - Sud-Ovest', costPerMinute: 0.18 },
-    // Mobili Francia
-    { prefix: '003306', category: 'international', description: 'Francia Mobile', costPerMinute: 0.22 },
-    { prefix: '003307', category: 'international', description: 'Francia Mobile', costPerMinute: 0.22 },
-    // Francia generica (DOPO i prefissi specifici)
-    { prefix: '0033', category: 'international', description: 'Francia', costPerMinute: 0.18 },
+    // AFGHANISTAN (0093)
+    { prefix: '009393', category: 'international', description: 'Afghanistan Mobile', costPerMinute: 0.40 },
+    { prefix: '009370', category: 'international', description: 'Afghanistan Mobile', costPerMinute: 0.40 },
+    { prefix: '009371', category: 'international', description: 'Afghanistan Mobile', costPerMinute: 0.40 },
+    { prefix: '009372', category: 'international', description: 'Afghanistan Mobile', costPerMinute: 0.40 },
+    { prefix: '009373', category: 'international', description: 'Afghanistan Mobile', costPerMinute: 0.40 },
+    { prefix: '009374', category: 'international', description: 'Afghanistan Mobile', costPerMinute: 0.40 },
+    { prefix: '009375', category: 'international', description: 'Afghanistan Mobile', costPerMinute: 0.40 },
+    { prefix: '009376', category: 'international', description: 'Afghanistan Mobile', costPerMinute: 0.40 },
+    { prefix: '009377', category: 'international', description: 'Afghanistan Mobile', costPerMinute: 0.40 },
+    { prefix: '009378', category: 'international', description: 'Afghanistan Mobile', costPerMinute: 0.40 },
+    { prefix: '009379', category: 'international', description: 'Afghanistan Mobile', costPerMinute: 0.40 },
+    { prefix: '0093', category: 'international', description: 'Afghanistan', costPerMinute: 0.40 },
     
-    // GERMANIA (0049) - Prima i prefissi specifici, poi quelli generici
-    // Fissi Germania - principali città
-    { prefix: '004930', category: 'international', description: 'Germania Fisso - Berlino', costPerMinute: 0.18 },
-    { prefix: '004989', category: 'international', description: 'Germania Fisso - Monaco', costPerMinute: 0.18 },
-    { prefix: '004940', category: 'international', description: 'Germania Fisso - Amburgo', costPerMinute: 0.18 },
-    { prefix: '004969', category: 'international', description: 'Germania Fisso - Francoforte', costPerMinute: 0.18 },
-    { prefix: '004921', category: 'international', description: 'Germania Fisso - Düsseldorf', costPerMinute: 0.18 },
-    { prefix: '0049711', category: 'international', description: 'Germania Fisso - Stoccarda', costPerMinute: 0.18 },
-    { prefix: '0049221', category: 'international', description: 'Germania Fisso - Colonia', costPerMinute: 0.18 },
-    // Mobili Germania
-    { prefix: '004915', category: 'international', description: 'Germania Mobile', costPerMinute: 0.22 },
-    { prefix: '004916', category: 'international', description: 'Germania Mobile', costPerMinute: 0.22 },
-    { prefix: '004917', category: 'international', description: 'Germania Mobile', costPerMinute: 0.22 },
-    // Germania generica (DOPO i prefissi specifici)
-    { prefix: '0049', category: 'international', description: 'Germania', costPerMinute: 0.18 },
+    // ALBANIA (00355)
+    { prefix: '003556', category: 'international', description: 'Albania Mobile', costPerMinute: 0.23 },
+    { prefix: '003557', category: 'international', description: 'Albania Mobile', costPerMinute: 0.23 },
+    { prefix: '003558', category: 'international', description: 'Albania Mobile', costPerMinute: 0.23 },
+    { prefix: '003559', category: 'international', description: 'Albania Mobile', costPerMinute: 0.23 },
+    { prefix: '00355', category: 'international', description: 'Albania', costPerMinute: 0.13 },
     
-    // REGNO UNITO (0044) - Prima i prefissi specifici, poi quelli generici
-    // Fissi Regno Unito - principali città
-    { prefix: '004420', category: 'international', description: 'Regno Unito Fisso - Londra', costPerMinute: 0.20 },
-    { prefix: '0044121', category: 'international', description: 'Regno Unito Fisso - Birmingham', costPerMinute: 0.20 },
-    { prefix: '0044161', category: 'international', description: 'Regno Unito Fisso - Manchester', costPerMinute: 0.20 },
-    { prefix: '0044113', category: 'international', description: 'Regno Unito Fisso - Leeds', costPerMinute: 0.20 },
-    { prefix: '0044141', category: 'international', description: 'Regno Unito Fisso - Glasgow', costPerMinute: 0.20 },
-    { prefix: '0044131', category: 'international', description: 'Regno Unito Fisso - Edimburgo', costPerMinute: 0.20 },
-    // Mobili Regno Unito
-    { prefix: '004474', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.25 },
-    { prefix: '004475', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.25 },
-    { prefix: '004476', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.25 },
-    { prefix: '004477', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.25 },
-    { prefix: '004478', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.25 },
-    { prefix: '004479', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.25 },
-    // Regno Unito generico (DOPO i prefissi specifici)
-    { prefix: '0044', category: 'international', description: 'Regno Unito', costPerMinute: 0.20 },
+    // ALGERIA (00213)
+    { prefix: '002135', category: 'international', description: 'Algeria Mobile', costPerMinute: 0.23 },
+    { prefix: '002136', category: 'international', description: 'Algeria Mobile', costPerMinute: 0.23 },
+    { prefix: '002137', category: 'international', description: 'Algeria Mobile', costPerMinute: 0.23 },
+    { prefix: '00213', category: 'international', description: 'Algeria', costPerMinute: 0.13 },
     
-    // SVIZZERA (0041) - Prima i prefissi specifici, poi quelli generici
-    // Fissi Svizzera - principali città
-    { prefix: '004122', category: 'international', description: 'Svizzera Fisso - Ginevra', costPerMinute: 0.30 },
-    { prefix: '004144', category: 'international', description: 'Svizzera Fisso - Zurigo', costPerMinute: 0.30 },
-    { prefix: '004131', category: 'international', description: 'Svizzera Fisso - Basilea', costPerMinute: 0.30 },
-    { prefix: '004121', category: 'international', description: 'Svizzera Fisso - Losanna', costPerMinute: 0.30 },
-    { prefix: '004161', category: 'international', description: 'Svizzera Fisso - Basilea', costPerMinute: 0.30 },
-    // Mobili Svizzera
-    { prefix: '004174', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.35 },
-    { prefix: '004175', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.35 },
-    { prefix: '004176', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.35 },
-    { prefix: '004177', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.35 },
-    { prefix: '004178', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.35 },
-    { prefix: '004179', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.35 },
-    // Svizzera generica (DOPO i prefissi specifici)
-    { prefix: '0041', category: 'international', description: 'Svizzera', costPerMinute: 0.30 },
+    // ANDORRA (00376)
+    { prefix: '003763', category: 'international', description: 'Andorra Mobile', costPerMinute: 0.40 },
+    { prefix: '003764', category: 'international', description: 'Andorra Mobile', costPerMinute: 0.40 },
+    { prefix: '003765', category: 'international', description: 'Andorra Mobile', costPerMinute: 0.40 },
+    { prefix: '003766', category: 'international', description: 'Andorra Mobile', costPerMinute: 0.40 },
+    { prefix: '00376', category: 'international', description: 'Andorra', costPerMinute: 0.05 },
     
-    // AUSTRIA (0043) - Prima i prefissi specifici, poi quelli generici
-    { prefix: '00431', category: 'international', description: 'Austria Fisso - Vienna', costPerMinute: 0.22 },
-    { prefix: '0043316', category: 'international', description: 'Austria Fisso - Graz', costPerMinute: 0.22 },
-    { prefix: '0043512', category: 'international', description: 'Austria Fisso - Innsbruck', costPerMinute: 0.22 },
-    { prefix: '004364', category: 'international', description: 'Austria Mobile', costPerMinute: 0.27 },
-    { prefix: '004365', category: 'international', description: 'Austria Mobile', costPerMinute: 0.27 },
-    { prefix: '004366', category: 'international', description: 'Austria Mobile', costPerMinute: 0.27 },
-    { prefix: '004367', category: 'international', description: 'Austria Mobile', costPerMinute: 0.27 },
-    { prefix: '004368', category: 'international', description: 'Austria Mobile', costPerMinute: 0.27 },
-    { prefix: '004369', category: 'international', description: 'Austria Mobile', costPerMinute: 0.27 },
-    // Austria generica (DOPO i prefissi specifici)
-    { prefix: '0043', category: 'international', description: 'Austria', costPerMinute: 0.22 },
+    // ANGOLA (00244)
+    { prefix: '00244', category: 'international', description: 'Angola', costPerMinute: 0.23 },
     
-    // PAESI BASSI (0031) - Prima i prefissi specifici, poi quelli generici
-    { prefix: '003120', category: 'international', description: 'Paesi Bassi Fisso - Amsterdam', costPerMinute: 0.18 },
-    { prefix: '003170', category: 'international', description: 'Paesi Bassi Fisso - Rotterdam', costPerMinute: 0.18 },
-    { prefix: '003130', category: 'international', description: 'Paesi Bassi Fisso - Utrecht', costPerMinute: 0.18 },
-    { prefix: '003140', category: 'international', description: 'Paesi Bassi Fisso - Eindhoven', costPerMinute: 0.18 },
-    { prefix: '003161', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.22 },
-    { prefix: '003162', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.22 },
-    { prefix: '003163', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.22 },
-    { prefix: '003164', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.22 },
-    { prefix: '003165', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.22 },
-    { prefix: '003166', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.22 },
-    // Paesi Bassi generico (DOPO i prefissi specifici)
-    { prefix: '0031', category: 'international', description: 'Paesi Bassi', costPerMinute: 0.18 },
+    // ARGENTINA (0054)
+    { prefix: '005411', category: 'international', description: 'Argentina Mobile', costPerMinute: 0.23 },
+    { prefix: '005415', category: 'international', description: 'Argentina Mobile', costPerMinute: 0.23 },
+    { prefix: '005491', category: 'international', description: 'Argentina Mobile', costPerMinute: 0.23 },
+    { prefix: '0054', category: 'international', description: 'Argentina', costPerMinute: 0.05 },
     
-    // BELGIO (0032) - Prima i prefissi specifici, poi quelli generici
-    { prefix: '00322', category: 'international', description: 'Belgio Fisso - Bruxelles', costPerMinute: 0.18 },
-    { prefix: '00323', category: 'international', description: 'Belgio Fisso - Anversa', costPerMinute: 0.18 },
-    { prefix: '00329', category: 'international', description: 'Belgio Fisso - Gent', costPerMinute: 0.18 },
-    { prefix: '003216', category: 'international', description: 'Belgio Fisso - Leuven', costPerMinute: 0.18 },
-    { prefix: '003245', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.22 },
-    { prefix: '003246', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.22 },
-    { prefix: '003247', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.22 },
-    { prefix: '003248', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.22 },
-    { prefix: '003249', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.22 },
-    // Belgio generico (DOPO i prefissi specifici)
-    { prefix: '0032', category: 'international', description: 'Belgio', costPerMinute: 0.18 },
+    // ARMENIA (00374)
+    { prefix: '003749', category: 'international', description: 'Armenia Mobile', costPerMinute: 0.40 },
+    { prefix: '00374', category: 'international', description: 'Armenia', costPerMinute: 0.23 },
     
-    // Altri paesi europei con distinzione fisso/mobile
+    // AUSTRALIA (0061)
+    { prefix: '00614', category: 'international', description: 'Australia Mobile', costPerMinute: 0.23 },
+    { prefix: '0061', category: 'international', description: 'Australia', costPerMinute: 0.03 },
     
-    // Prefissi generici internazionali (fallback per paesi non dettagliati)
-    { prefix: '00351', category: 'international', description: 'Portogallo', costPerMinute: 0.18 },
-    { prefix: '00030', category: 'international', description: 'Grecia', costPerMinute: 0.25 },
-    { prefix: '00045', category: 'international', description: 'Danimarca', costPerMinute: 0.22 },
-    { prefix: '00046', category: 'international', description: 'Svezia', costPerMinute: 0.22 },
-    { prefix: '00047', category: 'international', description: 'Norvegia', costPerMinute: 0.25 },
-    { prefix: '00048', category: 'international', description: 'Polonia', costPerMinute: 0.20 },
-    { prefix: '00420', category: 'international', description: 'Repubblica Ceca', costPerMinute: 0.20 },
-    { prefix: '00421', category: 'international', description: 'Slovacchia', costPerMinute: 0.20 },
-    { prefix: '00386', category: 'international', description: 'Slovenia', costPerMinute: 0.25 },
-    { prefix: '00385', category: 'international', description: 'Croazia', costPerMinute: 0.25 },
-    { prefix: '00381', category: 'international', description: 'Serbia', costPerMinute: 0.30 },
-    { prefix: '00382', category: 'international', description: 'Montenegro', costPerMinute: 0.35 },
-    { prefix: '00387', category: 'international', description: 'Bosnia Erzegovina', costPerMinute: 0.35 },
-    { prefix: '00389', category: 'international', description: 'Macedonia del Nord', costPerMinute: 0.35 },
-    { prefix: '00355', category: 'international', description: 'Albania', costPerMinute: 0.40 },
-    { prefix: '001', category: 'international', description: 'Stati Uniti/Canada', costPerMinute: 0.25 },
-    { prefix: '0086', category: 'international', description: 'Cina', costPerMinute: 0.35 },
-    { prefix: '0081', category: 'international', description: 'Giappone', costPerMinute: 0.40 },
-    { prefix: '0091', category: 'international', description: 'India', costPerMinute: 0.30 },
-    { prefix: '0055', category: 'international', description: 'Brasile', costPerMinute: 0.28 },
-    { prefix: '007', category: 'international', description: 'Russia', costPerMinute: 0.35 },
-    { prefix: '0090', category: 'international', description: 'Turchia', costPerMinute: 0.25 },
-    { prefix: '00212', category: 'international', description: 'Marocco', costPerMinute: 0.30 },
-    { prefix: '00213', category: 'international', description: 'Algeria', costPerMinute: 0.35 },
-    { prefix: '00216', category: 'international', description: 'Tunisia', costPerMinute: 0.30 },
-    { prefix: '0020', category: 'international', description: 'Egitto', costPerMinute: 0.35 },
+    // AUSTRIA (0043) - dettaglio esistente
+    { prefix: '00431', category: 'international', description: 'Austria Fisso - Vienna', costPerMinute: 0.03 },
+    { prefix: '0043316', category: 'international', description: 'Austria Fisso - Graz', costPerMinute: 0.03 },
+    { prefix: '0043512', category: 'international', description: 'Austria Fisso - Innsbruck', costPerMinute: 0.03 },
+    { prefix: '004364', category: 'international', description: 'Austria Mobile', costPerMinute: 0.23 },
+    { prefix: '004365', category: 'international', description: 'Austria Mobile', costPerMinute: 0.23 },
+    { prefix: '004366', category: 'international', description: 'Austria Mobile', costPerMinute: 0.23 },
+    { prefix: '004367', category: 'international', description: 'Austria Mobile', costPerMinute: 0.23 },
+    { prefix: '004368', category: 'international', description: 'Austria Mobile', costPerMinute: 0.23 },
+    { prefix: '004369', category: 'international', description: 'Austria Mobile', costPerMinute: 0.23 },
+    { prefix: '0043', category: 'international', description: 'Austria', costPerMinute: 0.03 },
+    
+    // AZERBAIJAN (00994)
+    { prefix: '009944', category: 'international', description: 'Azerbaijan Mobile', costPerMinute: 0.23 },
+    { prefix: '009945', category: 'international', description: 'Azerbaijan Mobile', costPerMinute: 0.23 },
+    { prefix: '009950', category: 'international', description: 'Azerbaijan Mobile', costPerMinute: 0.23 },
+    { prefix: '009951', category: 'international', description: 'Azerbaijan Mobile', costPerMinute: 0.23 },
+    { prefix: '009955', category: 'international', description: 'Azerbaijan Mobile', costPerMinute: 0.23 },
+    { prefix: '00994', category: 'international', description: 'Azerbaijan', costPerMinute: 0.23 },
+    
+    // BAHRAIN (00973)
+    { prefix: '009733', category: 'international', description: 'Bahrain Mobile', costPerMinute: 0.40 },
+    { prefix: '009736', category: 'international', description: 'Bahrain Mobile', costPerMinute: 0.40 },
+    { prefix: '009737', category: 'international', description: 'Bahrain Mobile', costPerMinute: 0.40 },
+    { prefix: '009739', category: 'international', description: 'Bahrain Mobile', costPerMinute: 0.40 },
+    { prefix: '00973', category: 'international', description: 'Bahrain', costPerMinute: 0.23 },
+    
+    // BANGLADESH (00880)
+    { prefix: '008801', category: 'international', description: 'Bangladesh Mobile', costPerMinute: 0.40 },
+    { prefix: '00880', category: 'international', description: 'Bangladesh', costPerMinute: 0.23 },
+    
+    // BELARUS (00375)
+    { prefix: '003752', category: 'international', description: 'Belarus Mobile', costPerMinute: 0.40 },
+    { prefix: '003759', category: 'international', description: 'Belarus Mobile', costPerMinute: 0.40 },
+    { prefix: '00375', category: 'international', description: 'Belarus', costPerMinute: 0.23 },
+    
+    // BELGIO (0032) - dettaglio esistente
+    { prefix: '00322', category: 'international', description: 'Belgio Fisso - Bruxelles', costPerMinute: 0.02 },
+    { prefix: '00323', category: 'international', description: 'Belgio Fisso - Anversa', costPerMinute: 0.02 },
+    { prefix: '00329', category: 'international', description: 'Belgio Fisso - Gent', costPerMinute: 0.02 },
+    { prefix: '003216', category: 'international', description: 'Belgio Fisso - Leuven', costPerMinute: 0.02 },
+    { prefix: '003245', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.40 },
+    { prefix: '003246', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.40 },
+    { prefix: '003247', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.40 },
+    { prefix: '003248', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.40 },
+    { prefix: '003249', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.40 },
+    { prefix: '0032', category: 'international', description: 'Belgio', costPerMinute: 0.02 },
+    
+    // BOLIVIA (00591)
+    { prefix: '005917', category: 'international', description: 'Bolivia Mobile', costPerMinute: 0.23 },
+    { prefix: '00591', category: 'international', description: 'Bolivia', costPerMinute: 0.23 },
+    
+    // BOSNIA (00387)
+    { prefix: '003876', category: 'international', description: 'Bosnia Mobile', costPerMinute: 0.23 },
+    { prefix: '00387', category: 'international', description: 'Bosnia', costPerMinute: 0.23 },
+    
+    // BOTSWANA (00267)
+    { prefix: '002677', category: 'international', description: 'Botswana Mobile', costPerMinute: 0.40 },
+    { prefix: '00267', category: 'international', description: 'Botswana', costPerMinute: 0.23 },
+    
+    // BRASILE (0055)
+    { prefix: '005511', category: 'international', description: 'Brasile Mobile', costPerMinute: 0.23 },
+    { prefix: '005521', category: 'international', description: 'Brasile Mobile', costPerMinute: 0.23 },
+    { prefix: '005531', category: 'international', description: 'Brasile Mobile', costPerMinute: 0.23 },
+    { prefix: '005541', category: 'international', description: 'Brasile Mobile', costPerMinute: 0.23 },
+    { prefix: '005551', category: 'international', description: 'Brasile Mobile', costPerMinute: 0.23 },
+    { prefix: '005561', category: 'international', description: 'Brasile Mobile', costPerMinute: 0.23 },
+    { prefix: '005571', category: 'international', description: 'Brasile Mobile', costPerMinute: 0.23 },
+    { prefix: '005581', category: 'international', description: 'Brasile Mobile', costPerMinute: 0.23 },
+    { prefix: '005585', category: 'international', description: 'Brasile Mobile', costPerMinute: 0.23 },
+    { prefix: '0055', category: 'international', description: 'Brasile', costPerMinute: 0.05 },
+    
+    // BRUNEI (00673)
+    { prefix: '00673', category: 'international', description: 'Brunei', costPerMinute: 0.13 },
+    
+    // BULGARIA (00359)
+    { prefix: '003598', category: 'international', description: 'Bulgaria Mobile', costPerMinute: 0.40 },
+    { prefix: '003599', category: 'international', description: 'Bulgaria Mobile', costPerMinute: 0.40 },
+    { prefix: '00359', category: 'international', description: 'Bulgaria', costPerMinute: 0.05 },
+    
+    // CANADA (001)
+    { prefix: '001', category: 'international', description: 'Canada/Stati Uniti', costPerMinute: 0.03 },
+    
+    // CHILE (0056)
+    { prefix: '00569', category: 'international', description: 'Cile Mobile', costPerMinute: 0.23 },
+    { prefix: '0056', category: 'international', description: 'Cile', costPerMinute: 0.23 },
+    
+    // CINA (0086)
+    { prefix: '008613', category: 'international', description: 'Cina Mobile', costPerMinute: 0.05 },
+    { prefix: '008615', category: 'international', description: 'Cina Mobile', costPerMinute: 0.05 },
+    { prefix: '008618', category: 'international', description: 'Cina Mobile', costPerMinute: 0.05 },
+    { prefix: '0086', category: 'international', description: 'Cina', costPerMinute: 0.05 },
+    
+    // COLOMBIA (0057)
+    { prefix: '00573', category: 'international', description: 'Colombia Mobile', costPerMinute: 0.13 },
+    { prefix: '0057', category: 'international', description: 'Colombia', costPerMinute: 0.13 },
+    
+    // COSTA RICA (00506)
+    { prefix: '005068', category: 'international', description: 'Costa Rica Mobile', costPerMinute: 0.13 },
+    { prefix: '00506', category: 'international', description: 'Costa Rica', costPerMinute: 0.09 },
+    
+    // CROAZIA (00385)
+    { prefix: '003859', category: 'international', description: 'Croazia Mobile', costPerMinute: 0.23 },
+    { prefix: '00385', category: 'international', description: 'Croazia', costPerMinute: 0.05 },
+    
+    // REPUBBLICA CECA (00420)
+    { prefix: '00420', category: 'international', description: 'Repubblica Ceca', costPerMinute: 0.05 },
+    
+    // DANIMARCA (0045)
+    { prefix: '0045', category: 'international', description: 'Danimarca', costPerMinute: 0.02 },
+    
+    // ECUADOR (00593)
+    { prefix: '005939', category: 'international', description: 'Ecuador Mobile', costPerMinute: 0.23 },
+    { prefix: '00593', category: 'international', description: 'Ecuador', costPerMinute: 0.23 },
+    
+    // EGITTO (0020)
+    { prefix: '002010', category: 'international', description: 'Egitto Mobile', costPerMinute: 0.23 },
+    { prefix: '002011', category: 'international', description: 'Egitto Mobile', costPerMinute: 0.23 },
+    { prefix: '002012', category: 'international', description: 'Egitto Mobile', costPerMinute: 0.23 },
+    { prefix: '0020', category: 'international', description: 'Egitto', costPerMinute: 0.23 },
+    
+    // ESTONIA (00372)
+    { prefix: '003725', category: 'international', description: 'Estonia Mobile', costPerMinute: 0.40 },
+    { prefix: '00372', category: 'international', description: 'Estonia', costPerMinute: 0.03 },
+    
+    // FINLANDIA (00358)
+    { prefix: '003584', category: 'international', description: 'Finlandia Mobile', costPerMinute: 0.23 },
+    { prefix: '003585', category: 'international', description: 'Finlandia Mobile', costPerMinute: 0.23 },
+    { prefix: '00358', category: 'international', description: 'Finlandia', costPerMinute: 0.05 },
+    
+    // FRANCIA (0033) - dettaglio esistente CORRETTO
+    { prefix: '003301', category: 'international', description: 'Francia Fisso - Parigi', costPerMinute: 0.02 },
+    { prefix: '003302', category: 'international', description: 'Francia Fisso - Nord-Ovest', costPerMinute: 0.02 },
+    { prefix: '003303', category: 'international', description: 'Francia Fisso - Nord-Est', costPerMinute: 0.02 },
+    { prefix: '003304', category: 'international', description: 'Francia Fisso - Sud-Est', costPerMinute: 0.02 },
+    { prefix: '003305', category: 'international', description: 'Francia Fisso - Sud-Ovest', costPerMinute: 0.02 },
+    { prefix: '00336', category: 'international', description: 'Francia Mobile', costPerMinute: 0.23 },
+    { prefix: '003307', category: 'international', description: 'Francia Mobile', costPerMinute: 0.23 },
+    { prefix: '0033', category: 'international', description: 'Francia', costPerMinute: 0.02 },
+    
+    // GERMANIA (0049) - dettaglio esistente
+    { prefix: '004930', category: 'international', description: 'Germania Fisso - Berlino', costPerMinute: 0.02 },
+    { prefix: '004989', category: 'international', description: 'Germania Fisso - Monaco', costPerMinute: 0.02 },
+    { prefix: '004940', category: 'international', description: 'Germania Fisso - Amburgo', costPerMinute: 0.02 },
+    { prefix: '004969', category: 'international', description: 'Germania Fisso - Francoforte', costPerMinute: 0.02 },
+    { prefix: '004921', category: 'international', description: 'Germania Fisso - Düsseldorf', costPerMinute: 0.02 },
+    { prefix: '0049711', category: 'international', description: 'Germania Fisso - Stoccarda', costPerMinute: 0.02 },
+    { prefix: '0049221', category: 'international', description: 'Germania Fisso - Colonia', costPerMinute: 0.02 },
+    { prefix: '004915', category: 'international', description: 'Germania Mobile', costPerMinute: 0.23 },
+    { prefix: '004916', category: 'international', description: 'Germania Mobile', costPerMinute: 0.23 },
+    { prefix: '004917', category: 'international', description: 'Germania Mobile', costPerMinute: 0.23 },
+    { prefix: '0049', category: 'international', description: 'Germania', costPerMinute: 0.02 },
+    
+    // GRECIA (0030)
+    { prefix: '003069', category: 'international', description: 'Grecia Mobile', costPerMinute: 0.23 },
+    { prefix: '0030', category: 'international', description: 'Grecia', costPerMinute: 0.02 },
+    
+    // HONG KONG (00852)
+    { prefix: '008525', category: 'international', description: 'Hong Kong Mobile', costPerMinute: 0.13 },
+    { prefix: '008526', category: 'international', description: 'Hong Kong Mobile', costPerMinute: 0.13 },
+    { prefix: '008529', category: 'international', description: 'Hong Kong Mobile', costPerMinute: 0.13 },
+    { prefix: '00852', category: 'international', description: 'Hong Kong', costPerMinute: 0.05 },
+    
+    // UNGHERIA (0036)
+    { prefix: '003620', category: 'international', description: 'Ungheria Mobile', costPerMinute: 0.23 },
+    { prefix: '003630', category: 'international', description: 'Ungheria Mobile', costPerMinute: 0.23 },
+    { prefix: '003631', category: 'international', description: 'Ungheria Mobile', costPerMinute: 0.23 },
+    { prefix: '003670', category: 'international', description: 'Ungheria Mobile', costPerMinute: 0.23 },
+    { prefix: '0036', category: 'international', description: 'Ungheria', costPerMinute: 0.03 },
+    
+    // ISLANDA (00354)
+    { prefix: '003546', category: 'international', description: 'Islanda Mobile', costPerMinute: 0.40 },
+    { prefix: '003548', category: 'international', description: 'Islanda Mobile', costPerMinute: 0.40 },
+    { prefix: '00354', category: 'international', description: 'Islanda', costPerMinute: 0.03 },
+    
+    // INDIA (0091)
+    { prefix: '00917', category: 'international', description: 'India Mobile', costPerMinute: 0.23 },
+    { prefix: '00918', category: 'international', description: 'India Mobile', costPerMinute: 0.23 },
+    { prefix: '00919', category: 'international', description: 'India Mobile', costPerMinute: 0.23 },
+    { prefix: '0091', category: 'international', description: 'India', costPerMinute: 0.23 },
+    
+    // INDONESIA (0062)
+    { prefix: '00628', category: 'international', description: 'Indonesia Mobile', costPerMinute: 0.23 },
+    { prefix: '0062', category: 'international', description: 'Indonesia', costPerMinute: 0.13 },
+    
+    // IRAN (0098)
+    { prefix: '00989', category: 'international', description: 'Iran Mobile', costPerMinute: 0.23 },
+    { prefix: '0098', category: 'international', description: 'Iran', costPerMinute: 0.13 },
+    
+    // IRAQ (00964)
+    { prefix: '009647', category: 'international', description: 'Iraq Mobile', costPerMinute: 0.40 },
+    { prefix: '00964', category: 'international', description: 'Iraq', costPerMinute: 0.23 },
+    
+    // IRLANDA (00353)
+    { prefix: '003538', category: 'international', description: 'Irlanda Mobile', costPerMinute: 0.23 },
+    { prefix: '00353', category: 'international', description: 'Irlanda', costPerMinute: 0.02 },
+    
+    // ISRAELE (00972)
+    { prefix: '009725', category: 'international', description: 'Israele Mobile', costPerMinute: 0.23 },
+    { prefix: '00972', category: 'international', description: 'Israele', costPerMinute: 0.03 },
+    
+    // GIAPPONE (0081)
+    { prefix: '00818', category: 'international', description: 'Giappone Mobile', costPerMinute: 0.23 },
+    { prefix: '00819', category: 'international', description: 'Giappone Mobile', costPerMinute: 0.23 },
+    { prefix: '0081', category: 'international', description: 'Giappone', costPerMinute: 0.08 },
+    
+    // GIORDANIA (00962)
+    { prefix: '009627', category: 'international', description: 'Giordania Mobile', costPerMinute: 0.23 },
+    { prefix: '00962', category: 'international', description: 'Giordania', costPerMinute: 0.23 },
+    
+    // KAZAKHSTAN (007)
+    { prefix: '007701', category: 'international', description: 'Kazakhstan Mobile', costPerMinute: 0.23 },
+    { prefix: '007702', category: 'international', description: 'Kazakhstan Mobile', costPerMinute: 0.23 },
+    { prefix: '007705', category: 'international', description: 'Kazakhstan Mobile', costPerMinute: 0.23 },
+    { prefix: '007707', category: 'international', description: 'Kazakhstan Mobile', costPerMinute: 0.23 },
+    { prefix: '007708', category: 'international', description: 'Kazakhstan Mobile', costPerMinute: 0.23 },
+    { prefix: '007775', category: 'international', description: 'Kazakhstan Mobile', costPerMinute: 0.23 },
+    { prefix: '007776', category: 'international', description: 'Kazakhstan Mobile', costPerMinute: 0.23 },
+    { prefix: '007777', category: 'international', description: 'Kazakhstan Mobile', costPerMinute: 0.23 },
+    { prefix: '007778', category: 'international', description: 'Kazakhstan Mobile', costPerMinute: 0.23 },
+    { prefix: '007', category: 'international', description: 'Kazakhstan/Russia', costPerMinute: 0.13 },
+    
+    // KENYA (00254)
+    { prefix: '002547', category: 'international', description: 'Kenya Mobile', costPerMinute: 0.40 },
+    { prefix: '00254', category: 'international', description: 'Kenya', costPerMinute: 0.23 },
+    
+    // KUWAIT (00965)
+    { prefix: '009655', category: 'international', description: 'Kuwait Mobile', costPerMinute: 0.23 },
+    { prefix: '009656', category: 'international', description: 'Kuwait Mobile', costPerMinute: 0.23 },
+    { prefix: '009659', category: 'international', description: 'Kuwait Mobile', costPerMinute: 0.23 },
+    { prefix: '00965', category: 'international', description: 'Kuwait', costPerMinute: 0.23 },
+    
+    // LETTONIA (00371)
+    { prefix: '003712', category: 'international', description: 'Lettonia Mobile', costPerMinute: 0.23 },
+    { prefix: '003716', category: 'international', description: 'Lettonia Mobile Speciale', costPerMinute: 0.40 },
+    { prefix: '00371', category: 'international', description: 'Lettonia', costPerMinute: 0.13 },
+    
+    // LIBANO (00961)
+    { prefix: '009613', category: 'international', description: 'Libano Mobile', costPerMinute: 0.23 },
+    { prefix: '009617', category: 'international', description: 'Libano Mobile', costPerMinute: 0.23 },
+    { prefix: '00961', category: 'international', description: 'Libano', costPerMinute: 0.13 },
+    
+    // LITUANIA (00370)
+    { prefix: '003706', category: 'international', description: 'Lituania Mobile', costPerMinute: 0.23 },
+    { prefix: '00370', category: 'international', description: 'Lituania', costPerMinute: 0.09 },
+    
+    // LUSSEMBURGO (00352)
+    { prefix: '003526', category: 'international', description: 'Lussemburgo Mobile', costPerMinute: 0.23 },
+    { prefix: '00352', category: 'international', description: 'Lussemburgo', costPerMinute: 0.05 },
+    
+    // MACEDONIA (00389)
+    { prefix: '003897', category: 'international', description: 'Macedonia Mobile', costPerMinute: 0.40 },
+    { prefix: '00389', category: 'international', description: 'Macedonia', costPerMinute: 0.13 },
+    
+    // MALESIA (0060)
+    { prefix: '006010', category: 'international', description: 'Malesia Mobile', costPerMinute: 0.08 },
+    { prefix: '006011', category: 'international', description: 'Malesia Mobile', costPerMinute: 0.08 },
+    { prefix: '006012', category: 'international', description: 'Malesia Mobile', costPerMinute: 0.08 },
+    { prefix: '006013', category: 'international', description: 'Malesia Mobile', costPerMinute: 0.08 },
+    { prefix: '006014', category: 'international', description: 'Malesia Mobile', costPerMinute: 0.08 },
+    { prefix: '006016', category: 'international', description: 'Malesia Mobile', costPerMinute: 0.08 },
+    { prefix: '006017', category: 'international', description: 'Malesia Mobile', costPerMinute: 0.08 },
+    { prefix: '006018', category: 'international', description: 'Malesia Mobile', costPerMinute: 0.08 },
+    { prefix: '006019', category: 'international', description: 'Malesia Mobile', costPerMinute: 0.08 },
+    { prefix: '0060', category: 'international', description: 'Malesia', costPerMinute: 0.08 },
+    
+    // MALTA (00356)
+    { prefix: '003569', category: 'international', description: 'Malta Mobile', costPerMinute: 0.40 },
+    { prefix: '00356', category: 'international', description: 'Malta', costPerMinute: 0.13 },
+    
+    // MAROCCO (00212)
+    { prefix: '002126', category: 'international', description: 'Marocco Mobile', costPerMinute: 0.40 },
+    { prefix: '00212', category: 'international', description: 'Marocco', costPerMinute: 0.23 },
+    
+    // MESSICO (0052)
+    { prefix: '005215', category: 'international', description: 'Messico Mobile', costPerMinute: 0.23 },
+    { prefix: '0052', category: 'international', description: 'Messico', costPerMinute: 0.23 },
+    
+    // MOLDAVIA (00373)
+    { prefix: '003736', category: 'international', description: 'Moldavia Mobile', costPerMinute: 0.23 },
+    { prefix: '003737', category: 'international', description: 'Moldavia Mobile', costPerMinute: 0.23 },
+    { prefix: '00373', category: 'international', description: 'Moldavia', costPerMinute: 0.13 },
+    
+    // MONACO (00377)
+    { prefix: '003776', category: 'international', description: 'Monaco Mobile', costPerMinute: 0.23 },
+    { prefix: '00377', category: 'international', description: 'Monaco', costPerMinute: 0.03 },
+    
+    // MONTENEGRO (00382)
+    { prefix: '003826', category: 'international', description: 'Montenegro Mobile', costPerMinute: 0.40 },
+    { prefix: '00382', category: 'international', description: 'Montenegro', costPerMinute: 0.13 },
+    
+    // PAESI BASSI (0031) - dettaglio esistente
+    { prefix: '003120', category: 'international', description: 'Paesi Bassi Fisso - Amsterdam', costPerMinute: 0.02 },
+    { prefix: '003170', category: 'international', description: 'Paesi Bassi Fisso - Rotterdam', costPerMinute: 0.02 },
+    { prefix: '003130', category: 'international', description: 'Paesi Bassi Fisso - Utrecht', costPerMinute: 0.02 },
+    { prefix: '003140', category: 'international', description: 'Paesi Bassi Fisso - Eindhoven', costPerMinute: 0.02 },
+    { prefix: '003161', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.23 },
+    { prefix: '003162', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.23 },
+    { prefix: '003163', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.23 },
+    { prefix: '003164', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.23 },
+    { prefix: '003165', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.23 },
+    { prefix: '003166', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.23 },
+    { prefix: '0031', category: 'international', description: 'Paesi Bassi', costPerMinute: 0.02 },
+    
+    // NUOVA ZELANDA (0064)
+    { prefix: '006421', category: 'international', description: 'Nuova Zelanda Mobile', costPerMinute: 0.40 },
+    { prefix: '006422', category: 'international', description: 'Nuova Zelanda Mobile', costPerMinute: 0.40 },
+    { prefix: '006427', category: 'international', description: 'Nuova Zelanda Mobile', costPerMinute: 0.40 },
+    { prefix: '0064', category: 'international', description: 'Nuova Zelanda', costPerMinute: 0.08 },
+    
+    // NIGERIA (00234)
+    { prefix: '002347', category: 'international', description: 'Nigeria Mobile', costPerMinute: 0.23 },
+    { prefix: '002348', category: 'international', description: 'Nigeria Mobile', costPerMinute: 0.23 },
+    { prefix: '002349', category: 'international', description: 'Nigeria Mobile', costPerMinute: 0.23 },
+    { prefix: '00234', category: 'international', description: 'Nigeria', costPerMinute: 0.13 },
+    
+    // NORVEGIA (0047)
+    { prefix: '00474', category: 'international', description: 'Norvegia Mobile', costPerMinute: 0.23 },
+    { prefix: '00479', category: 'international', description: 'Norvegia Mobile', costPerMinute: 0.23 },
+    { prefix: '0047', category: 'international', description: 'Norvegia', costPerMinute: 0.05 },
+    
+    // PAKISTAN (0092)
+    { prefix: '00923', category: 'international', description: 'Pakistan Mobile', costPerMinute: 0.23 },
+    { prefix: '0092', category: 'international', description: 'Pakistan', costPerMinute: 0.23 },
+    
+    // PANAMA (00507)
+    { prefix: '005076', category: 'international', description: 'Panama Mobile', costPerMinute: 0.23 },
+    { prefix: '00507', category: 'international', description: 'Panama', costPerMinute: 0.13 },
+    
+    // PERU (0051)
+    { prefix: '00519', category: 'international', description: 'Peru Mobile', costPerMinute: 0.23 },
+    { prefix: '0051', category: 'international', description: 'Peru', costPerMinute: 0.09 },
+    
+    // FILIPPINE (0063)
+    { prefix: '00639', category: 'international', description: 'Filippine Mobile', costPerMinute: 0.23 },
+    { prefix: '0063', category: 'international', description: 'Filippine', costPerMinute: 0.23 },
+    
+    // POLONIA (0048)
+    { prefix: '004850', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '004851', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '004853', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '004857', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '004860', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '004866', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '004869', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '004872', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '004873', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '004878', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '004879', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '004888', category: 'international', description: 'Polonia Mobile', costPerMinute: 0.23 },
+    { prefix: '0048', category: 'international', description: 'Polonia', costPerMinute: 0.03 },
+    
+    // PORTOGALLO (00351)
+    { prefix: '003519', category: 'international', description: 'Portogallo Mobile', costPerMinute: 0.23 },
+    { prefix: '00351', category: 'international', description: 'Portogallo', costPerMinute: 0.02 },
+    
+    // QATAR (00974)
+    { prefix: '009743', category: 'international', description: 'Qatar Mobile', costPerMinute: 0.40 },
+    { prefix: '009745', category: 'international', description: 'Qatar Mobile', costPerMinute: 0.40 },
+    { prefix: '009746', category: 'international', description: 'Qatar Mobile', costPerMinute: 0.40 },
+    { prefix: '009747', category: 'international', description: 'Qatar Mobile', costPerMinute: 0.40 },
+    { prefix: '00974', category: 'international', description: 'Qatar', costPerMinute: 0.40 },
+    
+    // REGNO UNITO (0044) - dettaglio esistente
+    { prefix: '004420', category: 'international', description: 'Regno Unito Fisso - Londra', costPerMinute: 0.02 },
+    { prefix: '0044121', category: 'international', description: 'Regno Unito Fisso - Birmingham', costPerMinute: 0.02 },
+    { prefix: '0044161', category: 'international', description: 'Regno Unito Fisso - Manchester', costPerMinute: 0.02 },
+    { prefix: '0044113', category: 'international', description: 'Regno Unito Fisso - Leeds', costPerMinute: 0.02 },
+    { prefix: '0044141', category: 'international', description: 'Regno Unito Fisso - Glasgow', costPerMinute: 0.02 },
+    { prefix: '0044131', category: 'international', description: 'Regno Unito Fisso - Edimburgo', costPerMinute: 0.02 },
+    { prefix: '004474', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.23 },
+    { prefix: '004475', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.23 },
+    { prefix: '004476', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.23 },
+    { prefix: '004477', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.23 },
+    { prefix: '004478', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.23 },
+    { prefix: '004479', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.23 },
+    { prefix: '0044', category: 'international', description: 'Regno Unito', costPerMinute: 0.02 },
+    
+    // ROMANIA (0040)
+    { prefix: '004072', category: 'international', description: 'Romania Mobile', costPerMinute: 0.23 },
+    { prefix: '004073', category: 'international', description: 'Romania Mobile', costPerMinute: 0.23 },
+    { prefix: '004074', category: 'international', description: 'Romania Mobile', costPerMinute: 0.23 },
+    { prefix: '004075', category: 'international', description: 'Romania Mobile', costPerMinute: 0.23 },
+    { prefix: '004076', category: 'international', description: 'Romania Mobile', costPerMinute: 0.23 },
+    { prefix: '004078', category: 'international', description: 'Romania Mobile', costPerMinute: 0.23 },
+    { prefix: '0040', category: 'international', description: 'Romania', costPerMinute: 0.09 },
+    
+    // RUSSIA (007)
+    { prefix: '00795', category: 'international', description: 'Russia Mobile', costPerMinute: 0.23 },
+    { prefix: '00796', category: 'international', description: 'Russia Mobile', costPerMinute: 0.23 },
+    { prefix: '00797', category: 'international', description: 'Russia Mobile', costPerMinute: 0.23 },
+    { prefix: '00798', category: 'international', description: 'Russia Mobile', costPerMinute: 0.23 },
+    { prefix: '00799', category: 'international', description: 'Russia Mobile', costPerMinute: 0.23 },
+    { prefix: '007', category: 'international', description: 'Russia', costPerMinute: 0.13 },
+    
+    // ARABIA SAUDITA (00966)
+    { prefix: '009665', category: 'international', description: 'Arabia Saudita Mobile', costPerMinute: 0.23 },
+    { prefix: '00966', category: 'international', description: 'Arabia Saudita', costPerMinute: 0.23 },
+    
+    // SERBIA (00381)
+    { prefix: '003816', category: 'international', description: 'Serbia Mobile', costPerMinute: 0.40 },
+    { prefix: '00381', category: 'international', description: 'Serbia', costPerMinute: 0.13 },
+    
+    // SINGAPORE (0065)
+    { prefix: '00658', category: 'international', description: 'Singapore Mobile', costPerMinute: 0.23 },
+    { prefix: '00659', category: 'international', description: 'Singapore Mobile', costPerMinute: 0.23 },
+    { prefix: '0065', category: 'international', description: 'Singapore', costPerMinute: 0.08 },
+    
+    // SLOVACCHIA (00421)
+    { prefix: '004219', category: 'international', description: 'Slovacchia Mobile', costPerMinute: 0.23 },
+    { prefix: '00421', category: 'international', description: 'Slovacchia', costPerMinute: 0.09 },
+    
+    // SLOVENIA (00386)
+    { prefix: '003863', category: 'international', description: 'Slovenia Mobile', costPerMinute: 0.40 },
+    { prefix: '003864', category: 'international', description: 'Slovenia Mobile', costPerMinute: 0.40 },
+    { prefix: '00386', category: 'international', description: 'Slovenia', costPerMinute: 0.05 },
+    
+    // SUD AFRICA (0027)
+    { prefix: '002771', category: 'international', description: 'Sud Africa Mobile', costPerMinute: 0.23 },
+    { prefix: '002772', category: 'international', description: 'Sud Africa Mobile', costPerMinute: 0.23 },
+    { prefix: '002773', category: 'international', description: 'Sud Africa Mobile', costPerMinute: 0.23 },
+    { prefix: '002774', category: 'international', description: 'Sud Africa Mobile', costPerMinute: 0.23 },
+    { prefix: '002776', category: 'international', description: 'Sud Africa Mobile', costPerMinute: 0.23 },
+    { prefix: '002778', category: 'international', description: 'Sud Africa Mobile', costPerMinute: 0.23 },
+    { prefix: '002779', category: 'international', description: 'Sud Africa Mobile', costPerMinute: 0.23 },
+    { prefix: '0027', category: 'international', description: 'Sud Africa', costPerMinute: 0.13 },
+    
+    // COREA DEL SUD (0082)
+    { prefix: '008201', category: 'international', description: 'Corea del Sud Mobile', costPerMinute: 0.23 },
+    { prefix: '0082', category: 'international', description: 'Corea del Sud', costPerMinute: 0.08 },
+    
+    // SPAGNA (0034) - dettaglio esistente
+    { prefix: '003491', category: 'international', description: 'Spagna Fisso - Madrid', costPerMinute: 0.02 },
+    { prefix: '003493', category: 'international', description: 'Spagna Fisso - Barcelona', costPerMinute: 0.02 },
+    { prefix: '003495', category: 'international', description: 'Spagna Fisso - Valencia', costPerMinute: 0.02 },
+    { prefix: '003496', category: 'international', description: 'Spagna Fisso - Alicante', costPerMinute: 0.02 },
+    { prefix: '003494', category: 'international', description: 'Spagna Fisso - Siviglia', costPerMinute: 0.02 },
+    { prefix: '003498', category: 'international', description: 'Spagna Fisso - Bilbao', costPerMinute: 0.02 },
+    { prefix: '003497', category: 'international', description: 'Spagna Fisso - Asturias', costPerMinute: 0.02 },
+    { prefix: '003492', category: 'international', description: 'Spagna Fisso - La Coruña', costPerMinute: 0.02 },
+    { prefix: '00346', category: 'international', description: 'Spagna Mobile', costPerMinute: 0.23 },
+    { prefix: '00347', category: 'international', description: 'Spagna Mobile', costPerMinute: 0.23 },
+    { prefix: '00348', category: 'international', description: 'Spagna Mobile', costPerMinute: 0.23 },
+    { prefix: '00349', category: 'international', description: 'Spagna Mobile', costPerMinute: 0.23 },
+    { prefix: '0034', category: 'international', description: 'Spagna', costPerMinute: 0.02 },
+    
+    // SRI LANKA (0094)
+    { prefix: '009471', category: 'international', description: 'Sri Lanka Mobile', costPerMinute: 0.23 },
+    { prefix: '009472', category: 'international', description: 'Sri Lanka Mobile', costPerMinute: 0.23 },
+    { prefix: '009475', category: 'international', description: 'Sri Lanka Mobile', costPerMinute: 0.23 },
+    { prefix: '009477', category: 'international', description: 'Sri Lanka Mobile', costPerMinute: 0.23 },
+    { prefix: '009478', category: 'international', description: 'Sri Lanka Mobile', costPerMinute: 0.23 },
+    { prefix: '0094', category: 'international', description: 'Sri Lanka', costPerMinute: 0.13 },
+    
+    // SVEZIA (0046)
+    { prefix: '004670', category: 'international', description: 'Svezia Mobile', costPerMinute: 0.40 },
+    { prefix: '004672', category: 'international', description: 'Svezia Mobile', costPerMinute: 0.40 },
+    { prefix: '004673', category: 'international', description: 'Svezia Mobile', costPerMinute: 0.40 },
+    { prefix: '004676', category: 'international', description: 'Svezia Mobile', costPerMinute: 0.40 },
+    { prefix: '0046', category: 'international', description: 'Svezia', costPerMinute: 0.02 },
+    
+    // SVIZZERA (0041) - dettaglio esistente
+    { prefix: '004122', category: 'international', description: 'Svizzera Fisso - Ginevra', costPerMinute: 0.02 },
+    { prefix: '004144', category: 'international', description: 'Svizzera Fisso - Zurigo', costPerMinute: 0.02 },
+    { prefix: '004131', category: 'international', description: 'Svizzera Fisso - Basilea', costPerMinute: 0.02 },
+    { prefix: '004121', category: 'international', description: 'Svizzera Fisso - Losanna', costPerMinute: 0.02 },
+    { prefix: '004161', category: 'international', description: 'Svizzera Fisso - Basilea', costPerMinute: 0.02 },
+    { prefix: '004174', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.19 },
+    { prefix: '004175', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.19 },
+    { prefix: '004176', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.19 },
+    { prefix: '004177', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.19 },
+    { prefix: '004178', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.19 },
+    { prefix: '004179', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.19 },
+    { prefix: '0041', category: 'international', description: 'Svizzera', costPerMinute: 0.02 },
+    
+    // TAIWAN (00886)
+    { prefix: '008869', category: 'international', description: 'Taiwan Mobile', costPerMinute: 0.23 },
+    { prefix: '00886', category: 'international', description: 'Taiwan', costPerMinute: 0.05 },
+    
+    // THAILANDIA (0066)
+    { prefix: '00668', category: 'international', description: 'Thailandia Mobile', costPerMinute: 0.23 },
+    { prefix: '00669', category: 'international', description: 'Thailandia Mobile', costPerMinute: 0.23 },
+    { prefix: '0066', category: 'international', description: 'Thailandia', costPerMinute: 0.08 },
+    
+    // TUNISIA (00216)
+    { prefix: '002162', category: 'international', description: 'Tunisia Mobile', costPerMinute: 0.40 },
+    { prefix: '002169', category: 'international', description: 'Tunisia Mobile', costPerMinute: 0.40 },
+    { prefix: '00216', category: 'international', description: 'Tunisia', costPerMinute: 0.23 },
+    
+    // TURCHIA (0090)
+    { prefix: '009050', category: 'international', description: 'Turchia Mobile', costPerMinute: 0.23 },
+    { prefix: '009051', category: 'international', description: 'Turchia Mobile', costPerMinute: 0.23 },
+    { prefix: '009052', category: 'international', description: 'Turchia Mobile', costPerMinute: 0.23 },
+    { prefix: '009053', category: 'international', description: 'Turchia Mobile', costPerMinute: 0.23 },
+    { prefix: '009054', category: 'international', description: 'Turchia Mobile', costPerMinute: 0.23 },
+    { prefix: '009055', category: 'international', description: 'Turchia Mobile', costPerMinute: 0.23 },
+    { prefix: '009056', category: 'international', description: 'Turchia Mobile', costPerMinute: 0.23 },
+    { prefix: '0090', category: 'international', description: 'Turchia', costPerMinute: 0.05 },
+    
+    // UCRAINA (00380)
+    { prefix: '003803', category: 'international', description: 'Ucraina Mobile', costPerMinute: 0.23 },
+    { prefix: '003805', category: 'international', description: 'Ucraina Mobile', costPerMinute: 0.23 },
+    { prefix: '003806', category: 'international', description: 'Ucraina Mobile', costPerMinute: 0.23 },
+    { prefix: '003809', category: 'international', description: 'Ucraina Mobile', costPerMinute: 0.23 },
+    { prefix: '00380', category: 'international', description: 'Ucraina', costPerMinute: 0.13 },
+    
+    // EMIRATI ARABI UNITI (00971)
+    { prefix: '009715', category: 'international', description: 'Emirati Arabi Mobile', costPerMinute: 0.23 },
+    { prefix: '00971', category: 'international', description: 'Emirati Arabi Uniti', costPerMinute: 0.23 },
+    
+    // URUGUAY (00598)
+    { prefix: '005989', category: 'international', description: 'Uruguay Mobile', costPerMinute: 0.40 },
+    { prefix: '00598', category: 'international', description: 'Uruguay', costPerMinute: 0.23 },
+    
+    // VENEZUELA (0058)
+    { prefix: '005841', category: 'international', description: 'Venezuela Mobile', costPerMinute: 0.23 },
+    { prefix: '005842', category: 'international', description: 'Venezuela Mobile', costPerMinute: 0.23 },
+    { prefix: '005843', category: 'international', description: 'Venezuela Mobile', costPerMinute: 0.23 },
+    { prefix: '005844', category: 'international', description: 'Venezuela Mobile', costPerMinute: 0.23 },
+    { prefix: '0058', category: 'international', description: 'Venezuela', costPerMinute: 0.08 },
+    
+    // VIETNAM (0084)
+    { prefix: '008412', category: 'international', description: 'Vietnam Mobile', costPerMinute: 0.23 },
+    { prefix: '008416', category: 'international', description: 'Vietnam Mobile', costPerMinute: 0.23 },
+    { prefix: '008418', category: 'international', description: 'Vietnam Mobile', costPerMinute: 0.23 },
+    { prefix: '008419', category: 'international', description: 'Vietnam Mobile', costPerMinute: 0.23 },
+    { prefix: '0084', category: 'international', description: 'Vietnam', costPerMinute: 0.23 },
+    
+    // SERVIZI SPECIALI
+    { prefix: '001888', category: 'special', description: 'Servizi Speciali Internazionali', costPerMinute: 2.00 },
+    { prefix: '001900', category: 'special', description: 'Servizi Speciali Internazionali', costPerMinute: 2.00 },
+    { prefix: '0041800', category: 'special', description: 'Servizi Speciali Svizzeri', costPerMinute: 2.00 },
+    { prefix: '0041900', category: 'special', description: 'Servizi Speciali Svizzeri', costPerMinute: 2.00 },
+    { prefix: '00870', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00871', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00872', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00873', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00874', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00875', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00876', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00877', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00878', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00879', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00880', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00881', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00882', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00883', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
+    { prefix: '00888', category: 'special', description: 'Servizi Satellitari', costPerMinute: 2.00 },
     
     // Fissi italiani completi con nomi delle città (priorità alta)
     // Milano e provincia

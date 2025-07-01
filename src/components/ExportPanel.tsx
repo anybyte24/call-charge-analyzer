@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -222,7 +221,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
             <Checkbox 
               id="groupByCategory" 
               checked={groupByCategory} 
-              onCheckedChange={setGroupByCategory}
+              onCheckedChange={(checked) => setGroupByCategory(checked === true)}
             />
             <label htmlFor="groupByCategory" className="text-sm">
               Raggruppa chiamate per categoria

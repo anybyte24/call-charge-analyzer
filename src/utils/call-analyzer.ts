@@ -24,16 +24,72 @@ export class CallAnalyzer {
     { prefix: '091', category: 'landline', description: 'Fisso Palermo', costPerMinute: 0.03 },
     { prefix: '0', category: 'landline', description: 'Fisso', costPerMinute: 0.05 },
     
-    // Prefissi mobile italiani
-    { prefix: '33', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
-    { prefix: '34', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
-    { prefix: '35', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
-    { prefix: '36', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
-    { prefix: '37', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
-    { prefix: '38', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
-    { prefix: '39', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
-    { prefix: '32', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
-    { prefix: '31', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    // Prefissi mobile italiani - specifici per operatore
+    { prefix: '330', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '331', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '333', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '334', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '335', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '336', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '337', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '338', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '339', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '340', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '341', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '342', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '343', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '344', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '345', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '346', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '347', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '348', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '349', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    
+    { prefix: '350', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '351', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '352', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '353', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '354', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '355', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '356', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '357', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '358', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '359', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '360', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '361', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '362', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '363', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '364', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '365', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '366', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '367', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '368', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '369', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '380', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '383', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '388', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '389', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    
+    { prefix: '320', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '321', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '322', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '323', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '324', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '327', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '328', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '329', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '390', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '391', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '392', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '393', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '394', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '395', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '396', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '397', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '398', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '399', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    
+    // Prefissi generici per fallback
     { prefix: '3', category: 'mobile', description: 'Mobile', costPerMinute: 0.15 },
     { prefix: '7', category: 'mobile', description: 'Mobile', costPerMinute: 0.15 },
     
@@ -71,7 +127,7 @@ export class CallAnalyzer {
       };
     }
 
-    // Handle international numbers first (not Italian)
+    // Handle international numbers (not Italian - don't start with 39)
     if (cleanNumber.startsWith('+') && !cleanNumber.startsWith('+39')) {
       console.log('International number detected:', cleanNumber);
       
@@ -99,23 +155,19 @@ export class CallAnalyzer {
       };
     }
 
-    // Handle Italian numbers
+    // Handle Italian numbers - ALWAYS remove the 39 prefix for Italian calls
     let numberToAnalyze = cleanNumber;
     
-    // Remove Italian country code variations more carefully
-    if (cleanNumber.startsWith('+39') && cleanNumber.length > 6) {
+    // Per i numeri italiani, rimuovi sempre il prefisso 39 se presente
+    if (cleanNumber.startsWith('39') && cleanNumber.length > 5) {
+      numberToAnalyze = cleanNumber.substring(2);
+      console.log('Removed 39 prefix from Italian number, analyzing:', numberToAnalyze);
+    } else if (cleanNumber.startsWith('+39') && cleanNumber.length > 6) {
       numberToAnalyze = cleanNumber.substring(3);
       console.log('Removed +39 prefix, analyzing:', numberToAnalyze);
     } else if (cleanNumber.startsWith('0039') && cleanNumber.length > 8) {
       numberToAnalyze = cleanNumber.substring(4);
       console.log('Removed 0039 prefix, analyzing:', numberToAnalyze);
-    } else if (cleanNumber.startsWith('39') && cleanNumber.length > 8) {
-      // Only remove 39 if the remaining number looks like a valid Italian number
-      const possibleNumber = cleanNumber.substring(2);
-      if (possibleNumber.length >= 8 && (possibleNumber.startsWith('3') || possibleNumber.startsWith('0') || possibleNumber.startsWith('8') || possibleNumber.startsWith('1'))) {
-        numberToAnalyze = possibleNumber;
-        console.log('Removed 39 prefix, analyzing:', numberToAnalyze);
-      }
     }
 
     // Now analyze the Italian number
@@ -139,12 +191,12 @@ export class CallAnalyzer {
       .filter(p => !p.prefix.startsWith('+'))
       .sort((a, b) => b.prefix.length - a.prefix.length);
 
-    console.log('Checking prefixes in order:', sortedPrefixes.map(p => p.prefix));
+    console.log('Checking prefixes in order for number:', number);
 
     // Check each prefix in order
     for (const prefixConf of sortedPrefixes) {
       if (number.startsWith(prefixConf.prefix)) {
-        console.log('Found matching prefix:', prefixConf.prefix, 'for number:', number);
+        console.log('Found matching prefix:', prefixConf.prefix, 'for number:', number, '-> category:', prefixConf.description);
         return {
           type: prefixConf.category,
           description: prefixConf.description,

@@ -12,12 +12,12 @@ export class CallAnalyzer {
   ];
 
   static categorizeNumber(number: string, prefixConfig: PrefixConfig[] = this.defaultPrefixConfig): CallCategory & { costPerMinute: number } {
-    // Remove Italian prefix +39 if present and clean the number
-    const cleanNumber = number.replace(/^(\+39|0039|39)/, '').replace(/\s+/g, '');
+    // Clean number: remove +39, #, spaces and other non-numeric characters except digits
+    const cleanNumber = number.replace(/^(\+39|0039|39)/, '').replace(/[^0-9]/g, '');
     
     console.log('Categorizing number:', number, 'cleaned:', cleanNumber);
     
-    // Check if this looks like a phone number (starts with digits and has reasonable length)
+    // Check if this looks like a phone number
     if (!/^\d/.test(cleanNumber) || cleanNumber.length < 8) {
       console.log('Not a valid phone number:', cleanNumber);
       return { 
@@ -56,39 +56,33 @@ export class CallAnalyzer {
     
     console.log('Parsing duration:', cleanDuration);
     
-    // Try different formats
-    let parts: string[] = [];
-    
-    // Check for colon-separated format (HH:MM:SS or MM:SS)
+    // Check for time format (HH:MM:SS or MM:SS)
     if (cleanDuration.includes(':')) {
-      parts = cleanDuration.split(':');
+      const parts = cleanDuration.split(':');
+      
+      if (parts.length === 3) {
+        // HH:MM:SS format
+        const hours = parseInt(parts[0]) || 0;
+        const minutes = parseInt(parts[1]) || 0;
+        const seconds = parseInt(parts[2]) || 0;
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        console.log('Duration HH:MM:SS:', hours, minutes, seconds, '=', totalSeconds, 'seconds');
+        return totalSeconds;
+      } else if (parts.length === 2) {
+        // MM:SS format
+        const minutes = parseInt(parts[0]) || 0;
+        const seconds = parseInt(parts[1]) || 0;
+        const totalSeconds = minutes * 60 + seconds;
+        console.log('Duration MM:SS:', minutes, seconds, '=', totalSeconds, 'seconds');
+        return totalSeconds;
+      }
     }
-    // Check for dot-separated format
-    else if (cleanDuration.includes('.')) {
-      parts = cleanDuration.split('.');
-    }
+    
     // Single number might be seconds
-    else if (!isNaN(parseInt(cleanDuration))) {
+    if (!isNaN(parseInt(cleanDuration))) {
       const seconds = parseInt(cleanDuration);
       console.log('Duration as seconds:', seconds);
       return seconds;
-    }
-    
-    if (parts.length === 3) {
-      // HH:MM:SS format
-      const hours = parseInt(parts[0]) || 0;
-      const minutes = parseInt(parts[1]) || 0;
-      const seconds = parseInt(parts[2]) || 0;
-      const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-      console.log('Duration HH:MM:SS:', hours, minutes, seconds, '=', totalSeconds, 'seconds');
-      return totalSeconds;
-    } else if (parts.length === 2) {
-      // MM:SS format
-      const minutes = parseInt(parts[0]) || 0;
-      const seconds = parseInt(parts[1]) || 0;
-      const totalSeconds = minutes * 60 + seconds;
-      console.log('Duration MM:SS:', minutes, seconds, '=', totalSeconds, 'seconds');
-      return totalSeconds;
     }
     
     console.log('Could not parse duration:', cleanDuration);
@@ -125,69 +119,28 @@ export class CallAnalyzer {
       
       console.log(`Processing line ${i}:`, line);
       
-      let fields: string[] = [];
-      
-      // Try different CSV parsing approaches
-      if (line.includes(',')) {
-        fields = this.parseCSVLine(line, ',');
-      } else if (line.includes(';')) {
-        fields = this.parseCSVLine(line, ';');
-      } else if (line.includes('\t')) {
-        fields = line.split('\t');
-      }
-      
+      // Parse CSV line with proper handling of quoted fields
+      const fields = this.parseCSVLine(line, ',');
       console.log(`Line ${i} fields:`, fields);
       
-      if (fields.length >= 3) {
+      if (fields.length >= 5) {
+        // Based on your CSV structure:
+        // 0: Ora Chiamata, 1: Data Chiamata, 2: Chiamante, 3: Chiamato, 4: Durata
         const cleanFields = fields.map(field => field.replace(/"/g, '').trim());
         
-        // More intelligent field identification
-        let timestamp = '';
-        let date = '';
-        let calledNumber = '';
-        let callerNumber = '';
-        let duration = '00:00:00';
+        const timeCall = cleanFields[0] || '';
+        const dateCall = cleanFields[1] || '';
+        const callerNumber = cleanFields[2] || '';
+        const calledNumber = cleanFields[3] || '';
+        const duration = cleanFields[4] || '00:00:00';
         
-        // Identify phone numbers - they should be longer strings with digits
-        const phoneFields = cleanFields.filter(field => {
-          const clean = field.replace(/\D/g, ''); // Remove non-digits
-          return clean.length >= 8 && clean.length <= 15; // Phone numbers typically 8-15 digits
+        console.log('Parsed fields:', {
+          timeCall,
+          dateCall,
+          callerNumber,
+          calledNumber,
+          duration
         });
-        
-        // Identify duration fields (contain : or are pure numbers that could be seconds)
-        const timeFields = cleanFields.filter(field => 
-          field.includes(':') || 
-          field.includes('.') ||
-          (!isNaN(parseInt(field)) && parseInt(field) > 0 && parseInt(field) < 86400) // seconds in a day
-        );
-        
-        // Identify date/time fields
-        const dateTimeFields = cleanFields.filter(field => 
-          field.includes('/') || 
-          field.includes('-') ||
-          field.match(/^\d{2}:\d{2}/) // Time format
-        );
-        
-        console.log('Phone fields:', phoneFields);
-        console.log('Time fields:', timeFields);
-        console.log('DateTime fields:', dateTimeFields);
-        
-        // Assign fields
-        if (phoneFields.length >= 1) {
-          calledNumber = phoneFields[0];
-          callerNumber = phoneFields[1] || phoneFields[0]; // Use same if only one phone number
-        }
-        
-        if (timeFields.length > 0) {
-          // Prefer duration with colons, otherwise take the last time field
-          duration = timeFields.find(t => t.includes(':')) || 
-                    timeFields.find(t => t.includes('.')) || 
-                    timeFields[timeFields.length - 1] || '0';
-        }
-        
-        // Use first fields as timestamp/date
-        timestamp = dateTimeFields[0] || cleanFields[0] || '';
-        date = dateTimeFields[1] || cleanFields[1] || timestamp;
         
         const categoryWithCost = this.categorizeNumber(calledNumber, prefixConfig);
         const durationSeconds = this.parseDuration(duration);
@@ -202,8 +155,8 @@ export class CallAnalyzer {
         
         records.push({
           id: `${i}-${Date.now()}`,
-          timestamp,
-          date,
+          timestamp: timeCall,
+          date: dateCall,
           callerNumber,
           calledNumber,
           duration,
@@ -282,7 +235,7 @@ export class CallAnalyzer {
   static generateCallerAnalysis(records: CallRecord[]): CallerAnalysis[] {
     const callerMap = new Map<string, CallRecord[]>();
     
-    // Group by caller number (not by date)
+    // Group by caller number
     records.forEach(record => {
       const caller = record.callerNumber;
       if (!callerMap.has(caller)) {

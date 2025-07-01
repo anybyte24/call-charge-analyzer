@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, FileText, Printer, User } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Download, FileText, Printer, User, List, BarChart } from 'lucide-react';
 import { CallSummary, CallerAnalysis, CallRecord } from '@/types/call-analysis';
 import { CallAnalyzer } from '@/utils/call-analyzer';
 
@@ -14,6 +15,8 @@ interface ExportPanelProps {
   fileName: string;
 }
 
+type ExportType = 'summary' | 'details' | 'both';
+
 const ExportPanel: React.FC<ExportPanelProps> = ({ 
   records, 
   summary, 
@@ -21,6 +24,8 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
   fileName 
 }) => {
   const [selectedCaller, setSelectedCaller] = useState<string>('all');
+  const [exportType, setExportType] = useState<ExportType>('both');
+  const [groupByCategory, setGroupByCategory] = useState<boolean>(false);
 
   const downloadFile = (content: string, filename: string, mimeType: string) => {
     const blob = new Blob([content], { type: mimeType });
@@ -50,12 +55,65 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     };
   };
 
-  const handleExportCSV = () => {
+  const generateCustomCSV = () => {
     const { records: filteredRecords, summary: filteredSummary, callerAnalysis: filteredCallerAnalysis } = getFilteredData();
-    const csvContent = CallAnalyzer.exportToCSV(filteredRecords, filteredSummary, filteredCallerAnalysis);
+    let csv = '';
+
+    if (exportType === 'summary' || exportType === 'both') {
+      csv += 'RIEPILOGO GENERALE\n';
+      csv += 'Categoria,Chiamate,Durata,Costo\n';
+      
+      filteredSummary.forEach(cat => {
+        csv += `${cat.category},${cat.count},${cat.formattedDuration},€${cat.cost?.toFixed(2) || '0.00'}\n`;
+      });
+
+      if (selectedCaller !== 'all') {
+        csv += '\n\nDETTAGLIO CHIAMANTE: ' + selectedCaller + '\n';
+        csv += 'Totale Chiamate,Durata Totale,Costo Totale\n';
+        const caller = filteredCallerAnalysis[0];
+        if (caller) {
+          const totalCost = caller.categories.reduce((sum, cat) => sum + (cat.cost || 0), 0);
+          csv += `${caller.totalCalls},${caller.formattedTotalDuration},€${totalCost.toFixed(2)}\n`;
+        }
+      }
+    }
+
+    if (exportType === 'details' || exportType === 'both') {
+      if (csv) csv += '\n\n';
+      
+      if (groupByCategory && selectedCaller !== 'all') {
+        // Group calls by category for single caller
+        const categories = [...new Set(filteredRecords.map(r => r.category.description))];
+        
+        categories.forEach(category => {
+          const categoryRecords = filteredRecords.filter(r => r.category.description === category);
+          csv += `CHIAMATE ${category.toUpperCase()}\n`;
+          csv += 'Data,Ora,Chiamante,Chiamato,Durata,Costo\n';
+          
+          categoryRecords.forEach(record => {
+            csv += `${record.date},${record.timestamp},${record.callerNumber},${record.calledNumber},${record.duration},€${record.cost?.toFixed(2) || '0.00'}\n`;
+          });
+          csv += '\n';
+        });
+      } else {
+        csv += 'DETTAGLIO CHIAMATE\n';
+        csv += 'Data,Ora,Chiamante,Chiamato,Durata,Categoria,Costo\n';
+        
+        filteredRecords.forEach(record => {
+          csv += `${record.date},${record.timestamp},${record.callerNumber},${record.calledNumber},${record.duration},${record.category.description},€${record.cost?.toFixed(2) || '0.00'}\n`;
+        });
+      }
+    }
+
+    return csv;
+  };
+
+  const handleExportCSV = () => {
+    const csvContent = generateCustomCSV();
     const timestamp = new Date().toISOString().split('T')[0];
     const suffix = selectedCaller === 'all' ? 'complete' : `caller-${selectedCaller}`;
-    downloadFile(csvContent, `report-${fileName}-${suffix}-${timestamp}.csv`, 'text/csv');
+    const typeStr = exportType === 'summary' ? 'summary' : exportType === 'details' ? 'details' : 'complete';
+    downloadFile(csvContent, `report-${fileName}-${suffix}-${typeStr}-${timestamp}.csv`, 'text/csv');
   };
 
   const handleExportPDF = () => {
@@ -77,16 +135,18 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     const exportData = {
       fileName,
       caller: selectedCaller,
+      exportType,
       exportDate: new Date().toISOString(),
       summary: filteredSummary,
       callerAnalysis: filteredCallerAnalysis,
-      records: filteredRecords.slice(0, 1000) // Limit to first 1000 records for JSON
+      records: exportType === 'summary' ? [] : filteredRecords.slice(0, 1000) // Include records only if not summary-only
     };
     
     const jsonContent = JSON.stringify(exportData, null, 2);
     const timestamp = new Date().toISOString().split('T')[0];
     const suffix = selectedCaller === 'all' ? 'complete' : `caller-${selectedCaller}`;
-    downloadFile(jsonContent, `data-${fileName}-${suffix}-${timestamp}.json`, 'application/json');
+    const typeStr = exportType === 'summary' ? 'summary' : exportType === 'details' ? 'details' : 'complete';
+    downloadFile(jsonContent, `data-${fileName}-${suffix}-${typeStr}-${timestamp}.json`, 'application/json');
   };
 
   const { summary: currentSummary } = getFilteredData();
@@ -128,6 +188,48 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
           </Select>
         </div>
 
+        <div>
+          <label className="text-sm font-medium mb-2 block">Tipo di Export</label>
+          <Select value={exportType} onValueChange={(value: ExportType) => setExportType(value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="summary">
+                <div className="flex items-center space-x-2">
+                  <BarChart className="h-4 w-4" />
+                  <span>Solo Riepilogo</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="details">
+                <div className="flex items-center space-x-2">
+                  <List className="h-4 w-4" />
+                  <span>Solo Dettaglio Chiamate</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="both">
+                <div className="flex items-center space-x-2">
+                  <FileText className="h-4 w-4" />
+                  <span>Riepilogo + Dettaglio</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selectedCaller !== 'all' && (exportType === 'details' || exportType === 'both') && (
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="groupByCategory" 
+              checked={groupByCategory} 
+              onCheckedChange={setGroupByCategory}
+            />
+            <label htmlFor="groupByCategory" className="text-sm">
+              Raggruppa chiamate per categoria
+            </label>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
           <div>
             <p className="text-sm text-gray-600">Totale Chiamate</p>
@@ -148,7 +250,8 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
             <FileText className="h-4 w-4 mr-2" />
             Esporta come CSV
             <span className="ml-auto text-xs text-gray-500">
-              Excel/Calc compatibile
+              {exportType === 'summary' ? 'Solo riepilogo' : 
+               exportType === 'details' ? 'Solo dettaglio' : 'Completo'}
             </span>
           </Button>
 
@@ -180,8 +283,10 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
         <div className="pt-4 border-t">
           <p className="text-xs text-gray-500">
             {selectedCaller === 'all' 
-              ? 'I report includono riepilogo per categoria, analisi per chiamante e dettaglio completo delle chiamate.'
-              : `Report per il chiamante ${selectedCaller} con analisi dettagliata delle sue chiamate.`
+              ? `Export ${exportType === 'summary' ? 'riepilogo generale' : 
+                        exportType === 'details' ? 'dettaglio chiamate' : 'completo'} per tutti i chiamanti.`
+              : `Export ${exportType === 'summary' ? 'riepilogo' : 
+                        exportType === 'details' ? 'dettaglio chiamate' : 'completo'} per ${selectedCaller}${groupByCategory && exportType !== 'summary' ? ' raggruppato per categoria' : ''}.`
             }
           </p>
         </div>

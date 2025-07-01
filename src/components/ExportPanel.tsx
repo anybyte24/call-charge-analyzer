@@ -59,7 +59,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     const { records: filteredRecords, summary: filteredSummary, callerAnalysis: filteredCallerAnalysis } = getFilteredData();
     let csv = '';
 
-    // Always include summary for complete export
+    // Include summary
     if (exportType === 'summary' || exportType === 'complete') {
       csv += 'RIEPILOGO GENERALE\n';
       csv += 'Categoria,Chiamate,Durata,Costo\n';
@@ -69,7 +69,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
       });
     }
 
-    // Always include caller analysis for complete export
+    // Include caller analysis
     if (exportType === 'details' || exportType === 'complete') {
       if (csv) csv += '\n\n';
       
@@ -82,35 +82,40 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
       });
     }
 
-    // Always include call details for complete export and calls export
-    if (exportType === 'calls' || exportType === 'complete') {
-      if (csv) csv += '\n\n';
+    // SEMPRE includere le chiamate singole (anche per summary e details)
+    if (csv) csv += '\n\n';
+    
+    if (groupByCategory && selectedCaller !== 'all') {
+      // Group calls by category for single caller
+      const categories = [...new Set(filteredRecords.map(r => r.category.description))];
       
-      if (groupByCategory && selectedCaller !== 'all') {
-        // Group calls by category for single caller
-        const categories = [...new Set(filteredRecords.map(r => r.category.description))];
+      categories.forEach(category => {
+        const categoryRecords = filteredRecords.filter(r => r.category.description === category);
+        csv += `CHIAMATE ${category.toUpperCase()}\n`;
+        csv += 'Data,Ora,Chiamante,Chiamato,Durata,Costo\n';
         
-        categories.forEach(category => {
-          const categoryRecords = filteredRecords.filter(r => r.category.description === category);
-          csv += `CHIAMATE ${category.toUpperCase()}\n`;
-          csv += 'Data,Ora,Chiamante,Chiamato,Durata,Costo\n';
-          
-          categoryRecords.forEach(record => {
-            csv += `${record.date},${record.timestamp},${record.callerNumber},${record.calledNumber},${record.duration},€${record.cost?.toFixed(2) || '0.00'}\n`;
-          });
-          csv += '\n';
+        categoryRecords.forEach(record => {
+          csv += `${record.date},${record.timestamp},${record.callerNumber},${record.calledNumber},${record.duration},€${record.cost?.toFixed(2) || '0.00'}\n`;
         });
-      } else {
-        csv += 'DETTAGLIO CHIAMATE\n';
-        csv += 'Data,Ora,Chiamante,Chiamato,Durata,Categoria,Costo\n';
-        
-        filteredRecords.forEach(record => {
-          csv += `${record.date},${record.timestamp},${record.callerNumber},${record.calledNumber},${record.duration},${record.category.description},€${record.cost?.toFixed(2) || '0.00'}\n`;
-        });
-      }
+        csv += '\n';
+      });
+    } else {
+      csv += 'DETTAGLIO TUTTE LE CHIAMATE\n';
+      csv += 'Data,Ora,Chiamante,Chiamato,Durata,Categoria,Costo\n';
+      
+      // Ordina le chiamate per data e ora
+      const sortedRecords = [...filteredRecords].sort((a, b) => {
+        const dateA = new Date(`${a.date} ${a.timestamp}`);
+        const dateB = new Date(`${b.date} ${b.timestamp}`);
+        return dateA.getTime() - dateB.getTime();
+      });
+      
+      sortedRecords.forEach(record => {
+        csv += `${record.date},${record.timestamp},${record.callerNumber},${record.calledNumber},${record.duration},${record.category.description},€${record.cost?.toFixed(2) || '0.00'}\n`;
+      });
     }
 
-    console.log('Generated CSV:', csv);
+    console.log('Generated CSV with all calls:', csv);
     return csv;
   };
 
@@ -138,6 +143,14 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
 
   const handleExportJSON = () => {
     const { records: filteredRecords, summary: filteredSummary, callerAnalysis: filteredCallerAnalysis } = getFilteredData();
+    
+    // Ordina le chiamate per data e ora
+    const sortedRecords = [...filteredRecords].sort((a, b) => {
+      const dateA = new Date(`${a.date} ${a.timestamp}`);
+      const dateB = new Date(`${b.date} ${b.timestamp}`);
+      return dateA.getTime() - dateB.getTime();
+    });
+    
     const exportData = {
       fileName,
       caller: selectedCaller,
@@ -145,7 +158,8 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
       exportDate: new Date().toISOString(),
       summary: filteredSummary,
       callerAnalysis: filteredCallerAnalysis,
-      records: filteredRecords // Always include records for JSON export
+      totalRecords: sortedRecords.length,
+      allCalls: sortedRecords // SEMPRE includere tutte le chiamate
     };
     
     const jsonContent = JSON.stringify(exportData, null, 2);

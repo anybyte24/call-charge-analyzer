@@ -434,7 +434,7 @@ export class NumberCategorizer {
     return { type: 'unknown' as const, description: 'Altro', costPerMinute: 0 };
   }
 
-  // Metodo per ottenere la macro-categoria per l'analisi chiamanti
+  // Metodo aggiornato per mostrare categorie internazionali dettagliate nell'analisi chiamanti
   static getMacroCategory(category: string, type: string): string {
     switch (type) {
       case 'landline':
@@ -444,25 +444,66 @@ export class NumberCategorizer {
       case 'special':
         return category.includes('Verde') ? 'Numero Verde' : 'Numero Premium';
       case 'international':
-        // Per i numeri internazionali, estrai il nome del paese
+        // Per i numeri internazionali, mostra sia il paese che se è fisso/mobile
         if (category.includes('Spagna')) {
+          if (category.includes('Mobile')) {
+            return 'Spagna Mobile';
+          } else if (category.includes('Fisso')) {
+            return 'Spagna Fisso';
+          }
           return 'Spagna';
         } else if (category.includes('Francia')) {
+          if (category.includes('Mobile')) {
+            return 'Francia Mobile';
+          } else if (category.includes('Fisso')) {
+            return 'Francia Fisso';
+          }
           return 'Francia';
         } else if (category.includes('Germania')) {
+          if (category.includes('Mobile')) {
+            return 'Germania Mobile';
+          } else if (category.includes('Fisso')) {
+            return 'Germania Fisso';
+          }
           return 'Germania';
         } else if (category.includes('Regno Unito')) {
+          if (category.includes('Mobile')) {
+            return 'Regno Unito Mobile';
+          } else if (category.includes('Fisso')) {
+            return 'Regno Unito Fisso';
+          }
           return 'Regno Unito';
         } else if (category.includes('Svizzera')) {
+          if (category.includes('Mobile')) {
+            return 'Svizzera Mobile';
+          } else if (category.includes('Fisso')) {
+            return 'Svizzera Fisso';
+          }
           return 'Svizzera';
         } else if (category.includes('Austria')) {
+          if (category.includes('Mobile')) {
+            return 'Austria Mobile';
+          } else if (category.includes('Fisso')) {
+            return 'Austria Fisso';
+          }
           return 'Austria';
         } else if (category.includes('Paesi Bassi')) {
+          if (category.includes('Mobile')) {
+            return 'Paesi Bassi Mobile';
+          } else if (category.includes('Fisso')) {
+            return 'Paesi Bassi Fisso';
+          }
           return 'Paesi Bassi';
         } else if (category.includes('Belgio')) {
+          if (category.includes('Mobile')) {
+            return 'Belgio Mobile';
+          } else if (category.includes('Fisso')) {
+            return 'Belgio Fisso';
+          }
           return 'Belgio';
         }
-        return category; // Per altri paesi internazionali
+        // Per altri paesi internazionali, ritorna il nome del paese
+        return category;
       default:
         return 'Altro';
     }

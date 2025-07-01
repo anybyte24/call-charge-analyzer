@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Plus, Check, X, Eye } from 'lucide-react';
+import { AlertTriangle, Plus, Check, X, TrendingUp, Phone, Globe } from 'lucide-react';
 import { PrefixConfig } from '@/types/call-analysis';
 import { toast } from '@/hooks/use-toast';
 
@@ -24,7 +24,6 @@ const UnknownNumbersManager: React.FC<UnknownNumbersManagerProps> = ({
   onUnknownNumbersChange 
 }) => {
   const [selectedNumbers, setSelectedNumbers] = useState<string[]>([]);
-  const [newCategory, setNewCategory] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newCostPerMinute, setNewCostPerMinute] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'mobile' | 'landline' | 'special' | 'unknown'>('mobile');
@@ -34,9 +33,12 @@ const UnknownNumbersManager: React.FC<UnknownNumbersManagerProps> = ({
     // Remove +39, spaces, # and other characters
     const cleanNumber = number.replace(/^(\+39|0039|39)/, '').replace(/[^0-9]/g, '');
     
-    // Try different prefix lengths
+    // Try different prefix lengths based on Italian numbering
     if (cleanNumber.startsWith('3')) return '3'; // Mobile
     if (cleanNumber.startsWith('7')) return '7'; // Mobile
+    if (cleanNumber.startsWith('800')) return '800'; // Green numbers
+    if (cleanNumber.startsWith('899')) return '899'; // Premium numbers
+    if (cleanNumber.startsWith('1')) return '1'; // Special numbers
     if (cleanNumber.startsWith('0')) {
       // For landline, try different lengths
       if (cleanNumber.length >= 4) return cleanNumber.substring(0, 4);
@@ -44,7 +46,7 @@ const UnknownNumbersManager: React.FC<UnknownNumbersManagerProps> = ({
       return cleanNumber.substring(0, 2);
     }
     
-    // For special numbers, try first 3 digits
+    // For other numbers, try first 3 digits
     if (cleanNumber.length >= 3) return cleanNumber.substring(0, 3);
     return cleanNumber;
   };
@@ -57,21 +59,11 @@ const UnknownNumbersManager: React.FC<UnknownNumbersManagerProps> = ({
     }
   };
 
-  const handleAssignToExistingCategory = (category: 'mobile' | 'landline' | 'special' | 'unknown') => {
+  const handleAssignToExistingCategory = (targetConfig: PrefixConfig) => {
     if (selectedNumbers.length === 0) {
       toast({
         title: "Nessun numero selezionato",
         description: "Seleziona almeno un numero da categorizzare",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const existingConfig = prefixConfig.find(c => c.category === category);
-    if (!existingConfig) {
-      toast({
-        title: "Categoria non trovata",
-        description: "La categoria selezionata non esiste",
         variant: "destructive"
       });
       return;
@@ -87,9 +79,9 @@ const UnknownNumbersManager: React.FC<UnknownNumbersManagerProps> = ({
       if (!prefixConfig.some(c => c.prefix === prefix)) {
         newPrefixConfigs.push({
           prefix,
-          category: existingConfig.category,
-          description: existingConfig.description,
-          costPerMinute: existingConfig.costPerMinute
+          category: targetConfig.category,
+          description: targetConfig.description,
+          costPerMinute: targetConfig.costPerMinute
         });
       }
     });
@@ -105,13 +97,13 @@ const UnknownNumbersManager: React.FC<UnknownNumbersManagerProps> = ({
       
       toast({
         title: "Numeri categorizzati",
-        description: `${newPrefixConfigs.length} prefissi aggiunti alla categoria ${existingConfig.description}`,
+        description: `${newPrefixConfigs.length} prefissi aggiunti alla categoria ${targetConfig.description}`,
       });
     }
   };
 
   const handleCreateNewCategory = () => {
-    if (!newCategory || !newDescription || !newCostPerMinute) {
+    if (!newDescription || !newCostPerMinute) {
       toast({
         title: "Campi mancanti",
         description: "Compila tutti i campi per creare una nuova categoria",
@@ -153,7 +145,6 @@ const UnknownNumbersManager: React.FC<UnknownNumbersManagerProps> = ({
       onUnknownNumbersChange(remainingNumbers);
       
       setSelectedNumbers([]);
-      setNewCategory('');
       setNewDescription('');
       setNewCostPerMinute('');
       setShowCreateForm(false);
@@ -165,16 +156,32 @@ const UnknownNumbersManager: React.FC<UnknownNumbersManagerProps> = ({
     }
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'mobile': return 'bg-blue-100 text-blue-800';
-      case 'landline': return 'bg-green-100 text-green-800';
-      case 'special': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const getCategoryIcon = (category: string, type: string) => {
+    if (category.toLowerCase().includes('mobile') || type === 'mobile') return <Phone className="h-4 w-4" />;
+    if (category.toLowerCase().includes('fisso') || type === 'landline') return <Phone className="h-4 w-4" />;
+    if (category.toLowerCase().includes('verde') || category.toLowerCase().includes('premium')) return <TrendingUp className="h-4 w-4" />;
+    if (type === 'special') return <TrendingUp className="h-4 w-4" />;
+    return <Globe className="h-4 w-4" />;
   };
 
-  const uniqueCategories = Array.from(new Set(prefixConfig.map(c => c.category)));
+  // Get unique categories with their stats
+  const getUniqueCategories = () => {
+    const categoryMap = new Map<string, PrefixConfig & { count: number }>();
+    
+    prefixConfig.forEach(config => {
+      const key = `${config.category}-${config.description}`;
+      if (categoryMap.has(key)) {
+        categoryMap.get(key)!.count++;
+      } else {
+        categoryMap.set(key, { ...config, count: 1 });
+      }
+    });
+    
+    return Array.from(categoryMap.values())
+      .sort((a, b) => b.count - a.count); // Sort by usage (most used first)
+  };
+
+  const uniqueCategories = getUniqueCategories();
 
   return (
     <div className="space-y-6">
@@ -256,25 +263,36 @@ const UnknownNumbersManager: React.FC<UnknownNumbersManagerProps> = ({
 
               <div className="border-t pt-4 space-y-4">
                 <div>
-                  <h4 className="font-medium mb-3">Assegna a categoria esistente:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {uniqueCategories.map(category => {
-                      const config = prefixConfig.find(c => c.category === category);
-                      return config ? (
-                        <Button
-                          key={category}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAssignToExistingCategory(category as any)}
-                          disabled={selectedNumbers.length === 0}
-                          className="flex items-center space-x-2"
-                        >
-                          <span className={`w-3 h-3 rounded-full ${getCategoryColor(category).replace('text-', 'bg-').split(' ')[0]}`}></span>
-                          <span>{config.description}</span>
-                          <span className="text-gray-500">€{config.costPerMinute.toFixed(2)}/min</span>
-                        </Button>
-                      ) : null;
-                    })}
+                  <h4 className="font-medium mb-3 flex items-center space-x-2">
+                    <span>Assegna a categoria esistente:</span>
+                    <Badge variant="outline" className="text-xs">
+                      {uniqueCategories.length} categorie disponibili
+                    </Badge>
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {uniqueCategories.map((config, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAssignToExistingCategory(config)}
+                        disabled={selectedNumbers.length === 0}
+                        className="flex items-center justify-between p-3 h-auto"
+                      >
+                        <div className="flex items-center space-x-2">
+                          {getCategoryIcon(config.description, config.category)}
+                          <div className="text-left">
+                            <div className="font-medium">{config.description}</div>
+                            <div className="text-xs text-gray-500">
+                              €{config.costPerMinute.toFixed(2)}/min
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {config.count} prefissi
+                        </Badge>
+                      </Button>
+                    ))}
                   </div>
                 </div>
 

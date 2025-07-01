@@ -48,6 +48,7 @@ export class CallAnalyzer {
       // Check for Italian international prefix first
       if (cleanNumber.startsWith('+39')) {
         const italianNumber = cleanNumber.substring(3);
+        console.log('Italian international number, extracting:', italianNumber);
         return this.categorizeItalianNumber(italianNumber, prefixConfig);
       }
       
@@ -77,16 +78,20 @@ export class CallAnalyzer {
 
     // Handle numbers that might have Italian prefix without +
     if (cleanNumber.startsWith('0039')) {
+      console.log('Number with 0039 prefix, extracting Italian part');
       const italianNumber = cleanNumber.substring(4);
       return this.categorizeItalianNumber(italianNumber, prefixConfig);
     }
     
-    if (cleanNumber.startsWith('39')) {
+    // Handle numbers starting with 39 (most common case from your CSV)
+    if (cleanNumber.startsWith('39') && cleanNumber.length > 10) {
+      console.log('Number with 39 prefix, extracting Italian part');
       const italianNumber = cleanNumber.substring(2);
       return this.categorizeItalianNumber(italianNumber, prefixConfig);
     }
 
     // If no international prefix, treat as Italian
+    console.log('Treating as Italian number directly');
     return this.categorizeItalianNumber(cleanNumber, prefixConfig);
   }
 
@@ -94,6 +99,7 @@ export class CallAnalyzer {
     console.log('Categorizing Italian number:', number);
     
     if (!number || number.length < 8) {
+      console.log('Italian number too short:', number);
       return { 
         type: 'unknown', 
         description: 'Altro', 
@@ -106,14 +112,16 @@ export class CallAnalyzer {
       .filter(p => !p.prefix.startsWith('+'))
       .sort((a, b) => b.prefix.length - a.prefix.length);
 
+    console.log('Checking prefixes in order:', sortedPrefixes.map(p => p.prefix));
+
     // Check each prefix in order
-    for (const prefixConfig of sortedPrefixes) {
-      if (number.startsWith(prefixConfig.prefix)) {
-        console.log('Found matching prefix:', prefixConfig.prefix, 'for number:', number);
+    for (const prefixConf of sortedPrefixes) {
+      if (number.startsWith(prefixConf.prefix)) {
+        console.log('Found matching prefix:', prefixConf.prefix, 'for number:', number);
         return {
-          type: prefixConfig.category,
-          description: prefixConfig.description,
-          costPerMinute: prefixConfig.costPerMinute
+          type: prefixConf.category,
+          description: prefixConf.description,
+          costPerMinute: prefixConf.costPerMinute
         };
       }
     }

@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, FileText, Printer, User, List, BarChart } from 'lucide-react';
+import { Download, FileText, Printer, User, List, BarChart, Database } from 'lucide-react';
 import { CallSummary, CallerAnalysis, CallRecord } from '@/types/call-analysis';
 import { CallAnalyzer } from '@/utils/call-analyzer';
 
@@ -14,7 +15,7 @@ interface ExportPanelProps {
   fileName: string;
 }
 
-type ExportType = 'summary' | 'details' | 'both';
+type ExportType = 'summary' | 'details' | 'calls' | 'complete';
 
 const ExportPanel: React.FC<ExportPanelProps> = ({ 
   records, 
@@ -23,7 +24,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
   fileName 
 }) => {
   const [selectedCaller, setSelectedCaller] = useState<string>('all');
-  const [exportType, setExportType] = useState<ExportType>('both');
+  const [exportType, setExportType] = useState<ExportType>('complete');
   const [groupByCategory, setGroupByCategory] = useState<boolean>(false);
 
   const downloadFile = (content: string, filename: string, mimeType: string) => {
@@ -58,26 +59,28 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     const { records: filteredRecords, summary: filteredSummary, callerAnalysis: filteredCallerAnalysis } = getFilteredData();
     let csv = '';
 
-    if (exportType === 'summary' || exportType === 'both') {
+    if (exportType === 'summary' || exportType === 'complete') {
       csv += 'RIEPILOGO GENERALE\n';
       csv += 'Categoria,Chiamate,Durata,Costo\n';
       
       filteredSummary.forEach(cat => {
         csv += `${cat.category},${cat.count},${cat.formattedDuration},€${cat.cost?.toFixed(2) || '0.00'}\n`;
       });
-
-      if (selectedCaller !== 'all') {
-        csv += '\n\nDETTAGLIO CHIAMANTE: ' + selectedCaller + '\n';
-        csv += 'Totale Chiamate,Durata Totale,Costo Totale\n';
-        const caller = filteredCallerAnalysis[0];
-        if (caller) {
-          const totalCost = caller.categories.reduce((sum, cat) => sum + (cat.cost || 0), 0);
-          csv += `${caller.totalCalls},${caller.formattedTotalDuration},€${totalCost.toFixed(2)}\n`;
-        }
-      }
     }
 
-    if (exportType === 'details' || exportType === 'both') {
+    if (exportType === 'details' || exportType === 'complete') {
+      if (csv) csv += '\n\n';
+      
+      csv += 'ANALISI PER CHIAMANTE\n';
+      csv += 'Numero Chiamante,Totale Chiamate,Durata Totale,Costo Totale\n';
+      
+      filteredCallerAnalysis.forEach(caller => {
+        const totalCost = caller.categories.reduce((sum, cat) => sum + (cat.cost || 0), 0);
+        csv += `${caller.callerNumber},${caller.totalCalls},${caller.formattedTotalDuration},€${totalCost.toFixed(2)}\n`;
+      });
+    }
+
+    if (exportType === 'calls' || exportType === 'complete') {
       if (csv) csv += '\n\n';
       
       if (groupByCategory && selectedCaller !== 'all') {
@@ -111,7 +114,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     const csvContent = generateCustomCSV();
     const timestamp = new Date().toISOString().split('T')[0];
     const suffix = selectedCaller === 'all' ? 'complete' : `caller-${selectedCaller}`;
-    const typeStr = exportType === 'summary' ? 'summary' : exportType === 'details' ? 'details' : 'complete';
+    const typeStr = exportType;
     downloadFile(csvContent, `report-${fileName}-${suffix}-${typeStr}-${timestamp}.csv`, 'text/csv');
   };
 
@@ -138,13 +141,13 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
       exportDate: new Date().toISOString(),
       summary: filteredSummary,
       callerAnalysis: filteredCallerAnalysis,
-      records: exportType === 'summary' ? [] : filteredRecords.slice(0, 1000) // Include records only if not summary-only
+      records: exportType === 'summary' ? [] : filteredRecords
     };
     
     const jsonContent = JSON.stringify(exportData, null, 2);
     const timestamp = new Date().toISOString().split('T')[0];
     const suffix = selectedCaller === 'all' ? 'complete' : `caller-${selectedCaller}`;
-    const typeStr = exportType === 'summary' ? 'summary' : exportType === 'details' ? 'details' : 'complete';
+    const typeStr = exportType;
     downloadFile(jsonContent, `data-${fileName}-${suffix}-${typeStr}-${timestamp}.json`, 'application/json');
   };
 
@@ -202,21 +205,27 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
               </SelectItem>
               <SelectItem value="details">
                 <div className="flex items-center space-x-2">
+                  <User className="h-4 w-4" />
+                  <span>Solo Analisi Chiamanti</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="calls">
+                <div className="flex items-center space-x-2">
                   <List className="h-4 w-4" />
                   <span>Solo Dettaglio Chiamate</span>
                 </div>
               </SelectItem>
-              <SelectItem value="both">
+              <SelectItem value="complete">
                 <div className="flex items-center space-x-2">
-                  <FileText className="h-4 w-4" />
-                  <span>Riepilogo + Dettaglio</span>
+                  <Database className="h-4 w-4" />
+                  <span>Report Completo</span>
                 </div>
               </SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {selectedCaller !== 'all' && (exportType === 'details' || exportType === 'both') && (
+        {selectedCaller !== 'all' && (exportType === 'calls' || exportType === 'complete') && (
           <div className="flex items-center space-x-2">
             <Checkbox 
               id="groupByCategory" 
@@ -250,7 +259,8 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
             Esporta come CSV
             <span className="ml-auto text-xs text-gray-500">
               {exportType === 'summary' ? 'Solo riepilogo' : 
-               exportType === 'details' ? 'Solo dettaglio' : 'Completo'}
+               exportType === 'details' ? 'Solo chiamanti' : 
+               exportType === 'calls' ? 'Solo chiamate' : 'Completo'}
             </span>
           </Button>
 
@@ -283,9 +293,11 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
           <p className="text-xs text-gray-500">
             {selectedCaller === 'all' 
               ? `Export ${exportType === 'summary' ? 'riepilogo generale' : 
-                        exportType === 'details' ? 'dettaglio chiamate' : 'completo'} per tutti i chiamanti.`
+                        exportType === 'details' ? 'analisi chiamanti' : 
+                        exportType === 'calls' ? 'dettaglio chiamate' : 'completo'} per tutti i chiamanti.`
               : `Export ${exportType === 'summary' ? 'riepilogo' : 
-                        exportType === 'details' ? 'dettaglio chiamate' : 'completo'} per ${selectedCaller}${groupByCategory && exportType !== 'summary' ? ' raggruppato per categoria' : ''}.`
+                        exportType === 'details' ? 'analisi chiamanti' : 
+                        exportType === 'calls' ? 'dettaglio chiamate' : 'completo'} per ${selectedCaller}${groupByCategory && (exportType === 'calls' || exportType === 'complete') ? ' raggruppato per categoria' : ''}.`
             }
           </p>
         </div>

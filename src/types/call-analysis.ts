@@ -8,6 +8,7 @@ export interface CallRecord {
   duration: string;
   durationSeconds: number;
   category: CallCategory;
+  cost?: number;
 }
 
 export interface CallCategory {
@@ -40,4 +41,12 @@ export interface AnalysisSession {
   totalRecords: number;
   summary: CallSummary[];
   callerAnalysis: CallerAnalysis[];
+  prefixConfig?: PrefixConfig[];
+}
+
+export interface PrefixConfig {
+  prefix: string;
+  category: 'mobile' | 'landline' | 'special' | 'unknown';
+  description: string;
+  costPerMinute: number;
 }

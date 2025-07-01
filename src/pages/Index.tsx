@@ -6,21 +6,25 @@ import FileUpload from '@/components/FileUpload';
 import Dashboard from '@/components/Dashboard';
 import CallerAnalysisTable from '@/components/CallerAnalysisTable';
 import HistoryPanel from '@/components/HistoryPanel';
+import PrefixManager from '@/components/PrefixManager';
+import ExportPanel from '@/components/ExportPanel';
 import { CallAnalyzer } from '@/utils/call-analyzer';
-import { AnalysisSession, CallRecord } from '@/types/call-analysis';
-import { BarChart3, Users, History, Upload } from 'lucide-react';
+import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis';
+import { BarChart3, Users, History, Upload, Settings, Download } from 'lucide-react';
 
 const Index = () => {
   const [currentSession, setCurrentSession] = useState<AnalysisSession | null>(null);
+  const [currentRecords, setCurrentRecords] = useState<CallRecord[]>([]);
   const [sessions, setSessions] = useState<AnalysisSession[]>([]);
+  const [prefixConfig, setPrefixConfig] = useState<PrefixConfig[]>(CallAnalyzer.defaultPrefixConfig);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleFileUpload = async (content: string, fileName: string) => {
     setIsAnalyzing(true);
     
     try {
-      // Parse CSV
-      const records = CallAnalyzer.parseCSV(content);
+      // Parse CSV with current prefix configuration
+      const records = CallAnalyzer.parseCSV(content, prefixConfig);
       
       if (records.length === 0) {
         toast({
@@ -42,15 +46,19 @@ const Index = () => {
         uploadDate: new Date().toISOString(),
         totalRecords: records.length,
         summary,
-        callerAnalysis
+        callerAnalysis,
+        prefixConfig: [...prefixConfig]
       };
 
       setCurrentSession(session);
+      setCurrentRecords(records);
       setSessions(prev => [session, ...prev]);
+
+      const totalCost = summary.reduce((sum, cat) => sum + (cat.cost || 0), 0);
 
       toast({
         title: "Analisi completata",
-        description: `Processati ${records.length} record da ${fileName}`,
+        description: `Processati ${records.length} record. Costo totale: €${totalCost.toFixed(2)}`,
       });
 
     } catch (error) {
@@ -67,6 +75,38 @@ const Index = () => {
 
   const handleSessionSelect = (session: AnalysisSession) => {
     setCurrentSession(session);
+    // Re-generate records from session data if needed
+    setCurrentRecords([]); // We don't store full records in session to save space
+  };
+
+  const handlePrefixConfigChange = (newConfig: PrefixConfig[]) => {
+    setPrefixConfig(newConfig);
+    
+    // Re-analyze current session if exists
+    if (currentSession && currentRecords.length > 0) {
+      const updatedRecords = currentRecords.map(record => {
+        const categoryWithCost = CallAnalyzer.categorizeNumber(record.calledNumber, newConfig);
+        return {
+          ...record,
+          category: {
+            type: categoryWithCost.type,
+            description: categoryWithCost.description
+          },
+          cost: (record.durationSeconds / 60) * categoryWithCost.costPerMinute
+        };
+      });
+
+      const summary = CallAnalyzer.generateSummary(updatedRecords);
+      const callerAnalysis = CallAnalyzer.generateCallerAnalysis(updatedRecords);
+
+      setCurrentSession({
+        ...currentSession,
+        summary,
+        callerAnalysis,
+        prefixConfig: [...newConfig]
+      });
+      setCurrentRecords(updatedRecords);
+    }
   };
 
   return (
@@ -83,12 +123,21 @@ const Index = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-4">
             <HistoryPanel 
               sessions={sessions}
               onSessionSelect={handleSessionSelect}
               currentSessionId={currentSession?.id}
             />
+            
+            {currentSession && currentRecords.length > 0 && (
+              <ExportPanel
+                records={currentRecords}
+                summary={currentSession.summary}
+                callerAnalysis={currentSession.callerAnalysis}
+                fileName={currentSession.fileName}
+              />
+            )}
           </div>
 
           {/* Main Content */}
@@ -111,7 +160,7 @@ const Index = () => {
               </div>
             ) : (
               <Tabs defaultValue="dashboard" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-6">
                   <TabsTrigger value="dashboard" className="flex items-center space-x-2">
                     <BarChart3 className="h-4 w-4" />
                     <span>Dashboard</span>
@@ -119,6 +168,14 @@ const Index = () => {
                   <TabsTrigger value="callers" className="flex items-center space-x-2">
                     <Users className="h-4 w-4" />
                     <span>Chiamanti</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="settings" className="flex items-center space-x-2">
+                    <Settings className="h-4 w-4" />
+                    <span>Prefissi</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="export" className="flex items-center space-x-2">
+                    <Download className="h-4 w-4" />
+                    <span>Export</span>
                   </TabsTrigger>
                   <TabsTrigger value="upload" className="flex items-center space-x-2">
                     <Upload className="h-4 w-4" />
@@ -141,6 +198,31 @@ const Index = () => {
 
                 <TabsContent value="callers">
                   <CallerAnalysisTable callerAnalysis={currentSession.callerAnalysis} />
+                </TabsContent>
+
+                <TabsContent value="settings">
+                  <PrefixManager
+                    prefixConfig={prefixConfig}
+                    onConfigChange={handlePrefixConfigChange}
+                  />
+                </TabsContent>
+
+                <TabsContent value="export">
+                  {currentRecords.length > 0 ? (
+                    <ExportPanel
+                      records={currentRecords}
+                      summary={currentSession.summary}
+                      callerAnalysis={currentSession.callerAnalysis}
+                      fileName={currentSession.fileName}
+                    />
+                  ) : (
+                    <div className="text-center py-12">
+                      <Download className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">
+                        Ricarica il file per abilitare le funzioni di export
+                      </p>
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="upload">

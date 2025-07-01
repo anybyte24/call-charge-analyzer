@@ -2,13 +2,13 @@ import { CallRecord, CallCategory, CallSummary, CallerAnalysis, PrefixConfig } f
 
 export class CallAnalyzer {
   static defaultPrefixConfig: PrefixConfig[] = [
-    // Prefissi italiani
+    // Prefissi italiani - ordine importante per matching
+    { prefix: '800', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
+    { prefix: '899', category: 'special', description: 'Numero Premium', costPerMinute: 0.90 },
     { prefix: '0', category: 'landline', description: 'Fisso', costPerMinute: 0.05 },
     { prefix: '3', category: 'mobile', description: 'Mobile', costPerMinute: 0.15 },
     { prefix: '7', category: 'mobile', description: 'Mobile', costPerMinute: 0.15 },
     { prefix: '1', category: 'special', description: 'Numero Speciale', costPerMinute: 0.50 },
-    { prefix: '800', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
-    { prefix: '899', category: 'special', description: 'Numero Premium', costPerMinute: 0.90 },
     
     // Prefissi internazionali principali
     { prefix: '+1', category: 'special', description: 'USA/Canada', costPerMinute: 0.25 },
@@ -51,9 +51,9 @@ export class CallAnalyzer {
         return this.categorizeItalianNumber(italianNumber, prefixConfig);
       }
       
-      // Check other international prefixes
+      // Check other international prefixes - sort by length desc to match longest first
       const sortedIntlPrefixes = prefixConfig
-        .filter(p => p.prefix.startsWith('+'))
+        .filter(p => p.prefix.startsWith('+') && p.prefix !== '+39')
         .sort((a, b) => b.prefix.length - a.prefix.length);
       
       const matchingPrefix = sortedIntlPrefixes.find(p => cleanNumber.startsWith(p.prefix));
@@ -76,13 +76,17 @@ export class CallAnalyzer {
     }
 
     // Handle numbers that might have Italian prefix without +
-    if (cleanNumber.startsWith('0039') || cleanNumber.startsWith('39')) {
-      const prefix = cleanNumber.startsWith('0039') ? '0039' : '39';
-      const italianNumber = cleanNumber.substring(prefix.length);
+    if (cleanNumber.startsWith('0039')) {
+      const italianNumber = cleanNumber.substring(4);
+      return this.categorizeItalianNumber(italianNumber, prefixConfig);
+    }
+    
+    if (cleanNumber.startsWith('39')) {
+      const italianNumber = cleanNumber.substring(2);
       return this.categorizeItalianNumber(italianNumber, prefixConfig);
     }
 
-    // Assume it's an Italian number if no international prefix
+    // If no international prefix, treat as Italian
     return this.categorizeItalianNumber(cleanNumber, prefixConfig);
   }
 
@@ -97,32 +101,21 @@ export class CallAnalyzer {
       };
     }
 
-    // Check for 3-digit prefixes first (800, 899)
-    if (number.startsWith('8')) {
-      const threeDigitPrefix = number.substring(0, 3);
-      const matchingThreeDigit = prefixConfig.find(p => p.prefix === threeDigitPrefix);
-      
-      if (matchingThreeDigit) {
-        console.log('Found 3-digit prefix:', threeDigitPrefix);
+    // Sort prefixes by length (longest first) to ensure proper matching
+    const sortedPrefixes = prefixConfig
+      .filter(p => !p.prefix.startsWith('+'))
+      .sort((a, b) => b.prefix.length - a.prefix.length);
+
+    // Check each prefix in order
+    for (const prefixConfig of sortedPrefixes) {
+      if (number.startsWith(prefixConfig.prefix)) {
+        console.log('Found matching prefix:', prefixConfig.prefix, 'for number:', number);
         return {
-          type: matchingThreeDigit.category,
-          description: matchingThreeDigit.description,
-          costPerMinute: matchingThreeDigit.costPerMinute
+          type: prefixConfig.category,
+          description: prefixConfig.description,
+          costPerMinute: prefixConfig.costPerMinute
         };
       }
-    }
-
-    // Check single digit prefixes (0, 1, 3, 7)
-    const firstDigit = number.charAt(0);
-    const matchingSingleDigit = prefixConfig.find(p => p.prefix === firstDigit && p.prefix.length === 1);
-    
-    if (matchingSingleDigit) {
-      console.log('Found single digit prefix:', firstDigit);
-      return {
-        type: matchingSingleDigit.category,
-        description: matchingSingleDigit.description,
-        costPerMinute: matchingSingleDigit.costPerMinute
-      };
     }
 
     console.log('No matching Italian prefix for:', number);

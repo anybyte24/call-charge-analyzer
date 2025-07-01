@@ -12,7 +12,7 @@ export interface CallRecord {
 }
 
 export interface CallCategory {
-  type: 'mobile' | 'landline' | 'special' | 'unknown';
+  type: 'mobile' | 'landline' | 'special' | 'international' | 'unknown';
   description: string;
 }
 
@@ -46,7 +46,7 @@ export interface AnalysisSession {
 
 export interface PrefixConfig {
   prefix: string;
-  category: 'mobile' | 'landline' | 'special' | 'unknown';
+  category: 'mobile' | 'landline' | 'special' | 'international' | 'unknown';
   description: string;
   costPerMinute: number;
 }

@@ -1,4 +1,3 @@
-
 import { PrefixConfig } from '@/types/call-analysis';
 
 export class NumberCategorizer {
@@ -14,7 +13,7 @@ export class NumberCategorizer {
     { prefix: '187', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
     { prefix: '188', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
     
-    // SPAGNA (0034) - Prefissi fissi e mobili dettagliati
+    // SPAGNA (0034) - Prima i prefissi specifici, poi quelli generici
     // Fissi Spagna - principali città
     { prefix: '003491', category: 'international', description: 'Spagna Fisso - Madrid', costPerMinute: 0.18 },
     { prefix: '003493', category: 'international', description: 'Spagna Fisso - Barcelona', costPerMinute: 0.18 },
@@ -29,8 +28,10 @@ export class NumberCategorizer {
     { prefix: '00347', category: 'international', description: 'Spagna Mobile', costPerMinute: 0.22 },
     { prefix: '00348', category: 'international', description: 'Spagna Mobile', costPerMinute: 0.22 },
     { prefix: '00349', category: 'international', description: 'Spagna Mobile', costPerMinute: 0.22 },
+    // Spagna generica (DOPO i prefissi specifici)
+    { prefix: '0034', category: 'international', description: 'Spagna', costPerMinute: 0.18 },
     
-    // FRANCIA (0033) - Prefissi fissi e mobili dettagliati
+    // FRANCIA (0033) - Prima i prefissi specifici, poi quelli generici
     // Fissi Francia - regioni principali
     { prefix: '003301', category: 'international', description: 'Francia Fisso - Parigi', costPerMinute: 0.18 },
     { prefix: '003302', category: 'international', description: 'Francia Fisso - Nord-Ovest', costPerMinute: 0.18 },
@@ -40,8 +41,10 @@ export class NumberCategorizer {
     // Mobili Francia
     { prefix: '003306', category: 'international', description: 'Francia Mobile', costPerMinute: 0.22 },
     { prefix: '003307', category: 'international', description: 'Francia Mobile', costPerMinute: 0.22 },
+    // Francia generica (DOPO i prefissi specifici)
+    { prefix: '0033', category: 'international', description: 'Francia', costPerMinute: 0.18 },
     
-    // GERMANIA (0049) - Prefissi fissi e mobili dettagliati
+    // GERMANIA (0049) - Prima i prefissi specifici, poi quelli generici
     // Fissi Germania - principali città
     { prefix: '004930', category: 'international', description: 'Germania Fisso - Berlino', costPerMinute: 0.18 },
     { prefix: '004989', category: 'international', description: 'Germania Fisso - Monaco', costPerMinute: 0.18 },
@@ -54,8 +57,10 @@ export class NumberCategorizer {
     { prefix: '004915', category: 'international', description: 'Germania Mobile', costPerMinute: 0.22 },
     { prefix: '004916', category: 'international', description: 'Germania Mobile', costPerMinute: 0.22 },
     { prefix: '004917', category: 'international', description: 'Germania Mobile', costPerMinute: 0.22 },
+    // Germania generica (DOPO i prefissi specifici)
+    { prefix: '0049', category: 'international', description: 'Germania', costPerMinute: 0.18 },
     
-    // REGNO UNITO (0044) - Prefissi fissi e mobili dettagliati
+    // REGNO UNITO (0044) - Prima i prefissi specifici, poi quelli generici
     // Fissi Regno Unito - principali città
     { prefix: '004420', category: 'international', description: 'Regno Unito Fisso - Londra', costPerMinute: 0.20 },
     { prefix: '0044121', category: 'international', description: 'Regno Unito Fisso - Birmingham', costPerMinute: 0.20 },
@@ -70,8 +75,10 @@ export class NumberCategorizer {
     { prefix: '004477', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.25 },
     { prefix: '004478', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.25 },
     { prefix: '004479', category: 'international', description: 'Regno Unito Mobile', costPerMinute: 0.25 },
+    // Regno Unito generico (DOPO i prefissi specifici)
+    { prefix: '0044', category: 'international', description: 'Regno Unito', costPerMinute: 0.20 },
     
-    // SVIZZERA (0041) - Prefissi fissi e mobili dettagliati
+    // SVIZZERA (0041) - Prima i prefissi specifici, poi quelli generici
     // Fissi Svizzera - principali città
     { prefix: '004122', category: 'international', description: 'Svizzera Fisso - Ginevra', costPerMinute: 0.30 },
     { prefix: '004144', category: 'international', description: 'Svizzera Fisso - Zurigo', costPerMinute: 0.30 },
@@ -85,10 +92,10 @@ export class NumberCategorizer {
     { prefix: '004177', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.35 },
     { prefix: '004178', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.35 },
     { prefix: '004179', category: 'international', description: 'Svizzera Mobile', costPerMinute: 0.35 },
+    // Svizzera generica (DOPO i prefissi specifici)
+    { prefix: '0041', category: 'international', description: 'Svizzera', costPerMinute: 0.30 },
     
-    // Altri paesi europei con distinzione fisso/mobile
-    
-    // AUSTRIA (0043)
+    // AUSTRIA (0043) - Prima i prefissi specifici, poi quelli generici
     { prefix: '00431', category: 'international', description: 'Austria Fisso - Vienna', costPerMinute: 0.22 },
     { prefix: '0043316', category: 'international', description: 'Austria Fisso - Graz', costPerMinute: 0.22 },
     { prefix: '0043512', category: 'international', description: 'Austria Fisso - Innsbruck', costPerMinute: 0.22 },
@@ -98,8 +105,10 @@ export class NumberCategorizer {
     { prefix: '004367', category: 'international', description: 'Austria Mobile', costPerMinute: 0.27 },
     { prefix: '004368', category: 'international', description: 'Austria Mobile', costPerMinute: 0.27 },
     { prefix: '004369', category: 'international', description: 'Austria Mobile', costPerMinute: 0.27 },
+    // Austria generica (DOPO i prefissi specifici)
+    { prefix: '0043', category: 'international', description: 'Austria', costPerMinute: 0.22 },
     
-    // PAESI BASSI (0031)
+    // PAESI BASSI (0031) - Prima i prefissi specifici, poi quelli generici
     { prefix: '003120', category: 'international', description: 'Paesi Bassi Fisso - Amsterdam', costPerMinute: 0.18 },
     { prefix: '003170', category: 'international', description: 'Paesi Bassi Fisso - Rotterdam', costPerMinute: 0.18 },
     { prefix: '003130', category: 'international', description: 'Paesi Bassi Fisso - Utrecht', costPerMinute: 0.18 },
@@ -110,8 +119,10 @@ export class NumberCategorizer {
     { prefix: '003164', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.22 },
     { prefix: '003165', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.22 },
     { prefix: '003166', category: 'international', description: 'Paesi Bassi Mobile', costPerMinute: 0.22 },
+    // Paesi Bassi generico (DOPO i prefissi specifici)
+    { prefix: '0031', category: 'international', description: 'Paesi Bassi', costPerMinute: 0.18 },
     
-    // BELGIO (0032)
+    // BELGIO (0032) - Prima i prefissi specifici, poi quelli generici
     { prefix: '00322', category: 'international', description: 'Belgio Fisso - Bruxelles', costPerMinute: 0.18 },
     { prefix: '00323', category: 'international', description: 'Belgio Fisso - Anversa', costPerMinute: 0.18 },
     { prefix: '00329', category: 'international', description: 'Belgio Fisso - Gent', costPerMinute: 0.18 },
@@ -121,10 +132,10 @@ export class NumberCategorizer {
     { prefix: '003247', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.22 },
     { prefix: '003248', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.22 },
     { prefix: '003249', category: 'international', description: 'Belgio Mobile', costPerMinute: 0.22 },
+    // Belgio generico (DOPO i prefissi specifici)
+    { prefix: '0032', category: 'international', description: 'Belgio', costPerMinute: 0.18 },
     
-    // Prefissi generici internazionali più specifici per Francia e Spagna
-    { prefix: '0033', category: 'international', description: 'Francia', costPerMinute: 0.18 },
-    { prefix: '0034', category: 'international', description: 'Spagna', costPerMinute: 0.18 },
+    // Altri paesi europei con distinzione fisso/mobile
     
     // Prefissi generici internazionali (fallback per paesi non dettagliati)
     { prefix: '00351', category: 'international', description: 'Portogallo', costPerMinute: 0.18 },

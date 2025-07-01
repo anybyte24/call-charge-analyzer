@@ -128,9 +128,11 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
   };
 
   const handleExportPDF = () => {
-    const { summary: filteredSummary, callerAnalysis: filteredCallerAnalysis } = getFilteredData();
+    const { records: filteredRecords, summary: filteredSummary, callerAnalysis: filteredCallerAnalysis } = getFilteredData();
     const reportTitle = selectedCaller === 'all' ? fileName : `${fileName} - ${selectedCaller}`;
-    const htmlContent = CallAnalyzer.exportToPDF(filteredSummary, filteredCallerAnalysis, reportTitle);
+    
+    // Passa anche le chiamate filtrate al PDF
+    const htmlContent = CallAnalyzer.exportToPDF(filteredSummary, filteredCallerAnalysis, reportTitle, filteredRecords);
     const newWindow = window.open();
     if (newWindow) {
       newWindow.document.write(htmlContent);

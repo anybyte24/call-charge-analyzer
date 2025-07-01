@@ -249,11 +249,18 @@ export class CallAnalyzer {
     return csv;
   }
 
-  static exportToPDF(summary: CallSummary[], callerAnalysis: CallerAnalysis[], fileName: string): string {
+  static exportToPDF(summary: CallSummary[], callerAnalysis: CallerAnalysis[], fileName: string, allRecords?: CallRecord[]): string {
     // Return HTML that can be printed as PDF
     const totalCost = summary.reduce((sum, cat) => sum + (cat.cost || 0), 0);
     const totalCalls = summary.reduce((sum, cat) => sum + cat.count, 0);
     const totalDuration = summary.reduce((sum, cat) => sum + cat.totalSeconds, 0);
+    
+    // Ordina le chiamate per data e ora se fornite
+    const sortedRecords = allRecords ? [...allRecords].sort((a, b) => {
+      const dateA = new Date(`${a.date} ${a.timestamp}`);
+      const dateB = new Date(`${b.date} ${b.timestamp}`);
+      return dateA.getTime() - dateB.getTime();
+    }) : [];
     
     return `
 <!DOCTYPE html>
@@ -261,14 +268,18 @@ export class CallAnalyzer {
 <head>
     <title>Report Chiamate - ${fileName}</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
+        body { font-family: Arial, sans-serif; margin: 20px; font-size: 12px; }
         .header { text-align: center; margin-bottom: 30px; }
         .summary { margin-bottom: 30px; }
         .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        .table th { background-color: #f2f2f2; }
+        .table th, .table td { border: 1px solid #ddd; padding: 6px; text-align: left; font-size: 11px; }
+        .table th { background-color: #f2f2f2; font-weight: bold; }
         .total { font-weight: bold; background-color: #e8f4fd; }
-        @media print { .no-print { display: none; } }
+        .section-title { font-size: 16px; font-weight: bold; margin-top: 30px; margin-bottom: 15px; }
+        @media print { 
+          .no-print { display: none; }
+          .page-break { page-break-before: always; }
+        }
     </style>
 </head>
 <body>
@@ -312,7 +323,7 @@ export class CallAnalyzer {
         </tbody>
     </table>
     
-    <h2>Analisi per Chiamante</h2>
+    <h2 class="section-title">Analisi per Chiamante</h2>
     <table class="table">
         <thead>
             <tr>
@@ -336,6 +347,38 @@ export class CallAnalyzer {
             }).join('')}
         </tbody>
     </table>
+    
+    ${sortedRecords.length > 0 ? `
+    <div class="page-break">
+        <h2 class="section-title">Dettaglio Tutte le Chiamate</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Ora</th>
+                    <th>Chiamante</th>
+                    <th>Chiamato</th>
+                    <th>Durata</th>
+                    <th>Categoria</th>
+                    <th>Costo</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${sortedRecords.map(record => `
+                    <tr>
+                        <td>${record.date}</td>
+                        <td>${record.timestamp}</td>
+                        <td>${record.callerNumber}</td>
+                        <td>${record.calledNumber}</td>
+                        <td>${record.duration}</td>
+                        <td>${record.category.description}</td>
+                        <td>€${record.cost?.toFixed(2) || '0.00'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>
+    ` : ''}
     
     <div class="no-print">
         <button onclick="window.print()">Stampa Report</button>

@@ -1,8 +1,10 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Phone, Clock, TrendingUp, Users, Euro, BarChart3 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity } from 'lucide-react';
 import { CallSummary, CallerAnalysis } from '@/types/call-analysis';
+import CallAnalyticsCharts from './CallAnalyticsCharts';
 
 interface DashboardProps {
   summary: CallSummary[];
@@ -27,7 +29,22 @@ const Dashboard: React.FC<DashboardProps> = ({
     switch (category.toLowerCase()) {
       case 'mobile': return 'from-blue-500 to-blue-600';
       case 'fisso': return 'from-green-500 to-green-600';
-      case 'numero speciale': return 'from-red-500 to-red-600';
+      case 'numero speciale': 
+      case 'numero verde':
+      case 'numero premium': return 'from-red-500 to-red-600';
+      case 'usa/canada':
+      case 'regno unito':
+      case 'francia':
+      case 'germania':
+      case 'spagna':
+      case 'svizzera':
+      case 'austria':
+      case 'cina':
+      case 'giappone':
+      case 'india':
+      case 'brasile':
+      case 'russia':
+      case 'internazionale sconosciuto': return 'from-purple-500 to-purple-600';
       default: return 'from-gray-500 to-gray-600';
     }
   };
@@ -36,7 +53,22 @@ const Dashboard: React.FC<DashboardProps> = ({
     switch (category.toLowerCase()) {
       case 'mobile': return '📱';
       case 'fisso': return '☎️';
-      case 'numero speciale': return '🔥';
+      case 'numero speciale': 
+      case 'numero premium': return '🔥';
+      case 'numero verde': return '💚';
+      case 'usa/canada': return '🇺🇸';
+      case 'regno unito': return '🇬🇧';
+      case 'francia': return '🇫🇷';
+      case 'germania': return '🇩🇪';
+      case 'spagna': return '🇪🇸';
+      case 'svizzera': return '🇨🇭';
+      case 'austria': return '🇦🇹';
+      case 'cina': return '🇨🇳';
+      case 'giappone': return '🇯🇵';
+      case 'india': return '🇮🇳';
+      case 'brasile': return '🇧🇷';
+      case 'russia': return '🇷🇺';
+      case 'internazionale sconosciuto': return '🌍';
       default: return '❓';
     }
   };
@@ -130,49 +162,69 @@ const Dashboard: React.FC<DashboardProps> = ({
         </Card>
       </div>
 
-      {/* Category Summary */}
-      <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <BarChart3 className="h-5 w-5" />
-            <span>Riepilogo per Categoria</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {summary.map((category, index) => (
-              <div key={index} className="group relative overflow-hidden rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300">
-                <div className={`absolute inset-0 bg-gradient-to-br ${getCategoryColor(category.category)} opacity-5 group-hover:opacity-10 transition-opacity`}></div>
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">{getCategoryIcon(category.category)}</span>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{category.category}</h3>
-                        <p className="text-sm text-gray-500">{category.count} chiamate</p>
+      {/* Tabs for different views */}
+      <Tabs defaultValue="summary" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 bg-white/70 backdrop-blur-sm border shadow-lg">
+          <TabsTrigger value="summary" className="flex items-center space-x-2">
+            <BarChart3 className="h-4 w-4" />
+            <span>Riepilogo</span>
+          </TabsTrigger>
+          <TabsTrigger value="charts" className="flex items-center space-x-2">
+            <Activity className="h-4 w-4" />
+            <span>Grafici</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="summary" className="space-y-4">
+          {/* Category Summary */}
+          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <BarChart3 className="h-5 w-5" />
+                <span>Riepilogo per Categoria</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {summary.map((category, index) => (
+                  <div key={index} className="group relative overflow-hidden rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${getCategoryColor(category.category)} opacity-5 group-hover:opacity-10 transition-opacity`}></div>
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-2xl">{getCategoryIcon(category.category)}</span>
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{category.category}</h3>
+                            <p className="text-sm text-gray-500">{category.count} chiamate</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className={`w-full bg-gray-200 rounded-full h-2`}>
+                          <div 
+                            className={`bg-gradient-to-r ${getCategoryColor(category.category)} h-2 rounded-full transition-all duration-500`}
+                            style={{width: `${Math.min((category.count / totalCalls) * 100, 100)}%`}}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <p className="text-sm font-medium text-gray-700">{category.formattedDuration}</p>
+                          <p className="text-lg font-bold text-green-600">
+                            €{category.cost?.toFixed(2) || '0.00'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className={`w-full bg-gray-200 rounded-full h-2`}>
-                      <div 
-                        className={`bg-gradient-to-r ${getCategoryColor(category.category)} h-2 rounded-full transition-all duration-500`}
-                        style={{width: `${Math.min((category.count / totalCalls) * 100, 100)}%`}}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <p className="text-sm font-medium text-gray-700">{category.formattedDuration}</p>
-                      <p className="text-lg font-bold text-green-600">
-                        €{category.cost?.toFixed(2) || '0.00'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="charts" className="space-y-4">
+          <CallAnalyticsCharts summary={summary} callerAnalysis={callerAnalysis} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

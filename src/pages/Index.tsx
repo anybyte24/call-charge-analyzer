@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import FileUpload from '@/components/FileUpload';
+import FileUploadAdvanced from '@/components/FileUploadAdvanced';
 import Dashboard from '@/components/Dashboard';
 import CallerAnalysisTable from '@/components/CallerAnalysisTable';
 import HistoryPanel from '@/components/HistoryPanel';
@@ -208,7 +207,7 @@ const Index = () => {
             <div className="lg:col-span-3">
               <TabsContent value="upload" className="mt-0">
                 <div className="space-y-6">
-                  <FileUpload 
+                  <FileUploadAdvanced 
                     onFileUpload={handleFileUpload}
                     isLoading={isAnalyzing}
                   />

@@ -45,42 +45,39 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
     }
   };
 
-  // Raggruppa le categorie per macro-categoria
+  // Raggruppa le categorie per macro-categoria ma mantiene i dettagli per quelli internazionali
   const groupCategoriesByMacro = (categories: CallSummary[]) => {
     const macroGroups = new Map<string, CallSummary[]>();
     
     categories.forEach(cat => {
       console.log('🔍 Processing category:', cat.category);
       
-      // Determina il tipo basandosi sulla categoria
-      let type = 'unknown';
+      let macroCategory = '';
       
-      // Per numeri mobili italiani
-      if (cat.category.includes('TIM') || cat.category.includes('Vodafone') || 
-          cat.category.includes('Wind') || cat.category.includes('Iliad') || 
-          cat.category.includes('Fastweb') || cat.category === 'Mobile') {
-        type = 'mobile';
-      } 
-      // Per numeri speciali
+      // Per le categorie dettagliate internazionali, mantieni il dettaglio
+      if (['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].some(paese => cat.category.includes(paese))) {
+        // Mantieni la categoria dettagliata per i paesi internazionali
+        macroCategory = cat.category;
+        console.log('🌍 International detailed category kept:', macroCategory);
+      }
+      // Per i mobili italiani, raggruppa sotto "Mobile"
+      else if (cat.category.includes('TIM') || cat.category.includes('Vodafone') || 
+               cat.category.includes('Wind') || cat.category.includes('Iliad') || 
+               cat.category.includes('Fastweb')) {
+        macroCategory = 'Mobile';
+      }
+      // Per numeri speciali, mantieni la categoria specifica
       else if (cat.category === 'Numero Verde') {
-        type = 'special';
+        macroCategory = 'Numero Verde';
       } else if (cat.category === 'Numero Premium') {
-        type = 'special';
+        macroCategory = 'Numero Premium';
       }
-      // Per numeri internazionali - determina se fisso o mobile dalla descrizione
-      else if (['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].some(paese => cat.category.includes(paese))) {
-        type = 'international';
-        console.log('🌍 International category found:', cat.category);
-      }
-      // Per numeri fissi italiani (tutti gli altri)
+      // Per tutti gli altri (fissi italiani), raggruppa sotto "Fisso"
       else {
-        type = 'landline';
+        macroCategory = 'Fisso';
       }
       
-      console.log('📋 Category:', cat.category, 'Type:', type);
-      
-      const macroCategory = NumberCategorizer.getMacroCategory(cat.category, type);
-      console.log('🎯 Macro category result:', macroCategory);
+      console.log('📋 Original category:', cat.category, 'Macro category:', macroCategory);
       
       if (!macroGroups.has(macroCategory)) {
         macroGroups.set(macroCategory, []);

@@ -56,6 +56,18 @@ export class CallAnalyzer {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
+  static calculateCallCost(durationSeconds: number, costPerMinute: number): number {
+    if (durationSeconds === 0 || costPerMinute === 0) return 0;
+    
+    // Se la chiamata dura anche solo 1 secondo, viene tariffata come 1 minuto intero
+    const billingMinutes = Math.ceil(durationSeconds / 60);
+    const cost = billingMinutes * costPerMinute;
+    
+    console.log(`💰 Call cost calculation: ${durationSeconds}s = ${billingMinutes} billing minutes × €${costPerMinute} = €${cost.toFixed(4)}`);
+    
+    return cost;
+  }
+
   static parseCSV(csvContent: string, prefixConfig: PrefixConfig[] = this.defaultPrefixConfig): CallRecord[] {
     console.log('Starting CSV parse, content length:', csvContent.length);
     
@@ -105,12 +117,16 @@ export class CallAnalyzer {
         const categoryWithCost = this.categorizeNumber(calledNumber, prefixConfig);
         const durationSeconds = this.parseDuration(duration);
         
+        // Usa il nuovo metodo di calcolo costi
+        const callCost = this.calculateCallCost(durationSeconds, categoryWithCost.costPerMinute);
+        
         console.log('Parsed record:', {
           calledNumber,
           callerNumber,
           duration,
           durationSeconds,
-          category: categoryWithCost
+          category: categoryWithCost,
+          cost: callCost
         });
         
         records.push({
@@ -125,7 +141,7 @@ export class CallAnalyzer {
             type: categoryWithCost.type,
             description: categoryWithCost.description
           },
-          cost: (durationSeconds / 60) * categoryWithCost.costPerMinute
+          cost: callCost
         });
       }
     }

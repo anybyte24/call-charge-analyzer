@@ -54,11 +54,17 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
       
       let macroCategory = '';
       
-      // Per le categorie dettagliate internazionali, mantieni il dettaglio
+      // Per le categorie dettagliate internazionali che contengono Fisso o Mobile, mantieni il dettaglio completo
       if (['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].some(paese => cat.category.includes(paese))) {
-        // Mantieni la categoria dettagliata per i paesi internazionali
-        macroCategory = cat.category;
-        console.log('🌍 International detailed category kept:', macroCategory);
+        if (cat.category.includes('Fisso') || cat.category.includes('Mobile')) {
+          // Mantieni la categoria dettagliata completa (es: "Francia Fisso", "Spagna Mobile")
+          macroCategory = cat.category;
+          console.log('🌍 International detailed category with type kept:', macroCategory);
+        } else {
+          // Se non ha Fisso/Mobile, usa solo il nome del paese
+          macroCategory = cat.category;
+          console.log('🌍 International category without type:', macroCategory);
+        }
       }
       // Per i mobili italiani, raggruppa sotto "Mobile"
       else if (cat.category.includes('TIM') || cat.category.includes('Vodafone') || 

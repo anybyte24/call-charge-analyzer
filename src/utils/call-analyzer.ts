@@ -2,17 +2,42 @@ import { CallRecord, CallCategory, CallSummary, CallerAnalysis, PrefixConfig } f
 
 export class CallAnalyzer {
   static defaultPrefixConfig: PrefixConfig[] = [
-    // Prefissi italiani - ordine importante per matching (più specifici prima)
+    // Prefissi speciali italiani - ordine importante per matching (più specifici prima)
     { prefix: '800', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
+    { prefix: '803', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
     { prefix: '899', category: 'special', description: 'Numero Premium', costPerMinute: 0.90 },
     { prefix: '199', category: 'special', description: 'Numero Premium', costPerMinute: 0.90 },
-    { prefix: '190', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
-    { prefix: '187', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
-    { prefix: '191', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
-    { prefix: '192', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '190', category: 'unknown', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '187', category: 'unknown', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '191', category: 'unknown', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '192', category: 'unknown', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '188', category: 'unknown', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    
+    // Prefissi fissi italiani (più specifici prima)
+    { prefix: '06', category: 'landline', description: 'Fisso Roma', costPerMinute: 0.03 },
+    { prefix: '02', category: 'landline', description: 'Fisso Milano', costPerMinute: 0.03 },
+    { prefix: '011', category: 'landline', description: 'Fisso Torino', costPerMinute: 0.03 },
+    { prefix: '010', category: 'landline', description: 'Fisso Genova', costPerMinute: 0.03 },
+    { prefix: '051', category: 'landline', description: 'Fisso Bologna', costPerMinute: 0.03 },
+    { prefix: '055', category: 'landline', description: 'Fisso Firenze', costPerMinute: 0.03 },
+    { prefix: '081', category: 'landline', description: 'Fisso Napoli', costPerMinute: 0.03 },
+    { prefix: '091', category: 'landline', description: 'Fisso Palermo', costPerMinute: 0.03 },
     { prefix: '0', category: 'landline', description: 'Fisso', costPerMinute: 0.05 },
+    
+    // Prefissi mobile italiani
+    { prefix: '33', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '34', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
+    { prefix: '35', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '36', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '37', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '38', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
+    { prefix: '39', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '32', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
+    { prefix: '31', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
     { prefix: '3', category: 'mobile', description: 'Mobile', costPerMinute: 0.15 },
     { prefix: '7', category: 'mobile', description: 'Mobile', costPerMinute: 0.15 },
+    
+    // Numeri speciali generici
     { prefix: '1', category: 'special', description: 'Numero Speciale', costPerMinute: 0.50 },
     
     // Prefissi internazionali principali
@@ -46,22 +71,7 @@ export class CallAnalyzer {
       };
     }
 
-    // Handle Italian numbers with 39 prefix first
-    let numberToAnalyze = cleanNumber;
-    
-    // Remove Italian country code variations
-    if (cleanNumber.startsWith('+39')) {
-      numberToAnalyze = cleanNumber.substring(3);
-      console.log('Removed +39 prefix, analyzing:', numberToAnalyze);
-    } else if (cleanNumber.startsWith('0039')) {
-      numberToAnalyze = cleanNumber.substring(4);
-      console.log('Removed 0039 prefix, analyzing:', numberToAnalyze);
-    } else if (cleanNumber.startsWith('39') && cleanNumber.length > 10) {
-      numberToAnalyze = cleanNumber.substring(2);
-      console.log('Removed 39 prefix, analyzing:', numberToAnalyze);
-    }
-
-    // Check for international numbers (starting with +, but not +39)
+    // Handle international numbers first (not Italian)
     if (cleanNumber.startsWith('+') && !cleanNumber.startsWith('+39')) {
       console.log('International number detected:', cleanNumber);
       
@@ -87,6 +97,25 @@ export class CallAnalyzer {
         description: 'Internazionale Sconosciuto', 
         costPerMinute: 0.50 
       };
+    }
+
+    // Handle Italian numbers
+    let numberToAnalyze = cleanNumber;
+    
+    // Remove Italian country code variations more carefully
+    if (cleanNumber.startsWith('+39') && cleanNumber.length > 6) {
+      numberToAnalyze = cleanNumber.substring(3);
+      console.log('Removed +39 prefix, analyzing:', numberToAnalyze);
+    } else if (cleanNumber.startsWith('0039') && cleanNumber.length > 8) {
+      numberToAnalyze = cleanNumber.substring(4);
+      console.log('Removed 0039 prefix, analyzing:', numberToAnalyze);
+    } else if (cleanNumber.startsWith('39') && cleanNumber.length > 8) {
+      // Only remove 39 if the remaining number looks like a valid Italian number
+      const possibleNumber = cleanNumber.substring(2);
+      if (possibleNumber.length >= 8 && (possibleNumber.startsWith('3') || possibleNumber.startsWith('0') || possibleNumber.startsWith('8') || possibleNumber.startsWith('1'))) {
+        numberToAnalyze = possibleNumber;
+        console.log('Removed 39 prefix, analyzing:', numberToAnalyze);
+      }
     }
 
     // Now analyze the Italian number

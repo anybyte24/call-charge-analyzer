@@ -126,7 +126,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               €{totalCalls > 0 ? (totalCost / totalCalls).toFixed(3) : '0.000'}
             </div>
             <p className="text-xs text-gray-500 mt-1">Per chiamata</p>
-          </ContentContainer>
+          </CardContent>
         </Card>
       </div>
 

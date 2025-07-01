@@ -32,8 +32,13 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
       case 'numero verde': return 'bg-emerald-100 text-emerald-800';
       case 'numero premium': return 'bg-red-100 text-red-800';
       default: 
-        // Per le nazioni internazionali
-        if (['spagna', 'francia', 'germania', 'regno unito', 'svizzera'].some(n => category.toLowerCase().includes(n))) {
+        // Per le nazioni internazionali e le loro categorie fisso/mobile
+        if (['spagna', 'francia', 'germania', 'regno unito', 'svizzera', 'austria'].some(n => category.toLowerCase().includes(n))) {
+          if (category.toLowerCase().includes('mobile')) {
+            return 'bg-blue-100 text-blue-800';
+          } else if (category.toLowerCase().includes('fisso')) {
+            return 'bg-green-100 text-green-800';
+          }
           return 'bg-purple-100 text-purple-800';
         }
         return 'bg-gray-100 text-gray-800';
@@ -45,23 +50,37 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
     const macroGroups = new Map<string, CallSummary[]>();
     
     categories.forEach(cat => {
+      console.log('🔍 Processing category:', cat.category);
+      
       // Determina il tipo basandosi sulla categoria
       let type = 'unknown';
+      
+      // Per numeri mobili italiani
       if (cat.category.includes('TIM') || cat.category.includes('Vodafone') || 
           cat.category.includes('Wind') || cat.category.includes('Iliad') || 
           cat.category.includes('Fastweb') || cat.category === 'Mobile') {
         type = 'mobile';
-      } else if (cat.category === 'Numero Verde') {
+      } 
+      // Per numeri speciali
+      else if (cat.category === 'Numero Verde') {
         type = 'special';
       } else if (cat.category === 'Numero Premium') {
         type = 'special';
-      } else if (['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria'].includes(cat.category)) {
+      }
+      // Per numeri internazionali - determina se fisso o mobile dalla descrizione
+      else if (['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].some(paese => cat.category.includes(paese))) {
         type = 'international';
-      } else {
+        console.log('🌍 International category found:', cat.category);
+      }
+      // Per numeri fissi italiani (tutti gli altri)
+      else {
         type = 'landline';
       }
       
+      console.log('📋 Category:', cat.category, 'Type:', type);
+      
       const macroCategory = NumberCategorizer.getMacroCategory(cat.category, type);
+      console.log('🎯 Macro category result:', macroCategory);
       
       if (!macroGroups.has(macroCategory)) {
         macroGroups.set(macroCategory, []);

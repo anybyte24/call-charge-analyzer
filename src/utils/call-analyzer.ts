@@ -2,29 +2,32 @@ import { CallRecord, CallCategory, CallSummary, CallerAnalysis, PrefixConfig } f
 
 export class CallAnalyzer {
   static defaultPrefixConfig: PrefixConfig[] = [
-    // Prefissi speciali italiani - ordine importante per matching (più specifici prima)
-    { prefix: '800', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
-    { prefix: '803', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
-    { prefix: '899', category: 'special', description: 'Numero Premium', costPerMinute: 0.90 },
-    { prefix: '199', category: 'special', description: 'Numero Premium', costPerMinute: 0.90 },
-    { prefix: '190', category: 'unknown', description: 'Assistenza Provider', costPerMinute: 0.00 },
-    { prefix: '187', category: 'unknown', description: 'Assistenza Provider', costPerMinute: 0.00 },
-    { prefix: '191', category: 'unknown', description: 'Assistenza Provider', costPerMinute: 0.00 },
-    { prefix: '192', category: 'unknown', description: 'Assistenza Provider', costPerMinute: 0.00 },
-    { prefix: '188', category: 'unknown', description: 'Assistenza Provider', costPerMinute: 0.00 },
-    
-    // Prefissi fissi italiani (più specifici prima)
-    { prefix: '06', category: 'landline', description: 'Fisso Roma', costPerMinute: 0.03 },
-    { prefix: '02', category: 'landline', description: 'Fisso Milano', costPerMinute: 0.03 },
-    { prefix: '011', category: 'landline', description: 'Fisso Torino', costPerMinute: 0.03 },
+    // Prefissi fissi italiani - SPECIFICI PRIMA (3 cifre)
     { prefix: '010', category: 'landline', description: 'Fisso Genova', costPerMinute: 0.03 },
+    { prefix: '011', category: 'landline', description: 'Fisso Torino', costPerMinute: 0.03 },
+    { prefix: '02', category: 'landline', description: 'Fisso Milano', costPerMinute: 0.03 },
+    { prefix: '06', category: 'landline', description: 'Fisso Roma', costPerMinute: 0.03 },
     { prefix: '051', category: 'landline', description: 'Fisso Bologna', costPerMinute: 0.03 },
     { prefix: '055', category: 'landline', description: 'Fisso Firenze', costPerMinute: 0.03 },
     { prefix: '081', category: 'landline', description: 'Fisso Napoli', costPerMinute: 0.03 },
     { prefix: '091', category: 'landline', description: 'Fisso Palermo', costPerMinute: 0.03 },
+    { prefix: '040', category: 'landline', description: 'Fisso Trieste', costPerMinute: 0.03 },
+    { prefix: '045', category: 'landline', description: 'Fisso Verona', costPerMinute: 0.03 },
+    { prefix: '049', category: 'landline', description: 'Fisso Padova', costPerMinute: 0.03 },
     { prefix: '0', category: 'landline', description: 'Fisso', costPerMinute: 0.05 },
     
-    // Prefissi mobile italiani - specifici per operatore
+    // Numeri speciali italiani - SPECIFICI PRIMA
+    { prefix: '800', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
+    { prefix: '803', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
+    { prefix: '199', category: 'special', description: 'Numero Premium', costPerMinute: 0.90 },
+    { prefix: '899', category: 'special', description: 'Numero Premium', costPerMinute: 0.90 },
+    { prefix: '190', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '191', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '192', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '187', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '188', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    
+    // Mobile TIM - prefissi 3 cifre PRIMA
     { prefix: '330', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
     { prefix: '331', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
     { prefix: '333', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
@@ -45,6 +48,7 @@ export class CallAnalyzer {
     { prefix: '348', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
     { prefix: '349', category: 'mobile', description: 'Mobile TIM', costPerMinute: 0.15 },
     
+    // Mobile Vodafone - prefissi 3 cifre
     { prefix: '350', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
     { prefix: '351', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
     { prefix: '352', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
@@ -70,6 +74,7 @@ export class CallAnalyzer {
     { prefix: '388', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
     { prefix: '389', category: 'mobile', description: 'Mobile Vodafone', costPerMinute: 0.15 },
     
+    // Mobile Wind - prefissi 3 cifre
     { prefix: '320', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
     { prefix: '321', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
     { prefix: '322', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
@@ -89,14 +94,12 @@ export class CallAnalyzer {
     { prefix: '398', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
     { prefix: '399', category: 'mobile', description: 'Mobile Wind', costPerMinute: 0.15 },
     
-    // Prefissi generici per fallback
+    // Prefissi generici ALLA FINE (solo 1 cifra)
+    { prefix: '1', category: 'special', description: 'Numero Speciale', costPerMinute: 0.50 },
     { prefix: '3', category: 'mobile', description: 'Mobile', costPerMinute: 0.15 },
     { prefix: '7', category: 'mobile', description: 'Mobile', costPerMinute: 0.15 },
     
-    // Numeri speciali generici
-    { prefix: '1', category: 'special', description: 'Numero Speciale', costPerMinute: 0.50 },
-    
-    // Prefissi internazionali principali
+    // Prefissi internazionali
     { prefix: '+1', category: 'special', description: 'USA/Canada', costPerMinute: 0.25 },
     { prefix: '+44', category: 'special', description: 'Regno Unito', costPerMinute: 0.20 },
     { prefix: '+33', category: 'special', description: 'Francia', costPerMinute: 0.18 },
@@ -115,11 +118,13 @@ export class CallAnalyzer {
     // Clean number: remove spaces, #, and other non-numeric characters except + for international
     const cleanNumber = number.replace(/[^+0-9]/g, '');
     
-    console.log('Categorizing number:', number, 'cleaned:', cleanNumber);
+    console.log('=== CATEGORIZING NUMBER ===');
+    console.log('Original number:', number);
+    console.log('Cleaned number:', cleanNumber);
     
     // Check if this looks like a phone number
     if (!cleanNumber || cleanNumber.length < 3) {
-      console.log('Not a valid phone number:', cleanNumber);
+      console.log('❌ Not a valid phone number:', cleanNumber);
       return { 
         type: 'unknown', 
         description: 'Altro', 
@@ -127,9 +132,9 @@ export class CallAnalyzer {
       };
     }
 
-    // Handle international numbers (not Italian - don't start with 39)
+    // Handle international numbers (not Italian)
     if (cleanNumber.startsWith('+') && !cleanNumber.startsWith('+39')) {
-      console.log('International number detected:', cleanNumber);
+      console.log('🌍 International number detected:', cleanNumber);
       
       // Check other international prefixes - sort by length desc to match longest first
       const sortedIntlPrefixes = prefixConfig
@@ -139,7 +144,7 @@ export class CallAnalyzer {
       const matchingPrefix = sortedIntlPrefixes.find(p => cleanNumber.startsWith(p.prefix));
       
       if (matchingPrefix) {
-        console.log('Found matching international prefix:', matchingPrefix.prefix);
+        console.log('✅ Found matching international prefix:', matchingPrefix.prefix, '→', matchingPrefix.description);
         return {
           type: matchingPrefix.category,
           description: matchingPrefix.description,
@@ -147,7 +152,7 @@ export class CallAnalyzer {
         };
       }
       
-      console.log('Unknown international number:', cleanNumber);
+      console.log('❓ Unknown international number:', cleanNumber);
       return { 
         type: 'unknown', 
         description: 'Internazionale Sconosciuto', 
@@ -155,19 +160,19 @@ export class CallAnalyzer {
       };
     }
 
-    // Handle Italian numbers - ALWAYS remove the 39 prefix for Italian calls
+    // Handle Italian numbers - SEMPRE rimuovi il prefisso 39
     let numberToAnalyze = cleanNumber;
     
-    // Per i numeri italiani, rimuovi sempre il prefisso 39 se presente
-    if (cleanNumber.startsWith('39') && cleanNumber.length > 5) {
-      numberToAnalyze = cleanNumber.substring(2);
-      console.log('Removed 39 prefix from Italian number, analyzing:', numberToAnalyze);
-    } else if (cleanNumber.startsWith('+39') && cleanNumber.length > 6) {
+    // Rimuovi SEMPRE il prefisso 39 se presente (con o senza +)
+    if (cleanNumber.startsWith('+39')) {
       numberToAnalyze = cleanNumber.substring(3);
-      console.log('Removed +39 prefix, analyzing:', numberToAnalyze);
-    } else if (cleanNumber.startsWith('0039') && cleanNumber.length > 8) {
+      console.log('🇮🇹 Removed +39 prefix, analyzing:', numberToAnalyze);
+    } else if (cleanNumber.startsWith('39') && cleanNumber.length >= 8) {
+      numberToAnalyze = cleanNumber.substring(2);
+      console.log('🇮🇹 Removed 39 prefix, analyzing:', numberToAnalyze);
+    } else if (cleanNumber.startsWith('0039')) {
       numberToAnalyze = cleanNumber.substring(4);
-      console.log('Removed 0039 prefix, analyzing:', numberToAnalyze);
+      console.log('🇮🇹 Removed 0039 prefix, analyzing:', numberToAnalyze);
     }
 
     // Now analyze the Italian number
@@ -175,10 +180,10 @@ export class CallAnalyzer {
   }
 
   static categorizeItalianNumber(number: string, prefixConfig: PrefixConfig[]): CallCategory & { costPerMinute: number } {
-    console.log('Categorizing Italian number:', number);
+    console.log('🔍 Analyzing Italian number:', number);
     
     if (!number || number.length < 3) {
-      console.log('Italian number too short:', number);
+      console.log('❌ Italian number too short:', number);
       return { 
         type: 'unknown', 
         description: 'Altro', 
@@ -186,26 +191,28 @@ export class CallAnalyzer {
       };
     }
 
-    // Sort prefixes by length (longest first) to ensure proper matching
+    // Filtra solo i prefissi italiani (no +) e ordina per lunghezza (più lunghi prima)
     const sortedPrefixes = prefixConfig
       .filter(p => !p.prefix.startsWith('+'))
       .sort((a, b) => b.prefix.length - a.prefix.length);
 
-    console.log('Checking prefixes in order for number:', number);
+    console.log('🔄 Checking prefixes in order (longest first):');
 
-    // Check each prefix in order
+    // Check each prefix in order (longest first to avoid false matches)
     for (const prefixConf of sortedPrefixes) {
       if (number.startsWith(prefixConf.prefix)) {
-        console.log('Found matching prefix:', prefixConf.prefix, 'for number:', number, '-> category:', prefixConf.description);
+        console.log('✅ MATCH FOUND:', prefixConf.prefix, '→', prefixConf.description);
         return {
           type: prefixConf.category,
           description: prefixConf.description,
           costPerMinute: prefixConf.costPerMinute
         };
+      } else {
+        console.log('❌ No match for prefix:', prefixConf.prefix);
       }
     }
 
-    console.log('No matching Italian prefix for:', number);
+    console.log('❓ No matching Italian prefix for:', number);
     return { 
       type: 'unknown', 
       description: 'Altro', 

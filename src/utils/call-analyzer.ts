@@ -2,9 +2,14 @@ import { CallRecord, CallCategory, CallSummary, CallerAnalysis, PrefixConfig } f
 
 export class CallAnalyzer {
   static defaultPrefixConfig: PrefixConfig[] = [
-    // Prefissi italiani - ordine importante per matching
+    // Prefissi italiani - ordine importante per matching (più specifici prima)
     { prefix: '800', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
     { prefix: '899', category: 'special', description: 'Numero Premium', costPerMinute: 0.90 },
+    { prefix: '199', category: 'special', description: 'Numero Premium', costPerMinute: 0.90 },
+    { prefix: '190', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '187', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '191', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
+    { prefix: '192', category: 'special', description: 'Assistenza Provider', costPerMinute: 0.00 },
     { prefix: '0', category: 'landline', description: 'Fisso', costPerMinute: 0.05 },
     { prefix: '3', category: 'mobile', description: 'Mobile', costPerMinute: 0.15 },
     { prefix: '7', category: 'mobile', description: 'Mobile', costPerMinute: 0.15 },
@@ -32,7 +37,7 @@ export class CallAnalyzer {
     console.log('Categorizing number:', number, 'cleaned:', cleanNumber);
     
     // Check if this looks like a phone number
-    if (!cleanNumber || cleanNumber.length < 8) {
+    if (!cleanNumber || cleanNumber.length < 3) {
       console.log('Not a valid phone number:', cleanNumber);
       return { 
         type: 'unknown', 
@@ -41,16 +46,24 @@ export class CallAnalyzer {
       };
     }
 
-    // Check for international numbers first (starting with +)
-    if (cleanNumber.startsWith('+')) {
+    // Handle Italian numbers with 39 prefix first
+    let numberToAnalyze = cleanNumber;
+    
+    // Remove Italian country code variations
+    if (cleanNumber.startsWith('+39')) {
+      numberToAnalyze = cleanNumber.substring(3);
+      console.log('Removed +39 prefix, analyzing:', numberToAnalyze);
+    } else if (cleanNumber.startsWith('0039')) {
+      numberToAnalyze = cleanNumber.substring(4);
+      console.log('Removed 0039 prefix, analyzing:', numberToAnalyze);
+    } else if (cleanNumber.startsWith('39') && cleanNumber.length > 10) {
+      numberToAnalyze = cleanNumber.substring(2);
+      console.log('Removed 39 prefix, analyzing:', numberToAnalyze);
+    }
+
+    // Check for international numbers (starting with +, but not +39)
+    if (cleanNumber.startsWith('+') && !cleanNumber.startsWith('+39')) {
       console.log('International number detected:', cleanNumber);
-      
-      // Check for Italian international prefix first
-      if (cleanNumber.startsWith('+39')) {
-        const italianNumber = cleanNumber.substring(3);
-        console.log('Italian international number, extracting:', italianNumber);
-        return this.categorizeItalianNumber(italianNumber, prefixConfig);
-      }
       
       // Check other international prefixes - sort by length desc to match longest first
       const sortedIntlPrefixes = prefixConfig
@@ -76,29 +89,14 @@ export class CallAnalyzer {
       };
     }
 
-    // Handle numbers that might have Italian prefix without +
-    if (cleanNumber.startsWith('0039')) {
-      console.log('Number with 0039 prefix, extracting Italian part');
-      const italianNumber = cleanNumber.substring(4);
-      return this.categorizeItalianNumber(italianNumber, prefixConfig);
-    }
-    
-    // Handle numbers starting with 39 (most common case from your CSV)
-    if (cleanNumber.startsWith('39') && cleanNumber.length > 10) {
-      console.log('Number with 39 prefix, extracting Italian part');
-      const italianNumber = cleanNumber.substring(2);
-      return this.categorizeItalianNumber(italianNumber, prefixConfig);
-    }
-
-    // If no international prefix, treat as Italian
-    console.log('Treating as Italian number directly');
-    return this.categorizeItalianNumber(cleanNumber, prefixConfig);
+    // Now analyze the Italian number
+    return this.categorizeItalianNumber(numberToAnalyze, prefixConfig);
   }
 
   static categorizeItalianNumber(number: string, prefixConfig: PrefixConfig[]): CallCategory & { costPerMinute: number } {
     console.log('Categorizing Italian number:', number);
     
-    if (!number || number.length < 8) {
+    if (!number || number.length < 3) {
       console.log('Italian number too short:', number);
       return { 
         type: 'unknown', 

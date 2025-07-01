@@ -59,6 +59,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     const { records: filteredRecords, summary: filteredSummary, callerAnalysis: filteredCallerAnalysis } = getFilteredData();
     let csv = '';
 
+    // Always include summary for complete export
     if (exportType === 'summary' || exportType === 'complete') {
       csv += 'RIEPILOGO GENERALE\n';
       csv += 'Categoria,Chiamate,Durata,Costo\n';
@@ -68,6 +69,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
       });
     }
 
+    // Always include caller analysis for complete export
     if (exportType === 'details' || exportType === 'complete') {
       if (csv) csv += '\n\n';
       
@@ -80,6 +82,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
       });
     }
 
+    // Always include call details for complete export and calls export
     if (exportType === 'calls' || exportType === 'complete') {
       if (csv) csv += '\n\n';
       
@@ -107,6 +110,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
       }
     }
 
+    console.log('Generated CSV:', csv);
     return csv;
   };
 
@@ -141,7 +145,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
       exportDate: new Date().toISOString(),
       summary: filteredSummary,
       callerAnalysis: filteredCallerAnalysis,
-      records: exportType === 'summary' ? [] : filteredRecords
+      records: filteredRecords // Always include records for JSON export
     };
     
     const jsonContent = JSON.stringify(exportData, null, 2);

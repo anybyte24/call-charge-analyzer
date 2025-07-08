@@ -8,11 +8,13 @@ import HistoryPanel from '@/components/HistoryPanel';
 import PrefixManager from '@/components/PrefixManager';
 import ExportPanel from '@/components/ExportPanel';
 import UnknownNumbersManager from '@/components/UnknownNumbersManager';
+import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 import { CallAnalyzer } from '@/utils/call-analyzer';
 import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis';
 import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles } from 'lucide-react';
 
 const Index = () => {
+  const { saveSession } = useAnalysisStorage();
   const [currentSession, setCurrentSession] = useState<AnalysisSession | null>(null);
   const [currentRecords, setCurrentRecords] = useState<CallRecord[]>([]);
   const [sessions, setSessions] = useState<AnalysisSession[]>([]);

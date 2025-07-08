@@ -32,8 +32,8 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
       case 'numero verde': return 'bg-emerald-100 text-emerald-800';
       case 'numero premium': return 'bg-red-100 text-red-800';
       default: 
-        // Per le nazioni internazionali e le loro categorie fisso/mobile
-        if (['spagna', 'francia', 'germania', 'regno unito', 'svizzera', 'austria'].some(n => category.toLowerCase().includes(n))) {
+        // Per le nazioni internazionali
+        if (['spagna', 'francia', 'germania', 'regno unito', 'svizzera', 'austria', 'paesi bassi', 'belgio'].some(n => category.toLowerCase().includes(n))) {
           if (category.toLowerCase().includes('mobile')) {
             return 'bg-blue-100 text-blue-800';
           } else if (category.toLowerCase().includes('fisso')) {
@@ -45,7 +45,7 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
     }
   };
 
-  // Raggruppa le categorie per macro-categoria ma mantiene i dettagli per quelli internazionali
+  // Raggruppa le categorie per macro-categoria
   const groupCategoriesByMacro = (categories: CallSummary[]) => {
     const macroGroups = new Map<string, CallSummary[]>();
     
@@ -54,23 +54,28 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
       
       let macroCategory = '';
       
-      // Per le categorie dettagliate internazionali che contengono Fisso o Mobile, mantieni il dettaglio completo
+      // Per le categorie internazionali dettagliate
       if (['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].some(paese => cat.category.includes(paese))) {
-        if (cat.category.includes('Fisso') || cat.category.includes('Mobile')) {
-          // Mantieni la categoria dettagliata completa (es: "Francia Fisso", "Spagna Mobile")
-          macroCategory = cat.category;
-          console.log('🌍 International detailed category with type kept:', macroCategory);
+        if (cat.category.includes('Mobile')) {
+          // Estrai solo il nome del paese + Mobile (es: "Spagna Mobile", "Francia Mobile")
+          const paese = ['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].find(p => cat.category.includes(p));
+          macroCategory = `${paese} Mobile`;
+        } else if (cat.category.includes('Fisso')) {
+          // Estrai solo il nome del paese + Fisso (es: "Spagna Fisso", "Francia Fisso")
+          const paese = ['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].find(p => cat.category.includes(p));
+          macroCategory = `${paese} Fisso`;
         } else {
           // Se non ha Fisso/Mobile, usa solo il nome del paese
           macroCategory = cat.category;
-          console.log('🌍 International category without type:', macroCategory);
         }
+        console.log('🌍 International category processed:', cat.category, '→', macroCategory);
       }
-      // Per i mobili italiani, raggruppa sotto "Mobile"
+      // Per TUTTI i mobili italiani (TIM, Vodafone, Wind, Iliad, Fastweb), raggruppa sotto "Mobile"
       else if (cat.category.includes('TIM') || cat.category.includes('Vodafone') || 
                cat.category.includes('Wind') || cat.category.includes('Iliad') || 
-               cat.category.includes('Fastweb')) {
+               cat.category.includes('Fastweb') || cat.category.includes('Tre')) {
         macroCategory = 'Mobile';
+        console.log('📱 Italian mobile category grouped:', cat.category, '→', macroCategory);
       }
       // Per numeri speciali, mantieni la categoria specifica
       else if (cat.category === 'Numero Verde') {
@@ -81,9 +86,10 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
       // Per tutti gli altri (fissi italiani), raggruppa sotto "Fisso"
       else {
         macroCategory = 'Fisso';
+        console.log('🏠 Italian landline category grouped:', cat.category, '→', macroCategory);
       }
       
-      console.log('📋 Original category:', cat.category, 'Macro category:', macroCategory);
+      console.log('📋 Final mapping: Original:', cat.category, '→ Macro:', macroCategory);
       
       if (!macroGroups.has(macroCategory)) {
         macroGroups.set(macroCategory, []);
@@ -96,6 +102,8 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
       const totalCount = cats.reduce((sum, cat) => sum + cat.count, 0);
       const totalSeconds = cats.reduce((sum, cat) => sum + cat.totalSeconds, 0);
       const totalCost = cats.reduce((sum, cat) => sum + (cat.cost || 0), 0);
+      
+      console.log('📊 Macro category summary:', macroCategory, 'Count:', totalCount, 'Seconds:', totalSeconds, 'Cost:', totalCost);
       
       return {
         macroCategory,
@@ -157,7 +165,7 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Macro Categoria</TableHead>
+                          <TableHead>Categoria</TableHead>
                           <TableHead>Chiamate</TableHead>
                           <TableHead>Durata</TableHead>
                           <TableHead>Costo</TableHead>

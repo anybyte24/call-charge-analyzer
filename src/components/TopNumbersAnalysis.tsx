@@ -91,7 +91,7 @@ const TopNumbersAnalysis: React.FC<TopNumbersAnalysisProps> = ({ records }) => {
   const topNumbers = numberAnalysis.slice(0, 10);
   
   // Numeri ripetitivi (chiamati più di 1 volta)
-  const repeatedNumbers = numberAnalysis.filter(n => n.isRepeated).slice(0, 15);
+  const repeatedNumbers = numberAnalysis.filter(number => number.isRepeated).slice(0, 15);
 
   // Numeri più costosi
   const expensiveNumbers = [...numberAnalysis]

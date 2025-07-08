@@ -14,7 +14,147 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analysis_sessions: {
+        Row: {
+          caller_analysis_data: Json
+          file_name: string
+          id: string
+          is_favorite: boolean | null
+          last_accessed: string | null
+          notes: string | null
+          prefix_config: Json | null
+          records_data: Json | null
+          summary_data: Json
+          total_records: number
+          upload_date: string | null
+          user_id: string | null
+        }
+        Insert: {
+          caller_analysis_data: Json
+          file_name: string
+          id?: string
+          is_favorite?: boolean | null
+          last_accessed?: string | null
+          notes?: string | null
+          prefix_config?: Json | null
+          records_data?: Json | null
+          summary_data: Json
+          total_records: number
+          upload_date?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          caller_analysis_data?: Json
+          file_name?: string
+          id?: string
+          is_favorite?: boolean | null
+          last_accessed?: string | null
+          notes?: string | null
+          prefix_config?: Json | null
+          records_data?: Json | null
+          summary_data?: Json
+          total_records?: number
+          upload_date?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      cost_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          notification_sent_at: string | null
+          target_caller: string | null
+          target_number: string | null
+          threshold_value: number
+          user_id: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          notification_sent_at?: string | null
+          target_caller?: string | null
+          target_number?: string | null
+          threshold_value: number
+          user_id?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          notification_sent_at?: string | null
+          target_caller?: string | null
+          target_number?: string | null
+          threshold_value?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string
+          theme_preferences: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          theme_preferences?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          theme_preferences?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      saved_configurations: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          prefix_config: Json
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          prefix_config: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          prefix_config?: Json
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

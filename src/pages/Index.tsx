@@ -66,6 +66,11 @@ const Index = () => {
       const totalCost = summary.reduce((sum, cat) => sum + (cat.cost || 0), 0);
       const unknownCount = unknowns.length;
 
+      // Save session automatically
+      if (currentSession) {
+        await saveSession(currentSession, records);
+      }
+
       toast({
         title: "Analisi completata",
         description: `Processati ${records.length} record. Costo totale: €${totalCost.toFixed(2)}${unknownCount > 0 ? ` - ${unknownCount} numeri non riconosciuti` : ''}`,

@@ -2,11 +2,15 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity } from 'lucide-react';
+import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity, Filter, Table } from 'lucide-react';
 import { CallSummary, CallerAnalysis, CallRecord } from '@/types/call-analysis';
 import CallAnalyticsCharts from './CallAnalyticsCharts';
 import HourlyDistributionChart from './HourlyDistributionChart';
 import TopNumbersAnalysis from './TopNumbersAnalysis';
+import AdvancedFilters from './AdvancedFilters';
+import VirtualizedTable from './VirtualizedTable';
+import TooltipInfo, { KPITooltips } from './TooltipInfo';
+import { ResponsiveKPIGrid, ResponsiveContainer } from './ResponsiveLayout';
 
 interface DashboardProps {
   summary: CallSummary[];
@@ -23,6 +27,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   fileName,
   records
 }) => {
+  const [filteredRecords, setFilteredRecords] = React.useState<CallRecord[]>(records);
   const totalCalls = summary.reduce((sum, cat) => sum + cat.count, 0);
   const totalDuration = summary.reduce((sum, cat) => sum + cat.totalSeconds, 0);
   const totalCost = summary.reduce((sum, cat) => sum + (cat.cost || 0), 0);
@@ -101,90 +106,97 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Totale Chiamate</CardTitle>
-            <Phone className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{totalCalls.toLocaleString()}</div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-              <div className="bg-blue-600 h-1.5 rounded-full" style={{width: '100%'}}></div>
-            </div>
-          </CardContent>
-        </Card>
+      <ResponsiveContainer>
+        <ResponsiveKPIGrid>
+          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium flex items-center space-x-1">
+                <span>Totale Chiamate</span>
+                <TooltipInfo content={KPITooltips.totalCalls} />
+              </CardTitle>
+              <Phone className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{totalCalls.toLocaleString()}</div>
+              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                <div className="bg-blue-600 h-1.5 rounded-full" style={{width: '100%'}}></div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Durata Totale</CardTitle>
-            <Clock className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{totalHours}h {totalMinutes}m</div>
-            <p className="text-xs text-gray-500 mt-1">
-              {Math.floor(totalDuration / 60)} minuti totali
-            </p>
-          </CardContent>
-        </Card>
+          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium flex items-center space-x-1">
+                <span>Durata Totale</span>
+                <TooltipInfo content={KPITooltips.totalDuration} />
+              </CardTitle>
+              <Clock className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{totalHours}h {totalMinutes}m</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {Math.floor(totalDuration / 60)} minuti totali
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Costo Totale</CardTitle>
-            <Euro className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">€{totalCost.toFixed(2)}</div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-              <div className="bg-green-600 h-1.5 rounded-full" style={{width: '85%'}}></div>
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium flex items-center space-x-1">
+                <span>Costo Totale</span>
+                <TooltipInfo content={KPITooltips.totalCost} />
+              </CardTitle>
+              <Euro className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">€{totalCost.toFixed(2)}</div>
+              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                <div className="bg-green-600 h-1.5 rounded-full" style={{width: '85%'}}></div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Numeri Chiamanti</CardTitle>
-            <Users className="h-4 w-4 text-indigo-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-indigo-600">{callerAnalysis.length}</div>
-            <p className="text-xs text-gray-500 mt-1">Numeri unici</p>
-          </CardContent>
-        </Card>
+          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium flex items-center space-x-1">
+                <span>Numeri Chiamanti</span>
+                <TooltipInfo content={KPITooltips.uniqueCallers} />
+              </CardTitle>
+              <Users className="h-4 w-4 text-indigo-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-indigo-600">{callerAnalysis.length}</div>
+              <p className="text-xs text-gray-500 mt-1">Numeri unici</p>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Costo Medio</CardTitle>
-            <TrendingUp className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              €{totalCalls > 0 ? (totalCost / totalCalls).toFixed(3) : '0.000'}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Per chiamata</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium flex items-center space-x-1">
+                <span>Costo Medio</span>
+                <TooltipInfo content={KPITooltips.averageCost} />
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">
+                €{totalCalls > 0 ? (totalCost / totalCalls).toFixed(3) : '0.000'}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Per chiamata</p>
+            </CardContent>
+          </Card>
+        </ResponsiveKPIGrid>
+      </ResponsiveContainer>
 
       {/* Tabs for different views */}
       <Tabs defaultValue="summary" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-white/70 backdrop-blur-sm border shadow-lg">
-          <TabsTrigger value="summary" className="flex items-center space-x-2">
-            <BarChart3 className="h-4 w-4" />
-            <span>Riepilogo</span>
-          </TabsTrigger>
-          <TabsTrigger value="charts" className="flex items-center space-x-2">
-            <Activity className="h-4 w-4" />
-            <span>Grafici</span>
-          </TabsTrigger>
-          <TabsTrigger value="hourly" className="flex items-center space-x-2">
-            <Clock className="h-4 w-4" />
-            <span>Distribuzione Oraria</span>
-          </TabsTrigger>
-          <TabsTrigger value="numbers" className="flex items-center space-x-2">
-            <Phone className="h-4 w-4" />
-            <span>Analisi Numeri</span>
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-6 bg-white/70 backdrop-blur-sm border shadow-lg">
+          <TabsTrigger value="summary">Riepilogo</TabsTrigger>
+          <TabsTrigger value="charts">Grafici</TabsTrigger>
+          <TabsTrigger value="hourly">Distribuzione</TabsTrigger>
+          <TabsTrigger value="numbers">Numeri</TabsTrigger>
+          <TabsTrigger value="filters">Filtri</TabsTrigger>
+          <TabsTrigger value="table">Tabella</TabsTrigger>
         </TabsList>
 
         <TabsContent value="summary" className="space-y-4">
@@ -242,7 +254,21 @@ const Dashboard: React.FC<DashboardProps> = ({
         </TabsContent>
 
         <TabsContent value="numbers" className="space-y-4">
-          <TopNumbersAnalysis records={records} />
+          <TopNumbersAnalysis records={filteredRecords} />
+        </TabsContent>
+
+        <TabsContent value="filters" className="space-y-4">
+          <AdvancedFilters 
+            records={records} 
+            onFilteredRecords={setFilteredRecords}
+          />
+        </TabsContent>
+
+        <TabsContent value="table" className="space-y-4">
+          <VirtualizedTable 
+            records={filteredRecords}
+            height={600}
+          />
         </TabsContent>
       </Tabs>
     </div>

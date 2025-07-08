@@ -19,16 +19,20 @@ const CallAnalyticsCharts: React.FC<CallAnalyticsChartsProps> = ({ summary, call
     duration: cat.totalMinutes
   }));
 
-  // Top 10 callers by cost
-  const topCallers = callerAnalysis.slice(0, 10).map(caller => {
-    const totalCost = caller.categories.reduce((sum, cat) => sum + (cat.cost || 0), 0);
-    return {
-      caller: caller.callerNumber.length > 10 ? `...${caller.callerNumber.slice(-8)}` : caller.callerNumber,
-      calls: caller.totalCalls,
-      cost: totalCost,
-      duration: Math.floor(caller.totalDuration / 60)
-    };
-  });
+  // Top 10 callers by cost - Sistemato
+  const topCallers = callerAnalysis
+    .map(caller => {
+      const totalCost = caller.categories.reduce((sum, cat) => sum + (cat.cost || 0), 0);
+      return {
+        caller: caller.callerNumber.length > 12 ? `...${caller.callerNumber.slice(-10)}` : caller.callerNumber,
+        fullNumber: caller.callerNumber,
+        calls: caller.totalCalls,
+        cost: totalCost,
+        duration: Math.floor(caller.totalDuration / 60)
+      };
+    })
+    .sort((a, b) => b.cost - a.cost) // Ordina per costo decrescente
+    .slice(0, 10);
 
   // Colors for pie chart
   const COLORS = ['#3B82F6', '#10B981', '#EF4444', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
@@ -111,7 +115,7 @@ const CallAnalyticsCharts: React.FC<CallAnalyticsChartsProps> = ({ summary, call
         </Card>
       </div>
 
-      {/* Top Callers Analysis */}
+      {/* Top Callers Analysis - Sistemato */}
       <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -121,16 +125,31 @@ const CallAnalyticsCharts: React.FC<CallAnalyticsChartsProps> = ({ summary, call
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={topCallers} layout="horizontal">
+            <BarChart data={topCallers} layout="vertical" margin={{ top: 5, right: 30, left: 5, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" />
               <YAxis 
                 type="category" 
                 dataKey="caller" 
-                tick={{ fontSize: 11 }}
-                width={80}
+                tick={{ fontSize: 10 }}
+                width={100}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip 
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-white p-3 border rounded-lg shadow-lg">
+                        <p className="font-medium">{data.fullNumber}</p>
+                        <p className="text-sm text-purple-600">Costo: €{data.cost.toFixed(2)}</p>
+                        <p className="text-sm text-blue-600">Chiamate: {data.calls}</p>
+                        <p className="text-sm text-orange-600">Durata: {data.duration} min</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }} 
+              />
               <Bar dataKey="cost" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>

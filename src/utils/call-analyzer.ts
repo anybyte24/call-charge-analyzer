@@ -316,6 +316,129 @@ export class CallAnalyzer {
       const dateB = new Date(`${b.date} ${b.timestamp}`);
       return dateA.getTime() - dateB.getTime();
     }) : [];
+
+    // Analisi oraria
+    let hourlyAnalysis = '';
+    if (allRecords && allRecords.length > 0) {
+      const hourCounts = new Array(24).fill(0).map((_, hour) => ({
+        hour: `${hour.toString().padStart(2, '0')}:00`,
+        calls: 0,
+        cost: 0
+      }));
+
+      allRecords.forEach(record => {
+        if (record.timestamp) {
+          const timeParts = record.timestamp.split(':');
+          if (timeParts.length >= 1) {
+            const hour = parseInt(timeParts[0]);
+            if (hour >= 0 && hour < 24) {
+              hourCounts[hour].calls++;
+              hourCounts[hour].cost += record.cost || 0;
+            }
+          }
+        }
+      });
+
+      const peakHours = hourCounts
+        .filter(hour => hour.calls > 0)
+        .sort((a, b) => b.calls - a.calls)
+        .slice(0, 5);
+
+      hourlyAnalysis = `
+        <h2 class="section-title">Distribuzione Oraria</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Fascia Oraria</th>
+              <th>Chiamate</th>
+              <th>Costo</th>
+              <th>% del Totale</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${peakHours.map(hour => `
+              <tr>
+                <td>${hour.hour}</td>
+                <td>${hour.calls}</td>
+                <td>€${hour.cost.toFixed(2)}</td>
+                <td>${((hour.calls / totalCalls) * 100).toFixed(1)}%</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // Analisi numeri più chiamati
+    let topNumbersAnalysis = '';
+    if (allRecords && allRecords.length > 0) {
+      const numberMap = new Map();
+      
+      allRecords.forEach(record => {
+        const number = record.calledNumber;
+        const existing = numberMap.get(number);
+        
+        if (existing) {
+          existing.callCount++;
+          existing.totalCost += record.cost || 0;
+          existing.totalDuration += record.durationSeconds;
+          if (!existing.callers.includes(record.callerNumber)) {
+            existing.callers.push(record.callerNumber);
+          }
+        } else {
+          numberMap.set(number, {
+            number,
+            callCount: 1,
+            totalCost: record.cost || 0,
+            totalDuration: record.durationSeconds,
+            category: record.category.description,
+            callers: [record.callerNumber]
+          });
+        }
+      });
+
+      const topNumbers = Array.from(numberMap.values())
+        .sort((a, b) => b.callCount - a.callCount)
+        .slice(0, 10);
+
+      const repeatedNumbers = Array.from(numberMap.values())
+        .filter(n => n.callCount > 1)
+        .length;
+
+      topNumbersAnalysis = `
+        <h2 class="section-title">Analisi Numeri Chiamati</h2>
+        <div style="margin-bottom: 20px;">
+          <p><strong>Numeri unici chiamati:</strong> ${numberMap.size}</p>
+          <p><strong>Numeri chiamati ripetutamente:</strong> ${repeatedNumbers} (${((repeatedNumbers / numberMap.size) * 100).toFixed(1)}%)</p>
+        </div>
+        
+        <h3 style="font-size: 14px; margin-bottom: 10px;">Top 10 Numeri Più Chiamati</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Numero</th>
+              <th>Categoria</th>
+              <th>Chiamate</th>
+              <th>Durata Totale</th>
+              <th>Costo Totale</th>
+              <th>Chiamanti Unici</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${topNumbers.map(number => `
+              <tr>
+                <td style="font-family: monospace;">${number.number}</td>
+                <td>${number.category}</td>
+                <td>${number.callCount}</td>
+                <td>${CallAnalyzer.formatDuration(number.totalDuration)}</td>
+                <td>€${number.totalCost.toFixed(2)}</td>
+                <td>${number.callers.length}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
     
     return `
 <!DOCTYPE html>
@@ -331,6 +454,7 @@ export class CallAnalyzer {
         .table th { background-color: #f2f2f2; font-weight: bold; }
         .total { font-weight: bold; background-color: #e8f4fd; }
         .section-title { font-size: 16px; font-weight: bold; margin-top: 30px; margin-bottom: 15px; }
+        .highlight-box { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
         @media print { 
           .no-print { display: none; }
           .page-break { page-break-before: always; }
@@ -339,25 +463,39 @@ export class CallAnalyzer {
 </head>
 <body>
     <div class="header">
-        <h1>Report Analisi Chiamate</h1>
+        <h1>Report Analisi Chiamate Telefoniche</h1>
         <p>File: ${fileName}</p>
-        <p>Data: ${new Date().toLocaleDateString('it-IT')}</p>
+        <p>Data: ${new Date().toLocaleDateString('it-IT')} - ${new Date().toLocaleTimeString('it-IT')}</p>
     </div>
     
-    <div class="summary">
-        <h2>Riepilogo Generale</h2>
-        <p><strong>Totale Chiamate:</strong> ${totalCalls}</p>
-        <p><strong>Durata Totale:</strong> ${CallAnalyzer.formatDuration(totalDuration)}</p>
-        <p><strong>Costo Totale:</strong> €${totalCost.toFixed(2)}</p>
+    <div class="highlight-box">
+        <h2>Riepilogo Esecutivo</h2>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            <div>
+                <p><strong>Totale Chiamate:</strong> ${totalCalls}</p>
+                <p><strong>Durata Totale:</strong> ${CallAnalyzer.formatDuration(totalDuration)}</p>
+            </div>
+            <div>
+                <p><strong>Costo Totale:</strong> €${totalCost.toFixed(2)}</p>
+                <p><strong>Costo Medio:</strong> €${totalCalls > 0 ? (totalCost / totalCalls).toFixed(3) : '0.000'}/chiamata</p>
+            </div>
+            <div>
+                <p><strong>Chiamanti Unici:</strong> ${callerAnalysis.length}</p>
+                <p><strong>Durata Media:</strong> ${CallAnalyzer.formatDuration(Math.floor(totalDuration / totalCalls))}/chiamata</p>
+            </div>
+        </div>
     </div>
     
+    <h2 class="section-title">Riepilogo per Categoria</h2>
     <table class="table">
         <thead>
             <tr>
                 <th>Categoria</th>
                 <th>Chiamate</th>
+                <th>% del Totale</th>
                 <th>Durata</th>
                 <th>Costo</th>
+                <th>Costo Medio</th>
             </tr>
         </thead>
         <tbody>
@@ -365,20 +503,28 @@ export class CallAnalyzer {
                 <tr>
                     <td>${cat.category}</td>
                     <td>${cat.count}</td>
+                    <td>${((cat.count / totalCalls) * 100).toFixed(1)}%</td>
                     <td>${cat.formattedDuration}</td>
                     <td>€${cat.cost?.toFixed(2) || '0.00'}</td>
+                    <td>€${cat.count > 0 ? ((cat.cost || 0) / cat.count).toFixed(3) : '0.000'}</td>
                 </tr>
             `).join('')}
             <tr class="total">
                 <td><strong>TOTALE</strong></td>
                 <td><strong>${totalCalls}</strong></td>
+                <td><strong>100.0%</strong></td>
                 <td><strong>${CallAnalyzer.formatDuration(totalDuration)}</strong></td>
                 <td><strong>€${totalCost.toFixed(2)}</strong></td>
+                <td><strong>€${totalCalls > 0 ? (totalCost / totalCalls).toFixed(3) : '0.000'}</strong></td>
             </tr>
         </tbody>
     </table>
     
-    <h2 class="section-title">Analisi per Chiamante</h2>
+    ${hourlyAnalysis}
+    
+    ${topNumbersAnalysis}
+    
+    <h2 class="section-title">Top 10 Chiamanti per Costo</h2>
     <table class="table">
         <thead>
             <tr>
@@ -386,26 +532,28 @@ export class CallAnalyzer {
                 <th>Chiamate</th>
                 <th>Durata</th>
                 <th>Costo</th>
+                <th>% del Costo Totale</th>
             </tr>
         </thead>
         <tbody>
-            ${callerAnalysis.slice(0, 20).map(caller => {
-                const totalCost = caller.categories.reduce((sum, cat) => sum + (cat.cost || 0), 0);
+            ${callerAnalysis.slice(0, 10).map(caller => {
+                const totalCallerCost = caller.categories.reduce((sum, cat) => sum + (cat.cost || 0), 0);
                 return `
                     <tr>
-                        <td>${caller.callerNumber}</td>
+                        <td style="font-family: monospace;">${caller.callerNumber}</td>
                         <td>${caller.totalCalls}</td>
                         <td>${caller.formattedTotalDuration}</td>
-                        <td>€${totalCost.toFixed(2)}</td>
+                        <td>€${totalCallerCost.toFixed(2)}</td>
+                        <td>${((totalCallerCost / totalCost) * 100).toFixed(1)}%</td>
                     </tr>
                 `;
             }).join('')}
         </tbody>
     </table>
     
-    ${sortedRecords.length > 0 ? `
+    ${sortedRecords.length > 0 && sortedRecords.length <= 100 ? `
     <div class="page-break">
-        <h2 class="section-title">Dettaglio Tutte le Chiamate</h2>
+        <h2 class="section-title">Dettaglio Chiamate</h2>
         <table class="table">
             <thead>
                 <tr>
@@ -423,8 +571,8 @@ export class CallAnalyzer {
                     <tr>
                         <td>${record.date}</td>
                         <td>${record.timestamp}</td>
-                        <td>${record.callerNumber}</td>
-                        <td>${record.calledNumber}</td>
+                        <td style="font-family: monospace;">${record.callerNumber}</td>
+                        <td style="font-family: monospace;">${record.calledNumber}</td>
                         <td>${record.duration}</td>
                         <td>${record.category.description}</td>
                         <td>€${record.cost?.toFixed(2) || '0.00'}</td>
@@ -433,10 +581,18 @@ export class CallAnalyzer {
             </tbody>
         </table>
     </div>
+    ` : sortedRecords.length > 100 ? `
+    <div class="page-break">
+        <h2 class="section-title">Dettaglio Chiamate</h2>
+        <p><em>Il dettaglio completo delle chiamate non è incluso in questo report a causa del numero elevato di record (${sortedRecords.length}). 
+        Utilizzare l'export CSV per ottenere il dettaglio completo.</em></p>
+    </div>
     ` : ''}
     
-    <div class="no-print">
-        <button onclick="window.print()">Stampa Report</button>
+    <div class="no-print" style="margin-top: 30px; text-align: center;">
+        <button onclick="window.print()" style="background-color: #3B82F6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+            Stampa Report
+        </button>
     </div>
 </body>
 </html>

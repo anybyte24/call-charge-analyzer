@@ -3,21 +3,25 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity } from 'lucide-react';
-import { CallSummary, CallerAnalysis } from '@/types/call-analysis';
+import { CallSummary, CallerAnalysis, CallRecord } from '@/types/call-analysis';
 import CallAnalyticsCharts from './CallAnalyticsCharts';
+import HourlyDistributionChart from './HourlyDistributionChart';
+import TopNumbersAnalysis from './TopNumbersAnalysis';
 
 interface DashboardProps {
   summary: CallSummary[];
   callerAnalysis: CallerAnalysis[];
   totalRecords: number;
   fileName: string;
+  records: CallRecord[];
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   summary, 
   callerAnalysis, 
   totalRecords, 
-  fileName 
+  fileName,
+  records
 }) => {
   const totalCalls = summary.reduce((sum, cat) => sum + cat.count, 0);
   const totalDuration = summary.reduce((sum, cat) => sum + cat.totalSeconds, 0);
@@ -164,7 +168,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Tabs for different views */}
       <Tabs defaultValue="summary" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 bg-white/70 backdrop-blur-sm border shadow-lg">
+        <TabsList className="grid w-full grid-cols-4 bg-white/70 backdrop-blur-sm border shadow-lg">
           <TabsTrigger value="summary" className="flex items-center space-x-2">
             <BarChart3 className="h-4 w-4" />
             <span>Riepilogo</span>
@@ -172,6 +176,14 @@ const Dashboard: React.FC<DashboardProps> = ({
           <TabsTrigger value="charts" className="flex items-center space-x-2">
             <Activity className="h-4 w-4" />
             <span>Grafici</span>
+          </TabsTrigger>
+          <TabsTrigger value="hourly" className="flex items-center space-x-2">
+            <Clock className="h-4 w-4" />
+            <span>Distribuzione Oraria</span>
+          </TabsTrigger>
+          <TabsTrigger value="numbers" className="flex items-center space-x-2">
+            <Phone className="h-4 w-4" />
+            <span>Analisi Numeri</span>
           </TabsTrigger>
         </TabsList>
 
@@ -223,6 +235,14 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         <TabsContent value="charts" className="space-y-4">
           <CallAnalyticsCharts summary={summary} callerAnalysis={callerAnalysis} />
+        </TabsContent>
+
+        <TabsContent value="hourly" className="space-y-4">
+          <HourlyDistributionChart records={records} />
+        </TabsContent>
+
+        <TabsContent value="numbers" className="space-y-4">
+          <TopNumbersAnalysis records={records} />
         </TabsContent>
       </Tabs>
     </div>

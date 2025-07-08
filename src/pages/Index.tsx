@@ -229,12 +229,13 @@ const Index = () => {
 
               <TabsContent value="dashboard" className="mt-0">
                 {currentSession ? (
-                  <Dashboard 
-                    summary={currentSession.summary}
-                    callerAnalysis={currentSession.callerAnalysis}
-                    totalRecords={currentSession.totalRecords}
-                    fileName={currentSession.fileName}
-                  />
+            <Dashboard 
+              summary={currentSession.summary} 
+              callerAnalysis={currentSession.callerAnalysis}
+              totalRecords={currentSession.totalRecords}
+              fileName={currentSession.fileName}
+              records={currentRecords}
+            />
                 ) : (
                   <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
                     <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />

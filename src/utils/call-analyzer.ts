@@ -177,16 +177,55 @@ export class CallAnalyzer {
     const categoryMap = new Map<string, CallSummary>();
     
     records.forEach(record => {
-      const key = record.category.type;
-      const existing = categoryMap.get(key);
+      // Applica la stessa logica di raggruppamento usata in CallerAnalysisTable
+      let macroCategory = '';
+      const category = record.category.description;
+      
+      // Per le categorie internazionali dettagliate
+      if (['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].some(paese => category.includes(paese))) {
+        if (category.includes('Mobile')) {
+          // Estrai solo il nome del paese + Mobile
+          const paese = ['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].find(p => category.includes(p));
+          macroCategory = `${paese} Mobile`;
+        } else if (category.includes('Fisso')) {
+          // Estrai solo il nome del paese + Fisso
+          const paese = ['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].find(p => category.includes(p));
+          macroCategory = `${paese} Fisso`;
+        } else {
+          // Se non ha Fisso/Mobile, usa la categoria originale
+          macroCategory = category;
+        }
+      }
+      // Per TUTTI i mobili italiani (TIM, Vodafone, Wind, Iliad, Fastweb, Tre), raggruppa sotto "Mobile"
+      else if (category.includes('TIM') || category.includes('Vodafone') || 
+               category.includes('Wind') || category.includes('Iliad') || 
+               category.includes('Fastweb') || category.includes('Tre')) {
+        macroCategory = 'Mobile';
+      }
+      // Per numeri speciali, mantieni la categoria specifica
+      else if (category === 'Numero Verde') {
+        macroCategory = 'Numero Verde';
+      } else if (category === 'Numero Premium') {
+        macroCategory = 'Numero Premium';
+      }
+      // Per tutti gli altri (fissi italiani e internazionali non dettagliati), raggruppa sotto "Fisso"
+      else if (record.category.type === 'landline') {
+        macroCategory = 'Fisso';
+      }
+      // Per le altre categorie internazionali, usa la categoria originale
+      else {
+        macroCategory = category;
+      }
+      
+      const existing = categoryMap.get(macroCategory);
       
       if (existing) {
         existing.count++;
         existing.totalSeconds += record.durationSeconds;
         existing.cost = (existing.cost || 0) + (record.cost || 0);
       } else {
-        categoryMap.set(key, {
-          category: record.category.description,
+        categoryMap.set(macroCategory, {
+          category: macroCategory,
           count: 1,
           totalSeconds: record.durationSeconds,
           totalMinutes: 0,

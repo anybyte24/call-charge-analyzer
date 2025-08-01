@@ -70,10 +70,11 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
         }
         console.log('🌍 International category processed:', cat.category, '→', macroCategory);
       }
-      // Per TUTTI i mobili italiani (TIM, Vodafone, Wind, Iliad, Fastweb), raggruppa sotto "Mobile"
+      // Per TUTTI i mobili italiani (specifici e generici), raggruppa sotto "Mobile"
       else if (cat.category.includes('TIM') || cat.category.includes('Vodafone') || 
                cat.category.includes('Wind') || cat.category.includes('Iliad') || 
-               cat.category.includes('Fastweb') || cat.category.includes('Tre')) {
+               cat.category.includes('Fastweb') || cat.category.includes('Tre') ||
+               cat.category === 'Mobile') {
         macroCategory = 'Mobile';
         console.log('📱 Italian mobile category grouped:', cat.category, '→', macroCategory);
       }

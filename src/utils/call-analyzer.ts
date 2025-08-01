@@ -199,7 +199,8 @@ export class CallAnalyzer {
       // Per TUTTI i mobili italiani (TIM, Vodafone, Wind, Iliad, Fastweb, Tre), raggruppa sotto "Mobile"
       else if (category.includes('TIM') || category.includes('Vodafone') || 
                category.includes('Wind') || category.includes('Iliad') || 
-               category.includes('Fastweb') || category.includes('Tre')) {
+               category.includes('Fastweb') || category.includes('Tre') ||
+               category === 'Mobile') {
         macroCategory = 'Mobile';
       }
       // Per numeri speciali, mantieni la categoria specifica
@@ -211,6 +212,10 @@ export class CallAnalyzer {
       // Per tutti gli altri (fissi italiani e internazionali non dettagliati), raggruppa sotto "Fisso"
       else if (record.category.type === 'landline') {
         macroCategory = 'Fisso';
+      }
+      // Per mobili generici non ancora categorizzati
+      else if (record.category.type === 'mobile') {
+        macroCategory = 'Mobile';
       }
       // Per le altre categorie internazionali, usa la categoria originale
       else {

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisSession, CallRecord, CallSummary, CallerAnalysis, PrefixConfig } from '@/types/call-analysis';
 import { CallAnalyzer } from '@/utils/call-analyzer';
+import { CostRecalculator } from '@/utils/cost-recalculator';
 import { useSupabaseAuth } from './useSupabaseAuth';
 import { useToast } from './use-toast';
 
@@ -193,22 +194,13 @@ export const useAnalysisStorage = () => {
 
           console.log(`💫 Recalculating session: ${session.fileName} (${session.records.length} records)`);
           
-          // Ricalcola i costi per ogni record
-          const recalculatedRecords = session.records.map((record: CallRecord) => {
-            const categoryWithCost = CallAnalyzer.categorizeNumber(record.calledNumber);
-            const newCost = CallAnalyzer.calculateCallCost(record.durationSeconds, categoryWithCost.costPerMinute);
-            
-            console.log(`📞 ${record.calledNumber}: €${record.cost?.toFixed(4)} → €${newCost.toFixed(4)}`);
-            
-            return {
-              ...record,
-              cost: newCost,
-              category: {
-                type: categoryWithCost.type,
-                description: categoryWithCost.description
-              }
-            };
-          });
+          // Usa il NUOVO sistema di ricalcolo
+          console.log(`🔄 Using NEW cost recalculation system for ${session.fileName}`);
+          const recalculatedRecords = CostRecalculator.recalculateAllCosts(session.records);
+          
+          // Verifica l'integrità
+          const isValid = CostRecalculator.verifyCosts(recalculatedRecords);
+          console.log(`✅ Cost integrity check for ${session.fileName}:`, isValid);
 
           // Rigenera summary e caller analysis
           const newSummary = CallAnalyzer.generateSummary(recalculatedRecords);
@@ -257,22 +249,13 @@ export const useAnalysisStorage = () => {
 
         console.log(`💫 Recalculating session: ${session.file_name}`);
         
-        // Ricalcola i costi per ogni record
-        const recalculatedRecords = (session.records_data as unknown as CallRecord[]).map((record: CallRecord) => {
-          const categoryWithCost = CallAnalyzer.categorizeNumber(record.calledNumber);
-          const newCost = CallAnalyzer.calculateCallCost(record.durationSeconds, categoryWithCost.costPerMinute);
-          
-          console.log(`📞 ${record.calledNumber}: €${record.cost?.toFixed(4)} → €${newCost.toFixed(4)}`);
-          
-          return {
-            ...record,
-            cost: newCost,
-            category: {
-              type: categoryWithCost.type,
-              description: categoryWithCost.description
-            }
-          };
-        });
+        // Usa il NUOVO sistema di ricalcolo
+        console.log(`🔄 Using NEW cost recalculation system for ${session.file_name}`);
+        const recalculatedRecords = CostRecalculator.recalculateAllCosts(session.records_data as unknown as CallRecord[]);
+        
+        // Verifica l'integrità
+        const isValid = CostRecalculator.verifyCosts(recalculatedRecords);
+        console.log(`✅ Cost integrity check for ${session.file_name}:`, isValid);
 
         // Rigenera summary e caller analysis
         const newSummary = CallAnalyzer.generateSummary(recalculatedRecords);

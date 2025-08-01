@@ -63,13 +63,15 @@ export class CallAnalyzer {
       return 0;
     }
     
-    // Se la chiamata dura anche solo 1 secondo, viene tariffata come 1 minuto intero
-    const billingMinutes = Math.ceil(durationSeconds / 60);
-    const cost = billingMinutes * costPerMinute;
+    // Converti i secondi in minuti per il calcolo preciso
+    const exactMinutes = durationSeconds / 60;
     
-    console.log(`💰 Cost calculation: ${durationSeconds}s → ${billingMinutes} billing min × €${costPerMinute}/min = €${cost.toFixed(4)}`);
+    // Applica il costo per minuto direttamente
+    const cost = exactMinutes * costPerMinute;
     
-    return cost;
+    console.log(`💰 NEW Cost calculation: ${durationSeconds}s = ${exactMinutes.toFixed(2)} min × €${costPerMinute}/min = €${cost.toFixed(4)}`);
+    
+    return parseFloat(cost.toFixed(4));
   }
 
   static parseCSV(csvContent: string, prefixConfig: PrefixConfig[] = this.defaultPrefixConfig): CallRecord[] {

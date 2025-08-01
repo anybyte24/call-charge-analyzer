@@ -57,13 +57,17 @@ export class CallAnalyzer {
   }
 
   static calculateCallCost(durationSeconds: number, costPerMinute: number): number {
-    if (durationSeconds === 0 || costPerMinute === 0) return 0;
+    // Se non c'è durata o costo, ritorna 0
+    if (durationSeconds === 0 || costPerMinute === 0) {
+      console.log(`💰 No cost: duration=${durationSeconds}s, rate=€${costPerMinute}/min → €0.00`);
+      return 0;
+    }
     
     // Se la chiamata dura anche solo 1 secondo, viene tariffata come 1 minuto intero
     const billingMinutes = Math.ceil(durationSeconds / 60);
     const cost = billingMinutes * costPerMinute;
     
-    console.log(`💰 Call cost calculation: ${durationSeconds}s = ${billingMinutes} billing minutes × €${costPerMinute} = €${cost.toFixed(4)}`);
+    console.log(`💰 Cost calculation: ${durationSeconds}s → ${billingMinutes} billing min × €${costPerMinute}/min = €${cost.toFixed(4)}`);
     
     return cost;
   }
@@ -117,8 +121,10 @@ export class CallAnalyzer {
         const categoryWithCost = this.categorizeNumber(calledNumber, prefixConfig);
         const durationSeconds = this.parseDuration(duration);
         
-        // Usa il nuovo metodo di calcolo costi
+        // Calcola il costo della chiamata con log dettagliato
+        console.log(`🔍 Calculating cost for ${calledNumber}: ${durationSeconds}s at €${categoryWithCost.costPerMinute}/min`);
         const callCost = this.calculateCallCost(durationSeconds, categoryWithCost.costPerMinute);
+        console.log(`💶 Final cost for ${calledNumber}: €${callCost.toFixed(4)}`);
         
         console.log('Parsed record:', {
           calledNumber,

@@ -165,17 +165,31 @@ export const useAnalysisStorage = () => {
 
     try {
       console.log('🔄 === STARTING COST RECALCULATION ===');
+      console.log('👤 User:', user ? 'authenticated' : 'not authenticated');
+      console.log('📱 Is temporary user:', isTemporary);
       
       if (isTemporary) {
         // Recalculate for localStorage sessions
+        console.log('💾 Checking localStorage sessions...');
         const savedSessions = JSON.parse(localStorage.getItem('analysis_sessions') || '[]');
+        console.log('📂 Found sessions:', savedSessions.length);
         let updated = false;
 
-        const updatedSessions = savedSessions.map((session: any) => {
-          if (sessionId && session.id !== sessionId) return session;
-          if (!session.records || !Array.isArray(session.records)) return session;
+        const updatedSessions = savedSessions.map((session: any, index: number) => {
+          console.log(`🔍 Checking session ${index + 1}:`, session.fileName);
+          console.log(`📋 Session has records:`, session.records ? `Yes (${session.records.length})` : 'No');
+          
+          if (sessionId && session.id !== sessionId) {
+            console.log(`⏭️ Skipping session (ID mismatch): ${session.id} !== ${sessionId}`);
+            return session;
+          }
+          
+          if (!session.records || !Array.isArray(session.records)) {
+            console.log(`❌ Session ${session.fileName} has no records to recalculate`);
+            return session;
+          }
 
-          console.log(`💫 Recalculating session: ${session.fileName}`);
+          console.log(`💫 Recalculating session: ${session.fileName} (${session.records.length} records)`);
           
           // Ricalcola i costi per ogni record
           const recalculatedRecords = session.records.map((record: CallRecord) => {

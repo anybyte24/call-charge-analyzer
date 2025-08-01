@@ -38,9 +38,18 @@ const Dashboard: React.FC<DashboardProps> = ({
   const totalMinutes = Math.floor((totalDuration % 3600) / 60);
 
   const handleRecalculateCosts = async () => {
-    await recalculateCosts();
-    // Ricarica la pagina per mostrare i dati aggiornati
-    window.location.reload();
+    console.log('🔄 Starting manual cost recalculation...');
+    try {
+      const success = await recalculateCosts();
+      console.log('✅ Recalculation completed:', success);
+      if (success) {
+        // Ricarica la pagina per mostrare i dati aggiornati
+        console.log('🔄 Reloading page to show updated data...');
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('❌ Error during recalculation:', error);
+    }
   };
 
   const getCategoryColor = (category: string) => {

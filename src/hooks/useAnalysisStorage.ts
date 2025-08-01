@@ -84,7 +84,8 @@ export const useAnalysisStorage = () => {
           totalRecords: s.totalRecords,
           summary: s.summary,
           callerAnalysis: s.callerAnalysis,
-          prefixConfig: s.prefixConfig
+          prefixConfig: s.prefixConfig,
+          records: s.records // Include i records per il ricalcolo
         }));
       }
 
@@ -103,7 +104,8 @@ export const useAnalysisStorage = () => {
         totalRecords: session.total_records,
         summary: session.summary_data as unknown as CallSummary[],
         callerAnalysis: session.caller_analysis_data as unknown as CallerAnalysis[],
-        prefixConfig: session.prefix_config as unknown as PrefixConfig[]
+        prefixConfig: session.prefix_config as unknown as PrefixConfig[],
+        records: session.records_data as unknown as CallRecord[] // Include anche i records dal database
       }));
     } catch (error) {
       console.error('Error loading sessions:', error);

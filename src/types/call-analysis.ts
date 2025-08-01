@@ -42,6 +42,7 @@ export interface AnalysisSession {
   summary: CallSummary[];
   callerAnalysis: CallerAnalysis[];
   prefixConfig?: PrefixConfig[];
+  records?: CallRecord[]; // Aggiunto per supportare il ricalcolo dei costi
 }
 
 export interface PrefixConfig {

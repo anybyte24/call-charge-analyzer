@@ -176,6 +176,9 @@ export class CallAnalyzer {
   static generateSummary(records: CallRecord[]): CallSummary[] {
     const categoryMap = new Map<string, CallSummary>();
     
+    console.log('🔍 === GENERATING SUMMARY ===');
+    console.log('📊 Total records to analyze:', records.length);
+    
     records.forEach(record => {
       // Applica la stessa logica di raggruppamento usata in CallerAnalysisTable
       let macroCategory = '';
@@ -222,14 +225,17 @@ export class CallAnalyzer {
         macroCategory = category;
       }
       
+      console.log(`📂 Record categorization: ${record.calledNumber} → Original: "${category}" → Macro: "${macroCategory}" → Cost: €${record.cost?.toFixed(4)} (${record.durationSeconds}s)`);
+      
       const existing = categoryMap.get(macroCategory);
       
       if (existing) {
         existing.count++;
         existing.totalSeconds += record.durationSeconds;
         existing.cost = (existing.cost || 0) + (record.cost || 0);
+        console.log(`📈 Updated "${macroCategory}": ${existing.count} calls, ${existing.totalSeconds}s, €${existing.cost.toFixed(4)}`);
       } else {
-        categoryMap.set(macroCategory, {
+        const newCategory = {
           category: macroCategory,
           count: 1,
           totalSeconds: record.durationSeconds,
@@ -237,7 +243,9 @@ export class CallAnalyzer {
           totalHours: 0,
           formattedDuration: '',
           cost: record.cost || 0
-        });
+        };
+        categoryMap.set(macroCategory, newCategory);
+        console.log(`🆕 New category "${macroCategory}": 1 call, ${record.durationSeconds}s, €${(record.cost || 0).toFixed(4)}`);
       }
     });
     

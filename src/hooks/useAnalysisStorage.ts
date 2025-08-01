@@ -214,6 +214,8 @@ export const useAnalysisStorage = () => {
           const newSummary = CallAnalyzer.generateSummary(recalculatedRecords);
           const newCallerAnalysis = CallAnalyzer.generateCallerAnalysis(recalculatedRecords);
 
+          console.log(`✅ New summary for ${session.fileName}:`, newSummary.map(s => `${s.category}: €${s.cost?.toFixed(2)}`));
+
           updated = true;
           return {
             ...session,
@@ -224,11 +226,15 @@ export const useAnalysisStorage = () => {
         });
 
         if (updated) {
+          console.log('💾 Saving updated sessions to localStorage...');
           localStorage.setItem('analysis_sessions', JSON.stringify(updatedSessions));
+          console.log('✅ Sessions saved to localStorage');
           toast({
             title: "Costi ricalcolati",
             description: "I costi sono stati aggiornati con i nuovi prezzi."
           });
+        } else {
+          console.log('⚠️ No sessions were updated');
         }
         
         return updated;

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisSession, CallRecord, CallSummary, CallerAnalysis, PrefixConfig } from '@/types/call-analysis';
+import { CallAnalyzer } from '@/utils/call-analyzer';
 import { useSupabaseAuth } from './useSupabaseAuth';
 import { useToast } from './use-toast';
 
@@ -158,10 +159,151 @@ export const useAnalysisStorage = () => {
     }
   }, [user, isTemporary, toast]);
 
+  const recalculateCosts = useCallback(async (sessionId?: string): Promise<boolean> => {
+    if (!user) return false;
+    setLoading(true);
+
+    try {
+      console.log('🔄 === STARTING COST RECALCULATION ===');
+      
+      if (isTemporary) {
+        // Recalculate for localStorage sessions
+        const savedSessions = JSON.parse(localStorage.getItem('analysis_sessions') || '[]');
+        let updated = false;
+
+        const updatedSessions = savedSessions.map((session: any) => {
+          if (sessionId && session.id !== sessionId) return session;
+          if (!session.records || !Array.isArray(session.records)) return session;
+
+          console.log(`💫 Recalculating session: ${session.fileName}`);
+          
+          // Ricalcola i costi per ogni record
+          const recalculatedRecords = session.records.map((record: CallRecord) => {
+            const categoryWithCost = CallAnalyzer.categorizeNumber(record.calledNumber);
+            const newCost = CallAnalyzer.calculateCallCost(record.durationSeconds, categoryWithCost.costPerMinute);
+            
+            console.log(`📞 ${record.calledNumber}: €${record.cost?.toFixed(4)} → €${newCost.toFixed(4)}`);
+            
+            return {
+              ...record,
+              cost: newCost,
+              category: {
+                type: categoryWithCost.type,
+                description: categoryWithCost.description
+              }
+            };
+          });
+
+          // Rigenera summary e caller analysis
+          const newSummary = CallAnalyzer.generateSummary(recalculatedRecords);
+          const newCallerAnalysis = CallAnalyzer.generateCallerAnalysis(recalculatedRecords);
+
+          updated = true;
+          return {
+            ...session,
+            records: recalculatedRecords,
+            summary: newSummary,
+            callerAnalysis: newCallerAnalysis
+          };
+        });
+
+        if (updated) {
+          localStorage.setItem('analysis_sessions', JSON.stringify(updatedSessions));
+          toast({
+            title: "Costi ricalcolati",
+            description: "I costi sono stati aggiornati con i nuovi prezzi."
+          });
+        }
+        
+        return updated;
+      }
+
+      // Recalculate for Supabase sessions
+      let query = supabase.from('analysis_sessions').select('*');
+      
+      if (sessionId) {
+        query = query.eq('id', sessionId);
+      }
+
+      const { data: sessions, error: fetchError } = await query;
+      if (fetchError) throw fetchError;
+
+      let updatedCount = 0;
+
+      for (const session of sessions) {
+        if (!session.records_data || !Array.isArray(session.records_data)) continue;
+
+        console.log(`💫 Recalculating session: ${session.file_name}`);
+        
+        // Ricalcola i costi per ogni record
+        const recalculatedRecords = (session.records_data as unknown as CallRecord[]).map((record: CallRecord) => {
+          const categoryWithCost = CallAnalyzer.categorizeNumber(record.calledNumber);
+          const newCost = CallAnalyzer.calculateCallCost(record.durationSeconds, categoryWithCost.costPerMinute);
+          
+          console.log(`📞 ${record.calledNumber}: €${record.cost?.toFixed(4)} → €${newCost.toFixed(4)}`);
+          
+          return {
+            ...record,
+            cost: newCost,
+            category: {
+              type: categoryWithCost.type,
+              description: categoryWithCost.description
+            }
+          };
+        });
+
+        // Rigenera summary e caller analysis
+        const newSummary = CallAnalyzer.generateSummary(recalculatedRecords);
+        const newCallerAnalysis = CallAnalyzer.generateCallerAnalysis(recalculatedRecords);
+
+        // Aggiorna nel database
+        const { error: updateError } = await supabase
+          .from('analysis_sessions')
+          .update({
+            summary_data: newSummary as any,
+            caller_analysis_data: newCallerAnalysis as any,
+            records_data: recalculatedRecords as any,
+            last_accessed: new Date().toISOString()
+          })
+          .eq('id', session.id);
+
+        if (updateError) throw updateError;
+        updatedCount++;
+      }
+
+      if (updatedCount > 0) {
+        toast({
+          title: "Costi ricalcolati",
+          description: `${updatedCount} sessione/i aggiornate con i nuovi prezzi.`
+        });
+      } else {
+        toast({
+          title: "Nessun aggiornamento",
+          description: "Non sono state trovate sessioni da aggiornare."
+        });
+      }
+
+      console.log('✅ Cost recalculation completed');
+      return updatedCount > 0;
+      
+    } catch (error) {
+      console.error('Error recalculating costs:', error);
+      toast({
+        title: "Errore nel ricalcolo",
+        description: "Impossibile ricalcolare i costi.",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [user, isTemporary, toast]);
+
   return {
     saveSession,
     loadSessions,
     deleteSession,
+    recalculateCosts,
     loading,
     isTemporary
   };

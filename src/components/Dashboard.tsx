@@ -2,7 +2,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity, Filter, Table } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity, Filter, Table, RefreshCw } from 'lucide-react';
 import { CallSummary, CallerAnalysis, CallRecord } from '@/types/call-analysis';
 import CallAnalyticsCharts from './CallAnalyticsCharts';
 import HourlyDistributionChart from './HourlyDistributionChart';
@@ -11,6 +12,7 @@ import AdvancedFilters from './AdvancedFilters';
 import VirtualizedTable from './VirtualizedTable';
 import TooltipInfo, { KPITooltips } from './TooltipInfo';
 import { ResponsiveKPIGrid, ResponsiveContainer } from './ResponsiveLayout';
+import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 
 interface DashboardProps {
   summary: CallSummary[];
@@ -28,11 +30,18 @@ const Dashboard: React.FC<DashboardProps> = ({
   records
 }) => {
   const [filteredRecords, setFilteredRecords] = React.useState<CallRecord[]>(records);
+  const { recalculateCosts, loading: recalculateLoading } = useAnalysisStorage();
   const totalCalls = summary.reduce((sum, cat) => sum + cat.count, 0);
   const totalDuration = summary.reduce((sum, cat) => sum + cat.totalSeconds, 0);
   const totalCost = summary.reduce((sum, cat) => sum + (cat.cost || 0), 0);
   const totalHours = Math.floor(totalDuration / 3600);
   const totalMinutes = Math.floor((totalDuration % 3600) / 60);
+
+  const handleRecalculateCosts = async () => {
+    await recalculateCosts();
+    // Ricarica la pagina per mostrare i dati aggiornati
+    window.location.reload();
+  };
 
   const getCategoryColor = (category: string) => {
     switch (category.toLowerCase()) {
@@ -86,11 +95,21 @@ const Dashboard: React.FC<DashboardProps> = ({
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white p-8 rounded-2xl shadow-lg">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="p-2 bg-white/20 rounded-xl">
-            <BarChart3 className="h-6 w-6" />
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-white/20 rounded-xl">
+              <BarChart3 className="h-6 w-6" />
+            </div>
+            <h1 className="text-2xl font-bold">Analisi Chiamate Telefoniche</h1>
           </div>
-          <h1 className="text-2xl font-bold">Analisi Chiamate Telefoniche</h1>
+          <Button
+            onClick={handleRecalculateCosts}
+            disabled={recalculateLoading}
+            className="bg-white/20 hover:bg-white/30 text-white border border-white/20 backdrop-blur-sm"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${recalculateLoading ? 'animate-spin' : ''}`} />
+            {recalculateLoading ? 'Ricalcolando...' : 'Ricalcola Costi'}
+          </Button>
         </div>
         <p className="text-blue-100 text-lg">File: {fileName}</p>
         <div className="mt-4 flex items-center space-x-6 text-sm">

@@ -22,6 +22,13 @@ interface NumberAnalysis {
   isRepeated: boolean;
 }
 
+function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
 const TopNumbersAnalysis: React.FC<TopNumbersAnalysisProps> = ({ records }) => {
   const numberAnalysis = React.useMemo(() => {
     const numberMap = new Map<string, NumberAnalysis>();
@@ -66,12 +73,6 @@ const TopNumbersAnalysis: React.FC<TopNumbersAnalysisProps> = ({ records }) => {
     return analysis.sort((a, b) => b.callCount - a.callCount);
   }, [records]);
 
-  const formatDuration = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const getBadgeVariant = (callCount: number) => {
     if (callCount >= 10) return 'destructive';

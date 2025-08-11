@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -120,6 +120,23 @@ export const useClients = () => {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["client_numbers"] }),
   });
+
+  useEffect(() => {
+    // Subscribe to realtime changes on clients and client_numbers
+    const channel = supabase
+      .channel('realtime-clients')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => {
+        qc.invalidateQueries({ queryKey: ['clients'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_numbers' }, () => {
+        qc.invalidateQueries({ queryKey: ['client_numbers'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   const numberToClientMap = useMemo(() => {
     const map: Record<string, { id: string; name: string; color?: string | null }> = {};

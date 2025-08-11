@@ -46,6 +46,50 @@ export type Database = {
           },
         ]
       }
+      client_pricing: {
+        Row: {
+          client_id: string
+          created_at: string
+          currency: string
+          id: string
+          landline_rate: number
+          mobile_rate: number
+          monthly_flat_fee: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          landline_rate?: number
+          mobile_rate?: number
+          monthly_flat_fee?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          landline_rate?: number
+          mobile_rate?: number
+          monthly_flat_fee?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_pricing_client_fk"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           color: string | null
@@ -71,6 +115,36 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_global_pricing: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          international_rate: number
+          premium_rate: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          international_rate?: number
+          premium_rate?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          international_rate?: number
+          premium_rate?: number
           updated_at?: string
           user_id?: string
         }

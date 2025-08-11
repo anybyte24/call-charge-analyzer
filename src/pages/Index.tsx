@@ -14,6 +14,7 @@ import { CallAnalyzer } from '@/utils/call-analyzer';
 import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis';
 import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
+import CompanyCostsManager from '@/components/CompanyCostsManager';
 
 const Index = () => {
   const { saveSession } = useAnalysisStorage();

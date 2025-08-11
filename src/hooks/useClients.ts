@@ -58,7 +58,7 @@ export const useClients = () => {
       const { error } = await supabase.from("clients").insert({
         user_id: user.id,
         name: payload.name,
-        color: payload.color,
+        color: payload.color ?? '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'),
         notes: payload.notes,
       });
       if (error) throw error;

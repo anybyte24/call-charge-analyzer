@@ -28,7 +28,7 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
   } = useClients();
 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [newClient, setNewClient] = useState({ name: "", color: "#3B82F6", notes: "" });
+  const [newClient, setNewClient] = useState({ name: "", color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'), notes: "" });
   const [assignNumberValue, setAssignNumberValue] = useState("");
 
   const selectedClient = useMemo(() => clients.find((c) => c.id === selectedClientId) || null, [clients, selectedClientId]);
@@ -40,7 +40,7 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
     }
     try {
       await createClient.mutateAsync({ name: newClient.name.trim(), color: newClient.color, notes: newClient.notes });
-      setNewClient({ name: "", color: "#3B82F6", notes: "" });
+      setNewClient({ name: "", color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'), notes: "" });
       toast({ title: "Cliente creato" });
     } catch (e: any) {
       toast({ title: "Errore", description: e.message, variant: "destructive" });

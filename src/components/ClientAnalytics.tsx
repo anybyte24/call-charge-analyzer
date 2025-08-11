@@ -12,7 +12,7 @@ interface ClientAnalyticsProps {
   numberToClient: Record<string, { id: string; name: string; color?: string | null }>;
 }
 
-type RevenueMode = 'rate' | 'markup';
+
 
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -24,7 +24,7 @@ function formatDuration(seconds: number): string {
 const COLORS = ['#2563eb', '#16a34a', '#f97316', '#8b5cf6', '#06b6d4', '#ef4444', '#14b8a6', '#f59e0b', '#3b82f6', '#84cc16'];
 
 const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numberToClient }) => {
-  const [mode, setMode] = React.useState<RevenueMode>('rate');
+  
   const [ratePerMinuteMobile, setRatePerMinuteMobile] = React.useState<number>(0.12);
   const [ratePerMinuteLandline, setRatePerMinuteLandline] = React.useState<number>(0.08);
   const [markupPercentMobile, setMarkupPercentMobile] = React.useState<number>(30);
@@ -69,17 +69,14 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numbe
     const arr = Array.from(map.values()).map(v => {
       const minutesMobile = (v.categories['mobile']?.seconds || 0) / 60;
       const minutesLandline = (v.categories['landline']?.seconds || 0) / 60;
-      const revenueRate = minutesMobile * ratePerMinuteMobile + minutesLandline * ratePerMinuteLandline;
-      const costMobile = v.categories['mobile']?.cost || 0;
-      const costLandline = v.categories['landline']?.cost || 0;
-      const costOther = Math.max(0, v.totalCost - costMobile - costLandline);
-      const revenueMarkup = (costMobile * (1 + markupPercentMobile / 100)) + (costLandline * (1 + markupPercentLandline / 100)) + costOther;
-      const revenue = mode === 'rate' ? revenueRate : revenueMarkup;
-      const margin = revenue - v.totalCost;
+      const myCost = minutesMobile * markupPercentMobile + minutesLandline * markupPercentLandline;
+      const revenue = minutesMobile * ratePerMinuteMobile + minutesLandline * ratePerMinuteLandline;
+      const margin = revenue - myCost;
       const marginPct = revenue > 0 ? (margin / revenue) * 100 : 0;
       return {
         ...v,
         numbersCount: v.numbers.size,
+        myCost,
         revenue,
         margin,
         marginPct
@@ -87,28 +84,32 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numbe
     });
 
     // Sort by cost desc
-    return arr.sort((a, b) => b.totalCost - a.totalCost);
-  }, [callerAnalysis, numberToClient, ratePerMinuteMobile, ratePerMinuteLandline, markupPercentMobile, markupPercentLandline, mode]);
+    return arr.sort((a: any, b: any) => (b.myCost || 0) - (a.myCost || 0));
+  }, [callerAnalysis, numberToClient, ratePerMinuteMobile, ratePerMinuteLandline, markupPercentMobile, markupPercentLandline]);
 
   const totals = React.useMemo(() => {
-    const totalCost = clients.reduce((s, c) => s + c.totalCost, 0);
-    const totalRevenue = clients.reduce((s, c) => s + c.revenue, 0);
+    const totalCost = clients.reduce((s, c: any) => s + (c.myCost || 0), 0);
+    const totalRevenue = clients.reduce((s, c: any) => s + (c.revenue || 0), 0);
     const totalMargin = totalRevenue - totalCost;
     const assignedClients = clients.filter(c => c.id !== 'no-client').length;
     const unassigned = clients.find(c => c.id === 'no-client')?.numbersCount || 0;
     return { totalCost, totalRevenue, totalMargin, assignedClients, unassigned };
   }, [clients]);
 
-  const topByCost = clients.slice(0, 10).map(c => ({ name: c.name, cost: Number(c.totalCost.toFixed(2)) }));
+  const topByCost = clients.slice(0, 10).map((c: any) => ({ name: c.name, cost: Number((c.myCost || 0).toFixed(2)) }));
   const topByDuration = clients.slice(0, 10).map(c => ({ name: c.name, hours: Number((c.totalSeconds / 3600).toFixed(2)) }));
-  const pieData = clients.slice(0, 8).map((c, i) => ({ name: c.name, value: Number(c.totalCost.toFixed(2)) }));
+  const pieData = clients.slice(0, 8).map((c: any) => ({ name: c.name, value: Number((c.myCost || 0).toFixed(2)) }));
 
-  // Prepare stacked by category for top 7 clients
+  // Prepare stacked by category (using my cost per minute) for top 7 clients
   const categoryKeys = Array.from(new Set(clients.flatMap(c => Object.keys(c.categories))));
-  const stacked = clients.slice(0, 7).map(c => {
+  const stacked = clients.slice(0, 7).map((c: any) => {
     const row: any = { name: c.name };
     categoryKeys.forEach(k => {
-      row[k] = Number((c.categories[k]?.cost || 0).toFixed(2));
+      const seconds = c.categories[k]?.seconds || 0;
+      const minutes = seconds / 60;
+      if (k === 'mobile') row[k] = Number((minutes * markupPercentMobile).toFixed(2));
+      else if (k === 'landline') row[k] = Number((minutes * markupPercentLandline).toFixed(2));
+      else row[k] = 0;
     });
     return row;
   });
@@ -121,34 +122,24 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numbe
           <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5" /> Analisi Clienti</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              className={`px-3 py-2 rounded-lg border ${mode === 'rate' ? 'bg-blue-600 text-white' : 'bg-white'}`}
-              onClick={() => setMode('rate')}
-            >Tariffa €/min</button>
-            <button
-              className={`px-3 py-2 rounded-lg border ${mode === 'markup' ? 'bg-blue-600 text-white' : 'bg-white'}`}
-              onClick={() => setMode('markup')}
-            >Markup %</button>
-          </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 min-w-[120px]">Tariffa Mobile €/min</label>
+            <label className="text-sm text-gray-600 min-w-[120px]">Prezzo Mobile €/min</label>
             <Input type="number" step="0.01" value={ratePerMinuteMobile}
               onChange={(e) => setRatePerMinuteMobile(parseFloat(e.target.value) || 0)} />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 min-w-[120px]">Tariffa Fisso €/min</label>
+            <label className="text-sm text-gray-600 min-w-[120px]">Prezzo Fisso €/min</label>
             <Input type="number" step="0.01" value={ratePerMinuteLandline}
               onChange={(e) => setRatePerMinuteLandline(parseFloat(e.target.value) || 0)} />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 min-w-[120px]">Markup Mobile %</label>
-            <Input type="number" step="1" value={markupPercentMobile}
+            <label className="text-sm text-gray-600 min-w-[120px]">Costo Mobile €/min</label>
+            <Input type="number" step="0.01" value={markupPercentMobile}
               onChange={(e) => setMarkupPercentMobile(parseFloat(e.target.value) || 0)} />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 min-w-[120px]">Markup Fisso %</label>
-            <Input type="number" step="1" value={markupPercentLandline}
+            <label className="text-sm text-gray-600 min-w-[120px]">Costo Fisso €/min</label>
+            <Input type="number" step="0.01" value={markupPercentLandline}
               onChange={(e) => setMarkupPercentLandline(parseFloat(e.target.value) || 0)} />
           </div>
         </CardContent>
@@ -304,7 +295,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numbe
                     <TableCell>{c.numbersCount}</TableCell>
                     <TableCell>{c.totalCalls}</TableCell>
                     <TableCell className="font-mono text-sm">{formatDuration(c.totalSeconds)}</TableCell>
-                    <TableCell className="font-semibold text-green-600">€{c.totalCost.toFixed(2)}</TableCell>
+                    <TableCell className="font-semibold text-green-600">€{(c as any).myCost.toFixed(2)}</TableCell>
                     <TableCell className="font-semibold text-indigo-600">€{c.revenue.toFixed(2)}</TableCell>
                     <TableCell className="font-semibold text-orange-600">€{c.margin.toFixed(2)}</TableCell>
                     <TableCell>{c.marginPct.toFixed(1)}%</TableCell>

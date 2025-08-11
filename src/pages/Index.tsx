@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import FileUploadAdvanced from '@/components/FileUploadAdvanced';
@@ -8,10 +8,11 @@ import HistoryPanel from '@/components/HistoryPanel';
 import PrefixManager from '@/components/PrefixManager';
 import ExportPanel from '@/components/ExportPanel';
 import UnknownNumbersManager from '@/components/UnknownNumbersManager';
+import ClientsManager from '@/components/ClientsManager';
 import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 import { CallAnalyzer } from '@/utils/call-analyzer';
 import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis';
-import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles } from 'lucide-react';
+import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase } from 'lucide-react';
 
 const Index = () => {
   const { saveSession } = useAnalysisStorage();
@@ -21,6 +22,7 @@ const Index = () => {
   const [prefixConfig, setPrefixConfig] = useState<PrefixConfig[]>(CallAnalyzer.defaultPrefixConfig);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [unknownNumbers, setUnknownNumbers] = useState<string[]>([]);
+  const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set(currentSession.callerAnalysis.map(c => c.callerNumber))) : [], [currentSession]);
 
   const handleFileUpload = async (content: string, fileName: string) => {
     setIsAnalyzing(true);
@@ -154,7 +156,7 @@ const Index = () => {
         {/* Main Tabs Interface */}
         <Tabs defaultValue="upload" className="space-y-6">
           <div className="flex justify-center">
-            <TabsList className="grid grid-cols-7 w-fit bg-white/70 backdrop-blur-sm border shadow-lg rounded-xl p-1">
+            <TabsList className="grid grid-cols-8 w-fit bg-white/70 backdrop-blur-sm border shadow-lg rounded-xl p-1">
               <TabsTrigger value="upload" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
                 <Upload className="h-4 w-4" />
                 <span className="hidden sm:inline">Carica</span>
@@ -166,6 +168,10 @@ const Index = () => {
               <TabsTrigger value="callers" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Chiamanti</span>
+              </TabsTrigger>
+              <TabsTrigger value="clients" className="flex items-center space-x-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white rounded-lg">
+                <Briefcase className="h-4 w-4" />
+                <span className="hidden sm:inline">Clienti</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
                 <Settings className="h-4 w-4" />
@@ -277,6 +283,22 @@ const Index = () => {
                   prefixConfig={prefixConfig}
                   onConfigChange={handlePrefixConfigChange}
                 />
+              </TabsContent>
+
+              <TabsContent value="clients" className="mt-0">
+                {currentSession ? (
+                  <ClientsManager availableCallerNumbers={availableCallerNumbers} />
+                ) : (
+                  <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
+                    <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Nessun cliente da gestire
+                    </h3>
+                    <p className="text-gray-500">
+                      Carica un file CSV nella sezione "Carica" per popolare i numeri disponibili e associare i clienti
+                    </p>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="unknown" className="mt-0">

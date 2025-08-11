@@ -173,7 +173,7 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                 </CardHeader>
                 <CardContent>
                   {assignedNumbers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Non disponibile in questa vista. Vedi raggruppamento in "Chiamanti" o rimuovi assegnazioni cercando per numero.</p>
+                    <p className="text-sm text-muted-foreground">Nessun numero assegnato. Assegna numeri a questo cliente dalla sezione qui sopra.</p>
                   ) : (
                     <Table>
                       <TableHeader>

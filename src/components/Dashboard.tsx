@@ -13,8 +13,8 @@ import VirtualizedTable from './VirtualizedTable';
 import TooltipInfo, { KPITooltips } from './TooltipInfo';
 import { ResponsiveKPIGrid, ResponsiveContainer } from './ResponsiveLayout';
 import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
-import CallerAnalysisTable from './CallerAnalysisTable';
 import { useClients } from '@/hooks/useClients';
+import ClientAnalytics from './ClientAnalytics';
 
 interface DashboardProps {
   summary: CallSummary[];
@@ -290,7 +290,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </TabsContent>
 
         <TabsContent value="clients" className="space-y-4">
-          <CallerAnalysisTable callerAnalysis={callerAnalysis} numberToClient={numberToClientMap} />
+          <ClientAnalytics callerAnalysis={callerAnalysis} numberToClient={numberToClientMap} />
         </TabsContent>
 
         <TabsContent value="filters" className="space-y-4">

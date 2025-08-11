@@ -25,7 +25,8 @@ const COLORS = ['#2563eb', '#16a34a', '#f97316', '#8b5cf6', '#06b6d4', '#ef4444'
 
 const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numberToClient }) => {
   const [mode, setMode] = React.useState<RevenueMode>('rate');
-  const [ratePerMinute, setRatePerMinute] = React.useState<number>(0.12);
+  const [ratePerMinuteMobile, setRatePerMinuteMobile] = React.useState<number>(0.12);
+  const [ratePerMinuteLandline, setRatePerMinuteLandline] = React.useState<number>(0.08);
   const [markupPercent, setMarkupPercent] = React.useState<number>(30);
 
   const clients = React.useMemo(() => {
@@ -65,8 +66,9 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numbe
     });
 
     const arr = Array.from(map.values()).map(v => {
-      const minutes = v.totalSeconds / 60;
-      const revenueRate = minutes * ratePerMinute;
+      const minutesMobile = (v.categories['mobile']?.seconds || 0) / 60;
+      const minutesLandline = (v.categories['landline']?.seconds || 0) / 60;
+      const revenueRate = minutesMobile * ratePerMinuteMobile + minutesLandline * ratePerMinuteLandline;
       const revenueMarkup = v.totalCost * (1 + markupPercent / 100);
       const revenue = mode === 'rate' ? revenueRate : revenueMarkup;
       const margin = revenue - v.totalCost;
@@ -82,7 +84,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numbe
 
     // Sort by cost desc
     return arr.sort((a, b) => b.totalCost - a.totalCost);
-  }, [callerAnalysis, numberToClient, ratePerMinute, markupPercent, mode]);
+  }, [callerAnalysis, numberToClient, ratePerMinuteMobile, ratePerMinuteLandline, markupPercent, mode]);
 
   const totals = React.useMemo(() => {
     const totalCost = clients.reduce((s, c) => s + c.totalCost, 0);
@@ -126,9 +128,14 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numbe
             >Markup %</button>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 min-w-[120px]">Tariffa €/min</label>
-            <Input type="number" step="0.01" value={ratePerMinute}
-              onChange={(e) => setRatePerMinute(parseFloat(e.target.value) || 0)} />
+            <label className="text-sm text-gray-600 min-w-[120px]">Tariffa Mobile €/min</label>
+            <Input type="number" step="0.01" value={ratePerMinuteMobile}
+              onChange={(e) => setRatePerMinuteMobile(parseFloat(e.target.value) || 0)} />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600 min-w-[120px]">Tariffa Fisso €/min</label>
+            <Input type="number" step="0.01" value={ratePerMinuteLandline}
+              onChange={(e) => setRatePerMinuteLandline(parseFloat(e.target.value) || 0)} />
           </div>
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-600 min-w-[120px]">Markup %</label>

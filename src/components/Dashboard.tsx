@@ -13,7 +13,7 @@ import VirtualizedTable from './VirtualizedTable';
 import TooltipInfo, { KPITooltips } from './TooltipInfo';
 import { ResponsiveKPIGrid, ResponsiveContainer } from './ResponsiveLayout';
 import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
-import { useClients } from '@/hooks/useClients';
+import ClientPricingSummary from './ClientPricingSummary';
 
 
 interface DashboardProps {
@@ -38,7 +38,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const totalCost = summary.reduce((sum, cat) => sum + (cat.cost || 0), 0);
   const totalHours = Math.floor(totalDuration / 3600);
   const totalMinutes = Math.floor((totalDuration % 3600) / 60);
-  const { numberToClientMap } = useClients();
+  
 
   const handleRecalculateCosts = async () => {
     console.log('🔄 Starting manual cost recalculation...');
@@ -221,11 +221,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Tabs for different views */}
       <Tabs defaultValue="summary" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6 bg-white/70 backdrop-blur-sm border shadow-lg">
+        <TabsList className="grid w-full grid-cols-7 bg-white/70 backdrop-blur-sm border shadow-lg">
           <TabsTrigger value="summary">Riepilogo</TabsTrigger>
           <TabsTrigger value="charts">Grafici</TabsTrigger>
           <TabsTrigger value="hourly">Distribuzione</TabsTrigger>
           <TabsTrigger value="numbers">Numeri</TabsTrigger>
+          <TabsTrigger value="clients">Clienti</TabsTrigger>
           <TabsTrigger value="filters">Filtri</TabsTrigger>
           <TabsTrigger value="table">Tabella</TabsTrigger>
         </TabsList>
@@ -284,8 +285,8 @@ const Dashboard: React.FC<DashboardProps> = ({
           <HourlyDistributionChart records={records} />
         </TabsContent>
 
-        <TabsContent value="numbers" className="space-y-4">
-          <TopNumbersAnalysis records={filteredRecords} />
+        <TabsContent value="clients" className="space-y-4">
+          <ClientPricingSummary callerAnalysis={callerAnalysis} />
         </TabsContent>
 
 

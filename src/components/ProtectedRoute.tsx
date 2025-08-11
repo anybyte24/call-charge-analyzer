@@ -9,17 +9,10 @@ export const ProtectedRoute = () => {
   const { toast } = useToast();
   const [kicked, setKicked] = useState(false);
 
-  // Loading state
-  if (loading) return null;
+  // Email whitelist check (compute before any returns)
+  const isAllowed = !!user?.email && ALLOWED_EMAILS.includes(user.email as any);
 
-  // Not authenticated
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  // Email whitelist check
-  const isAllowed = !!user.email && ALLOWED_EMAILS.includes(user.email as any);
-
+  // Ensure hooks are not conditional: effect must be declared before any returns
   useEffect(() => {
     if (user && !isAllowed && !kicked) {
       setKicked(true);
@@ -32,6 +25,14 @@ export const ProtectedRoute = () => {
       signOut();
     }
   }, [user, isAllowed, kicked, signOut, toast]);
+
+  // Loading state
+  if (loading) return null;
+
+  // Not authenticated
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
 
   if (!isAllowed) {
     return <Navigate to="/auth" replace />;

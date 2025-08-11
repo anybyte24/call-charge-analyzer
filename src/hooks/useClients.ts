@@ -20,6 +20,28 @@ export interface ClientNumber {
   created_at?: string;
 }
 
+export interface ClientPricing {
+  id: string;
+  user_id: string;
+  client_id: string;
+  mobile_rate: number;
+  landline_rate: number;
+  monthly_flat_fee: number;
+  currency?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface UserGlobalPricing {
+  id: string;
+  user_id: string;
+  international_rate: number;
+  premium_rate: number;
+  currency?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export const useClients = () => {
   const qc = useQueryClient();
 
@@ -48,6 +70,35 @@ export const useClients = () => {
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data as ClientNumber[];
+    },
+  });
+
+  const clientPricingQuery = useQuery({
+    queryKey: ["client_pricing"],
+    queryFn: async (): Promise<ClientPricing[]> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("client_pricing")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as ClientPricing[];
+    },
+  });
+
+  const globalPricingQuery = useQuery({
+    queryKey: ["user_global_pricing"],
+    queryFn: async (): Promise<UserGlobalPricing | null> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("user_global_pricing")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as UserGlobalPricing | null;
     },
   });
 
@@ -121,8 +172,42 @@ export const useClients = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["client_numbers"] }),
   });
 
+  const upsertClientPricing = useMutation({
+    mutationFn: async ({ clientId, mobile_rate, landline_rate, monthly_flat_fee }: { clientId: string; mobile_rate: number; landline_rate: number; monthly_flat_fee: number; }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Devi effettuare l'accesso");
+      const { error } = await supabase
+        .from("client_pricing")
+        .upsert({
+          user_id: user.id,
+          client_id: clientId,
+          mobile_rate,
+          landline_rate,
+          monthly_flat_fee,
+        }, { onConflict: "user_id,client_id" });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["client_pricing"] }),
+  });
+
+  const upsertGlobalPricing = useMutation({
+    mutationFn: async ({ international_rate, premium_rate }: { international_rate: number; premium_rate: number; }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Devi effettuare l'accesso");
+      const { error } = await supabase
+        .from("user_global_pricing")
+        .upsert({
+          user_id: user.id,
+          international_rate,
+          premium_rate,
+        }, { onConflict: "user_id" });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["user_global_pricing"] }),
+  });
+
   useEffect(() => {
-    // Subscribe to realtime changes on clients and client_numbers
+    // Subscribe to realtime changes on related tables
     const channel = supabase
       .channel('realtime-clients')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => {
@@ -130,6 +215,12 @@ export const useClients = () => {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'client_numbers' }, () => {
         qc.invalidateQueries({ queryKey: ['client_numbers'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_pricing' }, () => {
+        qc.invalidateQueries({ queryKey: ['client_pricing'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_global_pricing' }, () => {
+        qc.invalidateQueries({ queryKey: ['user_global_pricing'] });
       })
       .subscribe();
 
@@ -160,6 +251,8 @@ export const useClients = () => {
   return {
     clients: clientsQuery.data ?? [],
     assignments: assignmentsQuery.data ?? [],
+    clientPricing: clientPricingQuery.data ?? [],
+    globalPricing: globalPricingQuery.data ?? null,
     numberToClientMap,
     countsByClientId,
     isLoading: clientsQuery.isLoading || assignmentsQuery.isLoading,
@@ -168,5 +261,7 @@ export const useClients = () => {
     deleteClient,
     assignNumber,
     unassignNumber,
+    upsertClientPricing,
+    upsertGlobalPricing,
   };
 };

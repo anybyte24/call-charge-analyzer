@@ -25,6 +25,10 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
     assignNumber,
     unassignNumber,
     assignments,
+    clientPricing,
+    globalPricing,
+    upsertClientPricing,
+    upsertGlobalPricing,
   } = useClients();
 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -32,6 +36,60 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
   const [assignNumberValue, setAssignNumberValue] = useState("");
 
   const selectedClient = useMemo(() => clients.find((c) => c.id === selectedClientId) || null, [clients, selectedClientId]);
+
+  // Pricing state: client-specific
+  const selectedClientPricing = useMemo(() => clientPricing.find(p => p.client_id === selectedClientId) || null, [clientPricing, selectedClientId]);
+  const [clientMobileRate, setClientMobileRate] = useState<number>(0);
+  const [clientLandlineRate, setClientLandlineRate] = useState<number>(0);
+  const [clientFlatFee, setClientFlatFee] = useState<number>(0);
+
+  React.useEffect(() => {
+    if (selectedClientPricing) {
+      setClientMobileRate(Number(selectedClientPricing.mobile_rate) || 0);
+      setClientLandlineRate(Number(selectedClientPricing.landline_rate) || 0);
+      setClientFlatFee(Number(selectedClientPricing.monthly_flat_fee) || 0);
+    } else {
+      setClientMobileRate(0);
+      setClientLandlineRate(0);
+      setClientFlatFee(0);
+    }
+  }, [selectedClientPricing]);
+
+  // Pricing state: global (shared)
+  const [globalInternationalRate, setGlobalInternationalRate] = useState<number>(0);
+  const [globalPremiumRate, setGlobalPremiumRate] = useState<number>(0);
+
+  React.useEffect(() => {
+    setGlobalInternationalRate(Number(globalPricing?.international_rate) || 0);
+    setGlobalPremiumRate(Number(globalPricing?.premium_rate) || 0);
+  }, [globalPricing]);
+
+  const handleSaveClientPricing = async () => {
+    if (!selectedClientId) return;
+    try {
+      await upsertClientPricing.mutateAsync({
+        clientId: selectedClientId,
+        mobile_rate: clientMobileRate,
+        landline_rate: clientLandlineRate,
+        monthly_flat_fee: clientFlatFee,
+      });
+      toast({ title: "Tariffe cliente salvate" });
+    } catch (e: any) {
+      toast({ title: "Errore", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleSaveGlobalPricing = async () => {
+    try {
+      await upsertGlobalPricing.mutateAsync({
+        international_rate: globalInternationalRate,
+        premium_rate: globalPremiumRate,
+      });
+      toast({ title: "Tariffe globali salvate" });
+    } catch (e: any) {
+      toast({ title: "Errore", description: e.message, variant: "destructive" });
+    }
+  };
 
   const handleCreate = async () => {
     if (!newClient.name.trim()) {
@@ -165,6 +223,61 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                 <p className="text-sm text-muted-foreground">Suggerimento: i numeri assegnati verranno raggruppati per cliente nella sezione "Chiamanti".</p>
               </CardContent>
             </Card>
+
+            {/* Tariffe globali - condivise per tutti i clienti */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Tariffe globali (condivise)</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-sm font-medium">Internazionali €/min</label>
+                  <Input type="number" step="0.001" value={globalInternationalRate}
+                    onChange={(e) => setGlobalInternationalRate(parseFloat(e.target.value) || 0)} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">899/199 €/min</label>
+                  <Input type="number" step="0.001" value={globalPremiumRate}
+                    onChange={(e) => setGlobalPremiumRate(parseFloat(e.target.value) || 0)} />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={handleSaveGlobalPricing} disabled={upsertGlobalPricing.isPending}>
+                    Salva tariffe globali
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tariffe specifiche cliente */}
+            {selectedClient && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tariffe di {selectedClient.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-sm font-medium">Mobile €/min</label>
+                    <Input type="number" step="0.001" value={clientMobileRate}
+                      onChange={(e) => setClientMobileRate(parseFloat(e.target.value) || 0)} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Fisso €/min</label>
+                    <Input type="number" step="0.001" value={clientLandlineRate}
+                      onChange={(e) => setClientLandlineRate(parseFloat(e.target.value) || 0)} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Forfait mensile €</label>
+                    <Input type="number" step="0.01" value={clientFlatFee}
+                      onChange={(e) => setClientFlatFee(parseFloat(e.target.value) || 0)} />
+                  </div>
+                  <div className="flex items-end">
+                    <Button onClick={handleSaveClientPricing} disabled={upsertClientPricing.isPending || !selectedClientId}>
+                      Salva tariffe cliente
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {selectedClient && (
               <Card>

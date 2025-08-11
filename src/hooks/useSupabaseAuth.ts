@@ -1,41 +1,41 @@
 import { useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
+import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useSupabaseAuth = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Register listener first to avoid missing events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    // Then get any existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signInWithEmail = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     return { data, error };
   };
 
   const signUpWithEmail = async (email: string, password: string) => {
+    const redirectUrl = `${window.location.origin}/`;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: { emailRedirectTo: redirectUrl },
     });
     return { data, error };
   };
@@ -46,26 +46,19 @@ export const useSupabaseAuth = () => {
   };
 
   const signInAnonymously = async () => {
-    // For demo purposes, create a temporary user identifier
-    const tempUser = {
-      id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      email: `demo_${Date.now()}@example.com`,
-      created_at: new Date().toISOString(),
-    } as User;
-    
-    setUser(tempUser);
-    localStorage.setItem('temp_user', JSON.stringify(tempUser));
-    return { data: { user: tempUser }, error: null };
+    // Demo disabilitata per sicurezza
+    return { data: { user: null }, error: { message: 'Demo non disponibile' } as any };
   };
 
   return {
     user,
+    session,
     loading,
     signInWithEmail,
     signUpWithEmail,
     signOut,
     signInAnonymously,
     isAuthenticated: !!user,
-    isTemporary: user?.email?.startsWith('demo_') || false,
+    isTemporary: false,
   };
 };

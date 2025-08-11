@@ -27,7 +27,8 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numbe
   const [mode, setMode] = React.useState<RevenueMode>('rate');
   const [ratePerMinuteMobile, setRatePerMinuteMobile] = React.useState<number>(0.12);
   const [ratePerMinuteLandline, setRatePerMinuteLandline] = React.useState<number>(0.08);
-  const [markupPercent, setMarkupPercent] = React.useState<number>(30);
+  const [markupPercentMobile, setMarkupPercentMobile] = React.useState<number>(30);
+  const [markupPercentLandline, setMarkupPercentLandline] = React.useState<number>(30);
 
   const clients = React.useMemo(() => {
     type Agg = {
@@ -69,7 +70,10 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numbe
       const minutesMobile = (v.categories['mobile']?.seconds || 0) / 60;
       const minutesLandline = (v.categories['landline']?.seconds || 0) / 60;
       const revenueRate = minutesMobile * ratePerMinuteMobile + minutesLandline * ratePerMinuteLandline;
-      const revenueMarkup = v.totalCost * (1 + markupPercent / 100);
+      const costMobile = v.categories['mobile']?.cost || 0;
+      const costLandline = v.categories['landline']?.cost || 0;
+      const costOther = Math.max(0, v.totalCost - costMobile - costLandline);
+      const revenueMarkup = (costMobile * (1 + markupPercentMobile / 100)) + (costLandline * (1 + markupPercentLandline / 100)) + costOther;
       const revenue = mode === 'rate' ? revenueRate : revenueMarkup;
       const margin = revenue - v.totalCost;
       const marginPct = revenue > 0 ? (margin / revenue) * 100 : 0;
@@ -84,7 +88,7 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numbe
 
     // Sort by cost desc
     return arr.sort((a, b) => b.totalCost - a.totalCost);
-  }, [callerAnalysis, numberToClient, ratePerMinuteMobile, ratePerMinuteLandline, markupPercent, mode]);
+  }, [callerAnalysis, numberToClient, ratePerMinuteMobile, ratePerMinuteLandline, markupPercentMobile, markupPercentLandline, mode]);
 
   const totals = React.useMemo(() => {
     const totalCost = clients.reduce((s, c) => s + c.totalCost, 0);
@@ -138,9 +142,14 @@ const ClientAnalytics: React.FC<ClientAnalyticsProps> = ({ callerAnalysis, numbe
               onChange={(e) => setRatePerMinuteLandline(parseFloat(e.target.value) || 0)} />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 min-w-[120px]">Markup %</label>
-            <Input type="number" step="1" value={markupPercent}
-              onChange={(e) => setMarkupPercent(parseFloat(e.target.value) || 0)} />
+            <label className="text-sm text-gray-600 min-w-[120px]">Markup Mobile %</label>
+            <Input type="number" step="1" value={markupPercentMobile}
+              onChange={(e) => setMarkupPercentMobile(parseFloat(e.target.value) || 0)} />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600 min-w-[120px]">Markup Fisso %</label>
+            <Input type="number" step="1" value={markupPercentLandline}
+              onChange={(e) => setMarkupPercentLandline(parseFloat(e.target.value) || 0)} />
           </div>
         </CardContent>
       </Card>

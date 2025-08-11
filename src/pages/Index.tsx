@@ -13,6 +13,7 @@ import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 import { CallAnalyzer } from '@/utils/call-analyzer';
 import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis';
 import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase } from 'lucide-react';
+import { useClients } from '@/hooks/useClients';
 
 const Index = () => {
   const { saveSession } = useAnalysisStorage();
@@ -22,7 +23,8 @@ const Index = () => {
   const [prefixConfig, setPrefixConfig] = useState<PrefixConfig[]>(CallAnalyzer.defaultPrefixConfig);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [unknownNumbers, setUnknownNumbers] = useState<string[]>([]);
-  const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set(currentSession.callerAnalysis.map(c => c.callerNumber))) : [], [currentSession]);
+const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set(currentSession.callerAnalysis.map(c => c.callerNumber))) : [], [currentSession]);
+  const { numberToClientMap } = useClients();
 
   const handleFileUpload = async (content: string, fileName: string) => {
     setIsAnalyzing(true);
@@ -264,7 +266,7 @@ const Index = () => {
 
               <TabsContent value="callers" className="mt-0">
                 {currentSession ? (
-                  <CallerAnalysisTable callerAnalysis={currentSession.callerAnalysis} />
+                  <CallerAnalysisTable callerAnalysis={currentSession.callerAnalysis} numberToClient={numberToClientMap} />
                 ) : (
                   <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
                     <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />

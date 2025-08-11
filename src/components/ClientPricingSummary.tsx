@@ -2,6 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useClients } from '@/hooks/useClients';
+import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
+
 import { CallerAnalysis } from '@/types/call-analysis';
 
 interface ClientPricingSummaryProps {
@@ -16,7 +18,7 @@ function formatDuration(seconds: number): string {
 }
 
 const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnalysis }) => {
-  const { numberToClientMap, clients, clientPricing, globalPricing } = useClients();
+  const { numberToClientMap, clientPricing, globalPricing } = useClients();
 
   type Agg = {
     id: string;
@@ -121,8 +123,129 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
     return { totalCost, totalRevenue, totalMargin, assignedClients, unassigned };
   }, [rows]);
 
+  const COLORS = ['#2563eb', '#16a34a', '#f97316', '#8b5cf6', '#06b6d4', '#ef4444', '#14b8a6', '#f59e0b', '#3b82f6', '#84cc16'];
+
+  const topByCost = rows.slice(0, 10).map(r => ({ name: r.name, cost: Number(r.myCost.toFixed(2)) }));
+  const topByDuration = rows.slice(0, 10).map(r => ({ name: r.name, hours: Number((r.totalSeconds / 3600).toFixed(2)) }));
+  const pieData = rows.slice(0, 8).map(r => ({ name: r.name, value: Number(r.myCost.toFixed(2)) }));
+
+  const categoryCostMap = React.useMemo(() => {
+    const m = new Map<string, Record<string, number>>();
+    const norm = (c: string) => {
+      const k = c.toLowerCase();
+      if (k.includes('mobile')) return 'mobile';
+      if (k.includes('landline') || k.includes('fisso')) return 'landline';
+      if (k.includes('international') || k.includes('internazionale')) return 'international';
+      if (k.includes('special') || k.includes('premium') || k.includes('numero')) return 'special';
+      return 'other';
+    };
+    callerAnalysis.forEach(ca => {
+      const clientInfo = numberToClientMap[ca.callerNumber];
+      const key = clientInfo?.id || 'no-client';
+      if (!m.has(key)) m.set(key, {});
+      const rec = m.get(key)!;
+      ca.categories.forEach(cat => {
+        const catKey = norm(cat.category);
+        const cost = Number(cat.cost || 0);
+        rec[catKey] = (rec[catKey] || 0) + cost;
+      });
+    });
+    return m;
+  }, [callerAnalysis, numberToClientMap]);
+
+  const categoryKeys = ['mobile', 'landline', 'international', 'special'];
+  const stacked = rows.slice(0, 7).map(r => {
+    const rec = categoryCostMap.get(r.id) || {};
+    return {
+      name: r.name,
+      mobile: Number(((rec as any).mobile || 0).toFixed(2)),
+      landline: Number(((rec as any).landline || 0).toFixed(2)),
+      international: Number(((rec as any).international || 0).toFixed(2)),
+      special: Number(((rec as any).special || 0).toFixed(2)),
+    };
+  });
+
   return (
     <div className="space-y-4">
+      {/* Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
+          <CardHeader>
+            <CardTitle>Top 10 Clienti per Costo</CardTitle>
+          </CardHeader>
+          <CardContent style={{ height: 320 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topByCost}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" hide />
+                <YAxis />
+                <ReTooltip />
+                <Legend />
+                <Bar dataKey="cost" name="Costo (€)" fill="#16a34a" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
+          <CardHeader>
+            <CardTitle>Top 10 Clienti per Durata</CardTitle>
+          </CardHeader>
+          <CardContent style={{ height: 320 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topByDuration}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" hide />
+                <YAxis />
+                <ReTooltip />
+                <Legend />
+                <Bar dataKey="hours" name="Ore" fill="#2563eb" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
+          <CardHeader>
+            <CardTitle>Quota Costo per Cliente</CardTitle>
+          </CardHeader>
+          <CardContent style={{ height: 320 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={pieData} label dataKey="value" nameKey="name" outerRadius={110}>
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <ReTooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
+          <CardHeader>
+            <CardTitle>Costo per Categoria (Top 7 Clienti)</CardTitle>
+          </CardHeader>
+          <CardContent style={{ height: 320 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stacked}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" hide />
+                <YAxis />
+                <ReTooltip />
+                <Legend />
+                {categoryKeys.map((k, i) => (
+                  <Bar key={k} dataKey={k} stackId="a" fill={COLORS[i % COLORS.length]} />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Table */}
       <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
         <CardHeader>
           <CardTitle>Analisi Clienti (tariffe salvate)</CardTitle>

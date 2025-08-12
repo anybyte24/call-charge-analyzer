@@ -8,7 +8,7 @@ import { CallerAnalysis, PrefixConfig } from '@/types/call-analysis';
 
 interface ClientPricingSummaryProps {
   callerAnalysis: CallerAnalysis[];
-  prefixConfig: PrefixConfig[];
+  prefixConfig?: PrefixConfig[];
 }
 
 function formatDuration(seconds: number): string {

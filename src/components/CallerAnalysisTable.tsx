@@ -5,15 +5,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CallerAnalysis, CallSummary } from '@/types/call-analysis';
+import { CallerAnalysis, CallSummary, CallRecord, PrefixConfig } from '@/types/call-analysis';
 import { NumberCategorizer } from '@/utils/number-categorizer';
 
 interface CallerAnalysisTableProps {
   callerAnalysis: CallerAnalysis[];
   numberToClient?: Record<string, { id: string; name: string; color?: string | null }>;
+  records: CallRecord[];
+  prefixConfig: PrefixConfig[];
 }
 
-const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysis, numberToClient }) => {
+const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysis, numberToClient, records, prefixConfig }) => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const groups = useMemo(() => {
@@ -140,6 +142,37 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Mappa categoria dettagliata -> macro categoria coerente con l'UI
+  const inferMacro = (type: string, description: string): string => {
+    const d = description.toLowerCase();
+    if (type === 'mobile') return 'Mobile';
+    if (type === 'landline') return 'Fisso';
+    if (type === 'special') {
+      if (d.includes('premium')) return 'Numero Premium';
+      if (d.includes('verde')) return 'Numero Verde';
+      return 'Numero Speciale';
+    }
+    if (type === 'international') return description; // es. "Francia Mobile"
+    return 'Altro';
+  };
+
+  // Calcolo importi da addebitare per chiamante e macro categoria (fatt. 60/60)
+  const chargesByCaller = useMemo(() => {
+    const cfg = (prefixConfig && prefixConfig.length) ? prefixConfig : NumberCategorizer.defaultPrefixConfig;
+    const map = new Map<string, Map<string, number>>();
+    records.forEach((r) => {
+      const cat = NumberCategorizer.categorizeNumber(r.calledNumber, cfg) as any;
+      const billedMin = Math.max(1, Math.ceil((r.durationSeconds || 0) / 60));
+      const amount = billedMin * (cat.costPerMinute || 0);
+      const macro = inferMacro(cat.type, cat.description);
+      const caller = r.callerNumber;
+      if (!map.has(caller)) map.set(caller, new Map());
+      const inner = map.get(caller)!;
+      inner.set(macro, (inner.get(macro) || 0) + amount);
+    });
+    return map;
+  }, [records, prefixConfig]);
+
   return (
     <Card>
       <CardHeader>
@@ -187,7 +220,7 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
                               <TableHead>Categoria</TableHead>
                               <TableHead>Chiamate</TableHead>
                               <TableHead>Durata</TableHead>
-                              <TableHead>Costo</TableHead>
+                              <TableHead>Da addebitare</TableHead>
                               <TableHead>% del Totale</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -203,7 +236,7 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
                                   </TableCell>
                                   <TableCell>{group.count}</TableCell>
                                   <TableCell>{group.formattedDuration}</TableCell>
-                                  <TableCell>€{group.cost.toFixed(2)}</TableCell>
+                                  <TableCell>€{(chargesByCaller.get(caller.callerNumber)?.get(group.macroCategory) || 0).toFixed(2)}</TableCell>
                                   <TableCell>{percentage}%</TableCell>
                                 </TableRow>
                               );

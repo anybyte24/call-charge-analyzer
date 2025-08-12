@@ -293,6 +293,7 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
               totalRecords={currentSession.totalRecords}
               fileName={currentSession.fileName}
               records={currentRecords}
+              prefixConfig={prefixConfig}
             />
                 ) : (
                   <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">

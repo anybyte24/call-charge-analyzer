@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity, Filter, Table, RefreshCw } from 'lucide-react';
-import { CallSummary, CallerAnalysis, CallRecord } from '@/types/call-analysis';
+import { CallSummary, CallerAnalysis, CallRecord, PrefixConfig } from '@/types/call-analysis';
 import CallAnalyticsCharts from './CallAnalyticsCharts';
 import HourlyDistributionChart from './HourlyDistributionChart';
 import TopNumbersAnalysis from './TopNumbersAnalysis';
@@ -22,6 +22,7 @@ interface DashboardProps {
   totalRecords: number;
   fileName: string;
   records: CallRecord[];
+  prefixConfig?: PrefixConfig[];
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -29,7 +30,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   callerAnalysis, 
   totalRecords, 
   fileName,
-  records
+  records,
+  prefixConfig
 }) => {
   const [filteredRecords, setFilteredRecords] = React.useState<CallRecord[]>(records);
   const { recalculateCosts, loading: recalculateLoading } = useAnalysisStorage();
@@ -286,7 +288,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </TabsContent>
 
         <TabsContent value="clients" className="space-y-4">
-          <ClientPricingSummary callerAnalysis={callerAnalysis} />
+          <ClientPricingSummary callerAnalysis={callerAnalysis} prefixConfig={prefixConfig} />
         </TabsContent>
 
 

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useClients } from '@/hooks/useClients';
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
-
+import { NumberCategorizer } from '@/utils/number-categorizer';
 import { CallerAnalysis, PrefixConfig } from '@/types/call-analysis';
 
 interface ClientPricingSummaryProps {
@@ -18,8 +18,18 @@ function formatDuration(seconds: number): string {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnalysis }) => {
+const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnalysis, prefixConfig }) => {
   const { numberToClientMap, clientPricing, globalPricing } = useClients();
+
+  const fallbackRates = React.useMemo(() => {
+    const src = (prefixConfig && prefixConfig.length ? prefixConfig : NumberCategorizer.defaultPrefixConfig);
+    const avg = (cat: 'mobile' | 'landline' | 'international' | 'special') => {
+      const vals = src.filter(p => p.category === cat).map(p => Number(p.costPerMinute || 0));
+      if (!vals.length) return 0;
+      return vals.reduce((a,b)=>a+b,0) / vals.length;
+    };
+    return { mobile: avg('mobile'), landline: avg('landline'), international: avg('international'), premium: avg('special') };
+  }, [prefixConfig]);
 
   type Agg = {
     id: string;
@@ -34,8 +44,10 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
   const rows = React.useMemo(() => {
     const map = new Map<string, Agg>();
 
-    const intlRate = Number(globalPricing?.international_rate || 0);
-    const premiumRate = Number(globalPricing?.premium_rate || 0);
+    const intlRateBase = Number(globalPricing?.international_rate || 0);
+    const premiumRateBase = Number(globalPricing?.premium_rate || 0);
+    const intlRate = intlRateBase || fallbackRates.international;
+    const premiumRate = premiumRateBase || fallbackRates.premium;
 
     callerAnalysis.forEach((ca) => {
       const clientInfo = numberToClientMap[ca.callerNumber];
@@ -66,8 +78,8 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
 
 // ricavo: tariffe per cliente
 const clientRate = clientPricing.find((p) => p.client_id === key);
-const mobileRate = Number(clientRate?.mobile_rate || 0);
-const landlineRate = Number(clientRate?.landline_rate || 0);
+const mobileRate = Number(clientRate?.mobile_rate || 0) || fallbackRates.mobile;
+const landlineRate = Number(clientRate?.landline_rate || 0) || fallbackRates.landline;
 const flat = Number(clientRate?.monthly_flat_fee || 0);
 const onlyFlat = Boolean(clientRate?.forfait_only);
 

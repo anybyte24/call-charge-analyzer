@@ -332,7 +332,7 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
 
               <TabsContent value="clients" className="mt-0">
                 {currentSession ? (
-                  <ClientsManager availableCallerNumbers={availableCallerNumbers} />
+                  <ClientsManager availableCallerNumbers={availableCallerNumbers} prefixConfig={prefixConfig} />
                 ) : (
                   <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
                     <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />

@@ -9,12 +9,14 @@ import { useClients } from "@/hooks/useClients";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Trash2 } from "lucide-react";
+import { PrefixConfig } from "@/types/call-analysis";
 
 interface ClientsManagerProps {
   availableCallerNumbers: string[];
+  prefixConfig: PrefixConfig[];
 }
 
-const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers }) => {
+const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers, prefixConfig }) => {
   const { toast } = useToast();
   const {
     clients,

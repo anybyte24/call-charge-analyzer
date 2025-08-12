@@ -4,10 +4,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useClients } from '@/hooks/useClients';
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 
-import { CallerAnalysis } from '@/types/call-analysis';
+import { CallerAnalysis, PrefixConfig } from '@/types/call-analysis';
 
 interface ClientPricingSummaryProps {
   callerAnalysis: CallerAnalysis[];
+  prefixConfig: PrefixConfig[];
 }
 
 function formatDuration(seconds: number): string {

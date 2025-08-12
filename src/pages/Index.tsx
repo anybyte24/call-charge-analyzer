@@ -16,6 +16,7 @@ import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis
 import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase, Banknote } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import CompanyCostsManager from '@/components/CompanyCostsManager';
+import OcrTariffImporter from '@/components/OcrTariffImporter';
 
 const Index = () => {
   const { saveSession } = useAnalysisStorage();
@@ -326,10 +327,16 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
               </TabsContent>
 
               <TabsContent value="company-costs" className="mt-0">
-                <CompanyCostsManager
-                  companyConfig={companyConfig}
-                  onConfigChange={handleCompanyConfigChange}
-                />
+                <div className="space-y-4">
+                  <OcrTariffImporter
+                    companyConfig={companyConfig}
+                    onConfigChange={handleCompanyConfigChange}
+                  />
+                  <CompanyCostsManager
+                    companyConfig={companyConfig}
+                    onConfigChange={handleCompanyConfigChange}
+                  />
+                </div>
               </TabsContent>
 
               <TabsContent value="unknown" className="mt-0">

@@ -113,9 +113,9 @@ const CompanyCostsManager: React.FC<CompanyCostsManagerProps> = ({ companyConfig
                 </TableCell>
                 <TableCell>
                   {editingId === prefix.prefix ? (
-                    <Input type="number" step="0.01" value={prefix.costPerMinute} onChange={(e) => handleEdit(prefix, 'costPerMinute', parseFloat(e.target.value))} className="w-24" />
+                    <Input type="number" step="0.0001" value={prefix.costPerMinute} onChange={(e) => handleEdit(prefix, 'costPerMinute', parseFloat(e.target.value))} className="w-24" />
                   ) : (
-                    `€${prefix.costPerMinute.toFixed(2)}`
+                    `€${prefix.costPerMinute.toFixed(4)}`
                   )}
                 </TableCell>
                 <TableCell>
@@ -163,7 +163,7 @@ const CompanyCostsManager: React.FC<CompanyCostsManagerProps> = ({ companyConfig
                   <Input placeholder="Descrizione" value={newPrefix.description || ''} onChange={(e) => setNewPrefix({ ...newPrefix, description: e.target.value })} className="w-32" />
                 </TableCell>
                 <TableCell>
-                  <Input type="number" step="0.01" placeholder="0.00" value={newPrefix.costPerMinute || ''} onChange={(e) => setNewPrefix({ ...newPrefix, costPerMinute: parseFloat(e.target.value) })} className="w-24" />
+                  <Input type="number" step="0.0001" placeholder="0.0000" value={newPrefix.costPerMinute || ''} onChange={(e) => setNewPrefix({ ...newPrefix, costPerMinute: parseFloat(e.target.value) })} className="w-24" />
                 </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">

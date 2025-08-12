@@ -24,7 +24,15 @@ const Index = () => {
   const [currentRecords, setCurrentRecords] = useState<CallRecord[]>([]);
   const [sessions, setSessions] = useState<AnalysisSession[]>([]);
   const [prefixConfig, setPrefixConfig] = useState<PrefixConfig[]>(CallAnalyzer.defaultPrefixConfig);
-  const [companyConfig, setCompanyConfig] = useState<PrefixConfig[]>(CallAnalyzer.defaultPrefixConfig);
+  const [companyConfig, setCompanyConfig] = useState<PrefixConfig[]>(() =>
+    CallAnalyzer.defaultPrefixConfig.map(p =>
+      p.category === 'landline'
+        ? { ...p, costPerMinute: 0.0059 }
+        : p.category === 'mobile'
+          ? { ...p, costPerMinute: 0.0159 }
+          : p
+    )
+  );
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [unknownNumbers, setUnknownNumbers] = useState<string[]>([]);
 const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set(currentSession.callerAnalysis.map(c => c.callerNumber))) : [], [currentSession]);

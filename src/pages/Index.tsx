@@ -15,6 +15,7 @@ import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis
 import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import CompanyCostsManager from '@/components/CompanyCostsManager';
+import SEO from '@/components/SEO';
 
 const Index = () => {
   const { saveSession } = useAnalysisStorage();
@@ -26,6 +27,14 @@ const Index = () => {
   const [unknownNumbers, setUnknownNumbers] = useState<string[]>([]);
 const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set(currentSession.callerAnalysis.map(c => c.callerNumber))) : [], [currentSession]);
   const { numberToClientMap } = useClients();
+  const ldJson = useMemo(() => ({
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'Call Analytics Enterprise',
+    description: 'Sistema avanzato per l\'analisi e fatturazione delle chiamate telefoniche',
+    url: window.location.origin + '/',
+    applicationCategory: 'BusinessApplication'
+  }), []);
 
   const handleFileUpload = async (content: string, fileName: string) => {
     setIsAnalyzing(true);
@@ -141,6 +150,12 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="container mx-auto px-4 py-8">
+        <SEO
+          title="Call Analytics Enterprise | Analisi chiamate e costi"
+          description="Analizza costi e durata delle chiamate, gestisci prefissi e clienti."
+          canonicalPath="/"
+          jsonLd={ldJson}
+        />
         {/* Modern Header */}
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center mb-4">

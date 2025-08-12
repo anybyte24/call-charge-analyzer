@@ -310,7 +310,7 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
 
               <TabsContent value="callers" className="mt-0">
                 {currentSession ? (
-                  <CallerAnalysisTable callerAnalysis={currentSession.callerAnalysis} numberToClient={numberToClientMap} />
+                  <CallerAnalysisTable callerAnalysis={currentSession.callerAnalysis} numberToClient={numberToClientMap} records={currentRecords} prefixConfig={prefixConfig} />
                 ) : (
                   <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
                     <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />

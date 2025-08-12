@@ -63,53 +63,56 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
         agg.myCost += Number(cat.cost || 0);
       });
 
-      // ricavo: tariffe per cliente
-      const clientRate = clientPricing.find((p) => p.client_id === key);
-      const mobileRate = Number(clientRate?.mobile_rate || 0);
-      const landlineRate = Number(clientRate?.landline_rate || 0);
-      const flat = Number(clientRate?.monthly_flat_fee || 0);
+// ricavo: tariffe per cliente
+const clientRate = clientPricing.find((p) => p.client_id === key);
+const mobileRate = Number(clientRate?.mobile_rate || 0);
+const landlineRate = Number(clientRate?.landline_rate || 0);
+const flat = Number(clientRate?.monthly_flat_fee || 0);
+const onlyFlat = Boolean(clientRate?.forfait_only);
 
-      let revenueForCaller = flat ? 0 : 0; // forfait si somma una sola volta a fine cliente
-      let mobileSec = 0, landlineSec = 0, intlSec = 0, premiumSec = 0;
+let revenueForCaller = 0; // forfait si somma una sola volta a fine cliente
+let mobileSec = 0, landlineSec = 0, intlSec = 0, premiumSec = 0;
 
-      ca.categories.forEach((cat) => {
-        const sec = cat.totalSeconds || 0;
-        switch (cat.category.toLowerCase()) {
-          case 'mobile':
-            mobileSec += sec;
-            break;
-          case 'landline':
-          case 'fisso':
-            landlineSec += sec;
-            break;
-          case 'international':
-          case 'internazionale':
-            intlSec += sec;
-            break;
-          case 'special':
-          case 'numero speciale':
-          case 'numero premium':
-            premiumSec += sec;
-            break;
-          default:
-            break;
-        }
-      });
+ca.categories.forEach((cat) => {
+  const sec = cat.totalSeconds || 0;
+  switch (cat.category.toLowerCase()) {
+    case 'mobile':
+      mobileSec += sec;
+      break;
+    case 'landline':
+    case 'fisso':
+      landlineSec += sec;
+      break;
+    case 'international':
+    case 'internazionale':
+      intlSec += sec;
+      break;
+    case 'special':
+    case 'numero speciale':
+    case 'numero premium':
+      premiumSec += sec;
+      break;
+    default:
+      break;
+  }
+});
 
-      revenueForCaller += (mobileSec / 60) * mobileRate;
-      revenueForCaller += (landlineSec / 60) * landlineRate;
-      revenueForCaller += (intlSec / 60) * intlRate;
-      revenueForCaller += (premiumSec / 60) * premiumRate;
+if (!onlyFlat) {
+  revenueForCaller += (mobileSec / 60) * mobileRate;
+  revenueForCaller += (landlineSec / 60) * landlineRate;
+  revenueForCaller += (intlSec / 60) * intlRate;
+  revenueForCaller += (premiumSec / 60) * premiumRate;
+}
 
-      agg.revenue += revenueForCaller;
+agg.revenue += revenueForCaller;
     });
 
-    // aggiungi forfait una volta per cliente
-    for (const [key, agg] of map) {
-      const clientRate = clientPricing.find((p) => p.client_id === key);
-      const flat = Number(clientRate?.monthly_flat_fee || 0);
-      if (flat > 0) agg.revenue += flat;
-    }
+// aggiungi forfait una volta per cliente
+for (const [key, agg] of map) {
+  const clientRate = clientPricing.find((p) => p.client_id === key);
+  const flat = Number(clientRate?.monthly_flat_fee || 0);
+  if (flat > 0) agg.revenue += flat;
+}
 
     return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue);
   }, [callerAnalysis, numberToClientMap, clientPricing, globalPricing]);

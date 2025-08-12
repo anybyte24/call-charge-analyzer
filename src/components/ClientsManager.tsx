@@ -37,23 +37,26 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
 
   const selectedClient = useMemo(() => clients.find((c) => c.id === selectedClientId) || null, [clients, selectedClientId]);
 
-  // Pricing state: client-specific
-  const selectedClientPricing = useMemo(() => clientPricing.find(p => p.client_id === selectedClientId) || null, [clientPricing, selectedClientId]);
-  const [clientMobileRate, setClientMobileRate] = useState<number>(0);
-  const [clientLandlineRate, setClientLandlineRate] = useState<number>(0);
-  const [clientFlatFee, setClientFlatFee] = useState<number>(0);
+// Pricing state: client-specific
+const selectedClientPricing = useMemo(() => clientPricing.find(p => p.client_id === selectedClientId) || null, [clientPricing, selectedClientId]);
+const [clientMobileRate, setClientMobileRate] = useState<number>(0);
+const [clientLandlineRate, setClientLandlineRate] = useState<number>(0);
+const [clientFlatFee, setClientFlatFee] = useState<number>(0);
+const [clientForfaitOnly, setClientForfaitOnly] = useState<boolean>(false);
 
-  React.useEffect(() => {
-    if (selectedClientPricing) {
-      setClientMobileRate(Number(selectedClientPricing.mobile_rate) || 0);
-      setClientLandlineRate(Number(selectedClientPricing.landline_rate) || 0);
-      setClientFlatFee(Number(selectedClientPricing.monthly_flat_fee) || 0);
-    } else {
-      setClientMobileRate(0);
-      setClientLandlineRate(0);
-      setClientFlatFee(0);
-    }
-  }, [selectedClientPricing]);
+React.useEffect(() => {
+  if (selectedClientPricing) {
+    setClientMobileRate(Number(selectedClientPricing.mobile_rate) || 0);
+    setClientLandlineRate(Number(selectedClientPricing.landline_rate) || 0);
+    setClientFlatFee(Number(selectedClientPricing.monthly_flat_fee) || 0);
+    setClientForfaitOnly(Boolean(selectedClientPricing.forfait_only));
+  } else {
+    setClientMobileRate(0);
+    setClientLandlineRate(0);
+    setClientFlatFee(0);
+    setClientForfaitOnly(false);
+  }
+}, [selectedClientPricing]);
 
   // Pricing state: global (shared)
   const [globalInternationalRate, setGlobalInternationalRate] = useState<number>(0);
@@ -64,20 +67,21 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
     setGlobalPremiumRate(Number(globalPricing?.premium_rate) || 0);
   }, [globalPricing]);
 
-  const handleSaveClientPricing = async () => {
-    if (!selectedClientId) return;
-    try {
-      await upsertClientPricing.mutateAsync({
-        clientId: selectedClientId,
-        mobile_rate: clientMobileRate,
-        landline_rate: clientLandlineRate,
-        monthly_flat_fee: clientFlatFee,
-      });
-      toast({ title: "Tariffe cliente salvate" });
-    } catch (e: any) {
-      toast({ title: "Errore", description: e.message, variant: "destructive" });
-    }
-  };
+const handleSaveClientPricing = async () => {
+  if (!selectedClientId) return;
+  try {
+    await upsertClientPricing.mutateAsync({
+      clientId: selectedClientId,
+      mobile_rate: clientMobileRate,
+      landline_rate: clientLandlineRate,
+      monthly_flat_fee: clientFlatFee,
+      forfait_only: clientForfaitOnly,
+    });
+    toast({ title: "Tariffe cliente salvate" });
+  } catch (e: any) {
+    toast({ title: "Errore", description: e.message, variant: "destructive" });
+  }
+};
 
   const handleSaveGlobalPricing = async () => {
     try {
@@ -254,28 +258,32 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                 <CardHeader>
                   <CardTitle>Tariffe di {selectedClient.name}</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <div>
-                    <label className="text-sm font-medium">Mobile €/min</label>
-                    <Input type="number" step="0.001" value={clientMobileRate}
-                      onChange={(e) => setClientMobileRate(parseFloat(e.target.value) || 0)} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Fisso €/min</label>
-                    <Input type="number" step="0.001" value={clientLandlineRate}
-                      onChange={(e) => setClientLandlineRate(parseFloat(e.target.value) || 0)} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Forfait mensile €</label>
-                    <Input type="number" step="0.01" value={clientFlatFee}
-                      onChange={(e) => setClientFlatFee(parseFloat(e.target.value) || 0)} />
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={handleSaveClientPricing} disabled={upsertClientPricing.isPending || !selectedClientId}>
-                      Salva tariffe cliente
-                    </Button>
-                  </div>
-                </CardContent>
+<CardContent className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+  <div>
+    <label className="text-sm font-medium">Mobile €/min</label>
+    <Input type="number" step="0.001" value={clientMobileRate}
+      onChange={(e) => setClientMobileRate(parseFloat(e.target.value) || 0)} />
+  </div>
+  <div>
+    <label className="text-sm font-medium">Fisso €/min</label>
+    <Input type="number" step="0.001" value={clientLandlineRate}
+      onChange={(e) => setClientLandlineRate(parseFloat(e.target.value) || 0)} />
+  </div>
+  <div>
+    <label className="text-sm font-medium">Forfait mensile €</label>
+    <Input type="number" step="0.01" value={clientFlatFee}
+      onChange={(e) => setClientFlatFee(parseFloat(e.target.value) || 0)} />
+  </div>
+  <div className="flex items-end gap-3">
+    <div className="flex items-center gap-2">
+      <input id="forfait-only" type="checkbox" className="h-4 w-4" checked={clientForfaitOnly} onChange={(e) => setClientForfaitOnly(e.target.checked)} />
+      <label htmlFor="forfait-only" className="text-sm">Solo forfait (disattiva €/min)</label>
+    </div>
+    <Button onClick={handleSaveClientPricing} disabled={upsertClientPricing.isPending || !selectedClientId}>
+      Salva tariffe cliente
+    </Button>
+  </div>
+</CardContent>
               </Card>
             )}
 

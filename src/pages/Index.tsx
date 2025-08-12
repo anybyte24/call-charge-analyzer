@@ -13,13 +13,14 @@ import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 import { CallAnalyzer } from '@/utils/call-analyzer';
 import { CostRecalculator } from '@/utils/cost-recalculator';
 import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis';
-import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase, Banknote } from 'lucide-react';
+import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase, Banknote, TrendingUp } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import CompanyCostsManager from '@/components/CompanyCostsManager';
 import OcrTariffImporter from '@/components/OcrTariffImporter';
+import YearlyAnalytics from '@/components/YearlyAnalytics';
 
 const Index = () => {
-  const { saveSession } = useAnalysisStorage();
+  const { saveSession, loadSessions } = useAnalysisStorage();
   const [currentSession, setCurrentSession] = useState<AnalysisSession | null>(null);
   const [currentRecords, setCurrentRecords] = useState<CallRecord[]>([]);
   const [sessions, setSessions] = useState<AnalysisSession[]>([]);
@@ -37,6 +38,13 @@ const Index = () => {
   const [unknownNumbers, setUnknownNumbers] = useState<string[]>([]);
 const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set(currentSession.callerAnalysis.map(c => c.callerNumber))) : [], [currentSession]);
   const { numberToClientMap } = useClients();
+
+  React.useEffect(() => {
+    (async () => {
+      const loaded = await loadSessions();
+      if (loaded && loaded.length > 0) setSessions(loaded);
+    })();
+  }, [loadSessions]);
 
   const handleFileUpload = async (content: string, fileName: string) => {
     setIsAnalyzing(true);
@@ -184,51 +192,55 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
 
         {/* Main Tabs Interface */}
         <Tabs defaultValue="upload" className="space-y-6">
-          <div className="flex justify-center">
-            <TabsList className="grid grid-cols-9 w-fit bg-white/70 backdrop-blur-sm border shadow-lg rounded-xl p-1">
-              <TabsTrigger value="upload" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-                <Upload className="h-4 w-4" />
-                <span className="hidden sm:inline">Carica</span>
-              </TabsTrigger>
-              <TabsTrigger value="dashboard" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-                <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Dashboard</span>
-              </TabsTrigger>
-              <TabsTrigger value="callers" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Chiamanti</span>
-              </TabsTrigger>
-              <TabsTrigger value="clients" className="flex items-center space-x-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white rounded-lg">
-                <Briefcase className="h-4 w-4" />
-                <span className="hidden sm:inline">Clienti</span>
-              </TabsTrigger>
-              <TabsTrigger value="company-costs" className="flex items-center space-x-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white rounded-lg">
-                <Banknote className="h-4 w-4" />
-                <span className="hidden sm:inline">Costi azienda</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Prefissi</span>
-              </TabsTrigger>
-              <TabsTrigger value="unknown" className="flex items-center space-x-2 data-[state=active]:bg-amber-500 data-[state=active]:text-white rounded-lg">
-                <AlertTriangle className="h-4 w-4" />
-                <span className="hidden sm:inline">Non Riconosciuti</span>
-                {unknownNumbers.length > 0 && (
-                  <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center">
-                    {unknownNumbers.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="export" className="flex items-center space-x-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg">
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Export</span>
-              </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-lg">
-                <History className="h-4 w-4" />
-                <span className="hidden sm:inline">Storico</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
+<div className="flex justify-center">
+  <TabsList className="grid grid-cols-10 w-fit bg-white/70 backdrop-blur-sm border shadow-lg rounded-xl p-1">
+    <TabsTrigger value="upload" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
+      <Upload className="h-4 w-4" />
+      <span className="hidden sm:inline">Carica</span>
+    </TabsTrigger>
+    <TabsTrigger value="dashboard" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
+      <BarChart3 className="h-4 w-4" />
+      <span className="hidden sm:inline">Dashboard</span>
+    </TabsTrigger>
+    <TabsTrigger value="callers" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
+      <Users className="h-4 w-4" />
+      <span className="hidden sm:inline">Chiamanti</span>
+    </TabsTrigger>
+    <TabsTrigger value="clients" className="flex items-center space-x-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white rounded-lg">
+      <Briefcase className="h-4 w-4" />
+      <span className="hidden sm:inline">Clienti</span>
+    </TabsTrigger>
+    <TabsTrigger value="company-costs" className="flex items-center space-x-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white rounded-lg">
+      <Banknote className="h-4 w-4" />
+      <span className="hidden sm:inline">Costi azienda</span>
+    </TabsTrigger>
+    <TabsTrigger value="yearly" className="flex items-center space-x-2 data-[state=active]:bg-pink-500 data-[state=active]:text-white rounded-lg">
+      <TrendingUp className="h-4 w-4" />
+      <span className="hidden sm:inline">Annuale</span>
+    </TabsTrigger>
+    <TabsTrigger value="settings" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
+      <Settings className="h-4 w-4" />
+      <span className="hidden sm:inline">Prefissi</span>
+    </TabsTrigger>
+    <TabsTrigger value="unknown" className="flex items-center space-x-2 data-[state=active]:bg-amber-500 data-[state=active]:text-white rounded-lg">
+      <AlertTriangle className="h-4 w-4" />
+      <span className="hidden sm:inline">Non Riconosciuti</span>
+      {unknownNumbers.length > 0 && (
+        <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center">
+          {unknownNumbers.length}
+        </span>
+      )}
+    </TabsTrigger>
+    <TabsTrigger value="export" className="flex items-center space-x-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg">
+      <Download className="h-4 w-4" />
+      <span className="hidden sm:inline">Export</span>
+    </TabsTrigger>
+    <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-lg">
+      <History className="h-4 w-4" />
+      <span className="hidden sm:inline">Storico</span>
+    </TabsTrigger>
+  </TabsList>
+</div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Sidebar */}
@@ -345,9 +357,13 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
                     onConfigChange={handleCompanyConfigChange}
                   />
                 </div>
-              </TabsContent>
+</TabsContent>
 
-              <TabsContent value="unknown" className="mt-0">
+<TabsContent value="yearly" className="mt-0">
+  <YearlyAnalytics sessions={sessions} />
+</TabsContent>
+
+<TabsContent value="unknown" className="mt-0">
                 <UnknownNumbersManager
                   unknownNumbers={unknownNumbers}
                   prefixConfig={prefixConfig}

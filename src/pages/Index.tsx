@@ -11,8 +11,9 @@ import UnknownNumbersManager from '@/components/UnknownNumbersManager';
 import ClientsManager from '@/components/ClientsManager';
 import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 import { CallAnalyzer } from '@/utils/call-analyzer';
+import { CostRecalculator } from '@/utils/cost-recalculator';
 import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis';
-import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase } from 'lucide-react';
+import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase, Banknote } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import CompanyCostsManager from '@/components/CompanyCostsManager';
 
@@ -22,6 +23,7 @@ const Index = () => {
   const [currentRecords, setCurrentRecords] = useState<CallRecord[]>([]);
   const [sessions, setSessions] = useState<AnalysisSession[]>([]);
   const [prefixConfig, setPrefixConfig] = useState<PrefixConfig[]>(CallAnalyzer.defaultPrefixConfig);
+  const [companyConfig, setCompanyConfig] = useState<PrefixConfig[]>(CallAnalyzer.defaultPrefixConfig);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [unknownNumbers, setUnknownNumbers] = useState<string[]>([]);
 const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set(currentSession.callerAnalysis.map(c => c.callerNumber))) : [], [currentSession]);
@@ -31,8 +33,9 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
     setIsAnalyzing(true);
     
     try {
-      // Parse CSV with current prefix configuration
-      const records = CallAnalyzer.parseCSV(content, prefixConfig);
+      // Parse CSV con configurazione prefissi corrente, poi applica costi aziendali
+      const parsed = CallAnalyzer.parseCSV(content, prefixConfig);
+      const records = CostRecalculator.recalculateAllCosts(parsed, companyConfig);
       
       if (records.length === 0) {
         toast({
@@ -43,7 +46,7 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
         return;
       }
 
-      // Extract unknown numbers for review
+      // Estrai numeri sconosciuti
       const unknowns = records
         .filter(record => record.category.type === 'unknown')
         .map(record => record.calledNumber)
@@ -51,11 +54,11 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
       
       setUnknownNumbers(unknowns);
 
-      // Generate analysis
+      // Genera analisi
       const summary = CallAnalyzer.generateSummary(records);
       const callerAnalysis = CallAnalyzer.generateCallerAnalysis(records);
 
-      // Create session
+      // Crea sessione
       const session: AnalysisSession = {
         id: Date.now().toString(),
         fileName,
@@ -73,7 +76,7 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
       const totalCost = summary.reduce((sum, cat) => sum + (cat.cost || 0), 0);
       const unknownCount = unknowns.length;
 
-      // Save session automatically
+      // Salva sessione automaticamente
       if (currentSession) {
         await saveSession(currentSession, records);
       }
@@ -103,19 +106,9 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
   const handlePrefixConfigChange = (newConfig: PrefixConfig[]) => {
     setPrefixConfig(newConfig);
     
-    // Re-analyze current session if exists
+    // Ricalcola usando i costi aziendali se esiste una sessione
     if (currentSession && currentRecords.length > 0) {
-      const updatedRecords = currentRecords.map(record => {
-        const categoryWithCost = CallAnalyzer.categorizeNumber(record.calledNumber, newConfig);
-        return {
-          ...record,
-          category: {
-            type: categoryWithCost.type,
-            description: categoryWithCost.description
-          },
-          cost: (record.durationSeconds / 60) * categoryWithCost.costPerMinute
-        };
-      });
+      const updatedRecords = CostRecalculator.recalculateAllCosts(currentRecords, companyConfig);
 
       const summary = CallAnalyzer.generateSummary(updatedRecords);
       const callerAnalysis = CallAnalyzer.generateCallerAnalysis(updatedRecords);
@@ -128,12 +121,36 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
       });
       setCurrentRecords(updatedRecords);
 
-      // Update unknown numbers
+      // Aggiorna numeri non riconosciuti
       const unknowns = updatedRecords
         .filter(record => record.category.type === 'unknown')
         .map(record => record.calledNumber)
         .filter((value, index, self) => self.indexOf(value) === index);
       
+      setUnknownNumbers(unknowns);
+    }
+  };
+
+  const handleCompanyConfigChange = (newConfig: PrefixConfig[]) => {
+    setCompanyConfig(newConfig);
+
+    if (currentSession && currentRecords.length > 0) {
+      const updatedRecords = CostRecalculator.recalculateAllCosts(currentRecords, newConfig);
+
+      const summary = CallAnalyzer.generateSummary(updatedRecords);
+      const callerAnalysis = CallAnalyzer.generateCallerAnalysis(updatedRecords);
+
+      setCurrentSession({
+        ...currentSession,
+        summary,
+        callerAnalysis
+      });
+      setCurrentRecords(updatedRecords);
+
+      const unknowns = updatedRecords
+        .filter(record => record.category.type === 'unknown')
+        .map(record => record.calledNumber)
+        .filter((value, index, self) => self.indexOf(value) === index);
       setUnknownNumbers(unknowns);
     }
   };
@@ -159,7 +176,7 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
         {/* Main Tabs Interface */}
         <Tabs defaultValue="upload" className="space-y-6">
           <div className="flex justify-center">
-            <TabsList className="grid grid-cols-8 w-fit bg-white/70 backdrop-blur-sm border shadow-lg rounded-xl p-1">
+            <TabsList className="grid grid-cols-9 w-fit bg-white/70 backdrop-blur-sm border shadow-lg rounded-xl p-1">
               <TabsTrigger value="upload" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
                 <Upload className="h-4 w-4" />
                 <span className="hidden sm:inline">Carica</span>
@@ -175,6 +192,10 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
               <TabsTrigger value="clients" className="flex items-center space-x-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white rounded-lg">
                 <Briefcase className="h-4 w-4" />
                 <span className="hidden sm:inline">Clienti</span>
+              </TabsTrigger>
+              <TabsTrigger value="company-costs" className="flex items-center space-x-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white rounded-lg">
+                <Banknote className="h-4 w-4" />
+                <span className="hidden sm:inline">Costi azienda</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
                 <Settings className="h-4 w-4" />
@@ -302,6 +323,13 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
                     </p>
                   </div>
                 )}
+              </TabsContent>
+
+              <TabsContent value="company-costs" className="mt-0">
+                <CompanyCostsManager
+                  companyConfig={companyConfig}
+                  onConfigChange={handleCompanyConfigChange}
+                />
               </TabsContent>
 
               <TabsContent value="unknown" className="mt-0">

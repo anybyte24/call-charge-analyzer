@@ -78,32 +78,37 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
 
 // ricavo: tariffe per cliente
 const clientRate = clientPricing.find((p) => p.client_id === key);
-const mobileRate = Number(clientRate?.mobile_rate || 0) || fallbackRates.mobile;
-const landlineRate = Number(clientRate?.landline_rate || 0) || fallbackRates.landline;
+const mobileRate = Number(clientRate?.mobile_rate || 0);
+const landlineRate = Number(clientRate?.landline_rate || 0);
+
 const flat = Number(clientRate?.monthly_flat_fee || 0);
 const onlyFlat = Boolean(clientRate?.forfait_only);
 
 let revenueForCaller = 0; // forfait si somma una sola volta a fine cliente
-let mobileSec = 0, landlineSec = 0, intlSec = 0, premiumSec = 0;
+// Applica fatturazione 60/60: ogni chiamata minimo 1 min, poi somma
+let mobileMin = 0, landlineMin = 0, intlMin = 0, premiumMin = 0;
 
 ca.categories.forEach((cat) => {
-  const sec = cat.totalSeconds || 0;
+  const totalSec = cat.totalSeconds || 0;
+  const calls = cat.count || 0;
+  // minuti fatturati per categoria: almeno 1 per chiamata
+  const billedMinutes = Math.max(calls, Math.ceil(totalSec / 60));
   switch (cat.category.toLowerCase()) {
     case 'mobile':
-      mobileSec += sec;
+      mobileMin += billedMinutes;
       break;
     case 'landline':
     case 'fisso':
-      landlineSec += sec;
+      landlineMin += billedMinutes;
       break;
     case 'international':
     case 'internazionale':
-      intlSec += sec;
+      intlMin += billedMinutes;
       break;
     case 'special':
     case 'numero speciale':
     case 'numero premium':
-      premiumSec += sec;
+      premiumMin += billedMinutes;
       break;
     default:
       break;
@@ -111,10 +116,10 @@ ca.categories.forEach((cat) => {
 });
 
 if (!onlyFlat) {
-  revenueForCaller += (mobileSec / 60) * mobileRate;
-  revenueForCaller += (landlineSec / 60) * landlineRate;
-  revenueForCaller += (intlSec / 60) * intlRate;
-  revenueForCaller += (premiumSec / 60) * premiumRate;
+  revenueForCaller += mobileMin * mobileRate; // €/min * minuti fatturati
+  revenueForCaller += landlineMin * landlineRate;
+  revenueForCaller += intlMin * intlRate;
+  revenueForCaller += premiumMin * premiumRate;
 }
 
 agg.revenue += revenueForCaller;

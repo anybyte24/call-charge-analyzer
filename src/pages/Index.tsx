@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 import { useAdvancedFilters } from '@/hooks/useAdvancedFilters';
-import { FileUploadAdvanced } from '@/components/FileUploadAdvanced';
-import { VirtualizedTable } from '@/components/VirtualizedTable';
-import { CallAnalyticsCharts } from '@/components/CallAnalyticsCharts';
-import { ClientAnalytics } from '@/components/ClientAnalytics';
-import { ClientsManager } from '@/components/ClientsManager';
-import { PrefixManager } from '@/components/PrefixManager';
+import FileUploadAdvanced from '@/components/FileUploadAdvanced';
+import VirtualizedTable from '@/components/VirtualizedTable';
+import CallAnalyticsCharts from '@/components/CallAnalyticsCharts';
+import ClientAnalytics from '@/components/ClientAnalytics';
+import ClientsManager from '@/components/ClientsManager';
+import PrefixManager from '@/components/PrefixManager';
 import { AIInsights } from '@/components/AIInsights';
 import { AIEnhancedInsights } from '@/components/AIEnhancedInsights';
 import { FTPImporter } from '@/components/FTPImporter';
@@ -16,18 +16,20 @@ import { AdvancedExport } from '@/components/AdvancedExport';
 import { ModernLayout } from '@/components/ModernLayout';
 import { EmptyState } from '@/components/EmptyState';
 import { useToast } from '@/hooks/use-toast';
-import { analyzeCallData } from '@/utils/call-analyzer';
-import type { CallRecord, AnalysisResults } from '@/types/call-analysis';
+import { CallAnalyzer } from '@/utils/call-analyzer';
+import type { CallRecord, CallSummary, CallerAnalysis, PrefixConfig } from '@/types/call-analysis';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('upload');
   const [currentRecords, setCurrentRecords] = useState<CallRecord[]>([]);
   const [analysisData, setAnalysisData] = useState<CallRecord[]>([]);
-  const [analysisResults, setAnalysisResults] = useState<AnalysisResults | null>(null);
+  const [summary, setSummary] = useState<CallSummary[]>([]);
+  const [callerAnalysis, setCallerAnalysis] = useState<CallerAnalysis[]>([]);
+  const [prefixConfig, setPrefixConfig] = useState<PrefixConfig[]>(CallAnalyzer.defaultPrefixConfig);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   
   const { toast } = useToast();
-  const { filteredData } = useAdvancedFilters(currentRecords);
+  const { filteredRecords } = useAdvancedFilters(currentRecords);
 
   const handleDataUpload = useCallback(async (data: CallRecord[]) => {
     try {
@@ -35,8 +37,10 @@ const Index = () => {
       setCurrentRecords(data);
       setAnalysisData(data);
       
-      const results = await analyzeCallData(data);
-      setAnalysisResults(results);
+      const summaryResults = CallAnalyzer.generateSummary(data);
+      const callerResults = CallAnalyzer.generateCallerAnalysis(data);
+      setSummary(summaryResults);
+      setCallerAnalysis(callerResults);
       setActiveTab('dashboard');
       
       toast({
@@ -61,8 +65,11 @@ const Index = () => {
         return (
           <div className="space-y-6 animate-fade-in">
             <FileUploadAdvanced 
-              onDataUpload={handleDataUpload}
-              isAnalyzing={isAnalyzing}
+              onFileUpload={async (content: string, fileName: string) => {
+                const records = CallAnalyzer.parseCSV(content);
+                await handleDataUpload(records);
+              }}
+              isLoading={isAnalyzing}
             />
           </div>
         );
@@ -74,35 +81,46 @@ const Index = () => {
         return (
           <div className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CallAnalyticsCharts data={filteredData} />
-              <ClientAnalytics data={filteredData} />
+              <CallAnalyticsCharts summary={summary} callerAnalysis={callerAnalysis} />
+              <ClientAnalytics callerAnalysis={callerAnalysis} numberToClient={{}} />
             </div>
-            <VirtualizedTable data={filteredData} />
+            <VirtualizedTable records={filteredRecords} />
           </div>
         );
 
       case 'settings':
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
-            <ClientsManager />
-            <PrefixManager />
+            <ClientsManager 
+              availableCallerNumbers={Array.from(new Set(currentRecords.map(r => r.callerNumber)))}
+              prefixConfig={prefixConfig}
+            />
+            <PrefixManager 
+              prefixConfig={prefixConfig}
+              onConfigChange={setPrefixConfig}
+            />
           </div>
         );
 
       case 'export':
-        return <AdvancedExport data={filteredData} analysisResults={analysisResults} />;
+        return <AdvancedExport 
+          data={filteredRecords} 
+          summary={summary}
+          callerAnalysis={callerAnalysis}
+          fileName="call-analysis"
+        />;
 
       case 'ai-insights':
-        return <AIInsights data={filteredData} />;
+        return <AIInsights data={filteredRecords} />;
 
       case 'realtime':
-        return <RealTimeMetrics data={filteredData} />;
+        return <RealTimeMetrics />;
 
       case 'automation':
         return <AutomationWorkflow />;
 
       case 'ai-enhanced':
-        return <AIEnhancedInsights data={filteredData} />;
+        return <AIEnhancedInsights data={filteredRecords} />;
 
       case 'ftp-import':
         return <FTPImporter />;

@@ -21,12 +21,17 @@ import { CostRecalculator } from '@/utils/cost-recalculator';
 import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis';
 import { 
   BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, 
-  Sparkles, Briefcase, Banknote, TrendingUp, Zap, Activity, Layers 
+  Sparkles, Briefcase, Banknote, TrendingUp, Zap, Activity, Layers,
+  Brain, Workflow, FileText
 } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import CompanyCostsManager from '@/components/CompanyCostsManager';
 import OcrTariffImporter from '@/components/OcrTariffImporter';
 import YearlyAnalytics from '@/components/YearlyAnalytics';
+import { AIInsights } from '@/components/AIInsights';
+import { RealTimeMetrics } from '@/components/RealTimeMetrics';
+import { AdvancedExport } from '@/components/AdvancedExport';
+import { AutomationWorkflow } from '@/components/AutomationWorkflow';
 
 const Index = () => {
   const { saveSession, loadSessions } = useAnalysisStorage();
@@ -235,7 +240,7 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
         <Tabs defaultValue="upload" className="space-y-8">
           <div className="flex justify-center">
             <ModernCard variant="glass" className="p-2">
-              <TabsList className="grid grid-cols-10 w-fit bg-transparent gap-1">
+              <TabsList className="grid grid-cols-13 w-fit bg-transparent gap-1">
                 <TabsTrigger 
                   value="upload" 
                   className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
@@ -310,6 +315,27 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
                 >
                   <History className="h-4 w-4" />
                   <span className="hidden sm:inline font-medium">Storico</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="ai-insights" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-cyan-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Brain className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">AI Insights</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="realtime" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-red-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Activity className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Real-time</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="automation" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-violet-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Workflow className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Automazioni</span>
                 </TabsTrigger>
               </TabsList>
             </ModernCard>
@@ -494,6 +520,20 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
                     currentSessionId={currentSession?.id}
                   />
                 </div>
+              </TabsContent>
+
+              <TabsContent value="ai-insights" className="mt-0">
+                <AIInsights 
+                  data={currentRecords}
+                />
+              </TabsContent>
+
+              <TabsContent value="realtime" className="mt-0">
+                <RealTimeMetrics />
+              </TabsContent>
+
+              <TabsContent value="automation" className="mt-0">
+                <AutomationWorkflow />
               </TabsContent>
             </div>
           </div>

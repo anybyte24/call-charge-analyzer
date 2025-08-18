@@ -12,7 +12,8 @@ import {
   Sparkles,
   User,
   Bell,
-  Search
+  Search,
+  Settings
 } from 'lucide-react';
 
 interface ModernLayoutProps {
@@ -45,87 +46,65 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
           <AppSidebar activeTab={activeTab} onTabChange={onTabChange} />
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col">
-            {/* Header */}
-            <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b">
-              <div className="flex h-16 items-center justify-between px-6">
+          <div className="flex-1 flex flex-col relative z-10">
+            {/* Premium Header */}
+            <header className="premium-card-glass border-b border-border/30 h-20 flex items-center justify-between px-8 backdrop-blur-xl">
+              <div className="flex items-center gap-6">
+                <SidebarTrigger className="lg:hidden" />
                 <div className="flex items-center gap-4">
-                  <SidebarTrigger className="lg:hidden" />
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                        <Activity className="h-4 w-4 text-white" />
-                      </div>
-                      <div>
-                        <h1 className="text-xl font-bold tracking-tight">{title}</h1>
-                        <p className="text-sm text-muted-foreground">{subtitle}</p>
-                      </div>
-                    </div>
-                    
-                    <Badge variant="secondary" className="ml-2 hidden sm:inline-flex">
-                      <Brain className="h-3 w-3 mr-1" />
-                      AI-powered insights
-                    </Badge>
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-brand-accent flex items-center justify-center shadow-lg">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-brand-accent bg-clip-text text-transparent">
+                      {title}
+                    </h1>
+                    <p className="text-sm text-muted-foreground font-medium">{subtitle}</p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  {/* Search */}
-                  <Button variant="ghost" size="sm" className="hidden md:flex">
-                    <Search className="h-4 w-4 mr-2" />
-                    Cerca...
-                  </Button>
-
-                  {/* Notifications */}
-                  <Button variant="ghost" size="sm" className="relative">
-                    <Bell className="h-4 w-4" />
-                    {notifications > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-1 -right-1 h-5 w-5 text-xs p-0 flex items-center justify-center"
-                      >
-                        {notifications}
-                      </Badge>
-                    )}
-                  </Button>
-
-                  {/* Theme Toggle */}
-                  <ThemeToggle />
-
-                  {/* User Menu */}
-                  <Button variant="ghost" size="sm">
-                    <User className="h-4 w-4" />
-                  </Button>
-                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <Button variant="outline" size="sm" className="btn-secondary-premium gap-2 h-10">
+                  <Search className="h-4 w-4" />
+                  <span className="hidden md:inline">Cerca analytics...</span>
+                </Button>
+                
+                <Button variant="outline" size="sm" className="btn-secondary-premium relative h-10">
+                  <Bell className="h-4 w-4" />
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs animate-pulse"
+                  >
+                    3
+                  </Badge>
+                </Button>
+                
+                <ThemeToggle />
+                
+                <Button variant="outline" size="sm" className="btn-secondary-premium gap-2 h-10">
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden md:inline">Profilo</span>
+                </Button>
               </div>
             </header>
 
-            {/* Page Content */}
-            <main className="flex-1 overflow-auto">
-              <div className="p-6">
-                {children}
+            {/* Main Content */}
+            <main className="flex-1 p-8 overflow-auto">
+              <div className="content-wrapper">
+                <div className="animate-fade-in">
+                  {children}
+                </div>
               </div>
             </main>
 
-            {/* Footer */}
-            <footer className="border-t bg-card/50 backdrop-blur-sm">
-              <div className="px-6 py-4">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <div className="flex items-center gap-4">
-                    <span>© 2024 Call Analytics Enterprise</span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" />
-                      Sistema avanzato per l'analisi e fatturazione delle chiamate telefoniche
-                    </span>
-                  </div>
-                  
-                  <div className="hidden sm:flex items-center gap-4">
-                    <span>Status: Operativo</span>
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  </div>
-                </div>
+            {/* Premium Footer */}
+            <footer className="premium-card-glass border-t border-border/30 p-6 text-center backdrop-blur-xl">
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <p className="font-medium">
+                  © 2024 Call Analytics Enterprise Suite v2.1.0 | Sistema Operativo
+                </p>
               </div>
             </footer>
           </div>

@@ -9,6 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarHeader,
   useSidebar,
 } from '@/components/ui/sidebar';
 import {
@@ -22,6 +23,11 @@ import {
   Zap,
   Upload,
   Settings,
+  Sparkles,
+  TrendingUp,
+  Users,
+  FileText,
+  FolderOpen
 } from 'lucide-react';
 
 interface SidebarItem {
@@ -32,22 +38,23 @@ interface SidebarItem {
 }
 
 const mainItems: SidebarItem[] = [
-  { title: 'Carica Dati', value: 'upload', icon: Upload, description: 'Importa file di chiamate' },
-  { title: 'Dashboard', value: 'dashboard', icon: BarChart3, description: 'Analisi e grafici' },
-  { title: 'Configurazione', value: 'settings', icon: Settings, description: 'Gestione clienti e tariffe' },
+  { title: 'Carica Dati', value: 'upload', icon: Upload, description: 'Importa file CSV' },
+  { title: 'Dashboard', value: 'dashboard', icon: TrendingUp, description: 'Visualizza analytics' },
+  { title: 'Configurazione', value: 'settings', icon: Settings, description: 'Gestisci impostazioni' },
 ];
 
 const analyticsItems: SidebarItem[] = [
-  { title: 'Export', value: 'export', icon: Download, description: 'Esporta dati' },
-  { title: 'AI Insights', value: 'ai-insights', icon: Brain, description: 'Analisi intelligenti' },
-  { title: 'Real-time', value: 'realtime', icon: Activity, description: 'Metriche in tempo reale' },
-  { title: 'Automazioni', value: 'automation', icon: Workflow, description: 'Workflow automatici' },
-  { title: 'AI Avanzato', value: 'ai-enhanced', icon: Zap, description: 'Analisi avanzate' },
-  { title: 'FTP Import', value: 'ftp-import', icon: Server, description: 'Importazione automatica' },
+  { title: 'Export Avanzato', value: 'export', icon: Download, description: 'Esporta dati' },
+  { title: 'AI Insights', value: 'ai-insights', icon: Sparkles, description: 'Analisi intelligenti' },
+  { title: 'Metriche Live', value: 'realtime', icon: Activity, description: 'Monitoraggio real-time' },
+  { title: 'Automazione', value: 'automation', icon: Zap, description: 'Workflow automatici' },
+  { title: 'AI Avanzato', value: 'ai-enhanced', icon: Brain, description: 'Insights avanzati' },
+  { title: 'FTP Import', value: 'ftp-import', icon: FolderOpen, description: 'Importazione automatica' },
 ];
 
-const historyItems: SidebarItem[] = [
-  { title: 'Storico Analisi', value: 'history', icon: History, description: 'Sessioni precedenti' },
+const reportsItems: SidebarItem[] = [
+  { title: 'Report Analisi', value: 'history', icon: FileText, description: 'Report dettagliati' },
+  { title: 'Gestione Clienti', value: 'clients', icon: Users, description: 'Database clienti' },
 ];
 
 interface AppSidebarProps {
@@ -56,8 +63,8 @@ interface AppSidebarProps {
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ activeTab, onTabChange }) => {
-  const collapsed = false; // Simplified for now
-  const location = useLocation();
+  const { state } = useSidebar();
+  const collapsed = state === 'collapsed';
 
   const isActive = (value: string) => activeTab === value;
 
@@ -67,18 +74,18 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ activeTab, onTabChange }
         <SidebarMenuItem key={item.value}>
           <SidebarMenuButton
             onClick={() => onTabChange(item.value)}
-            className={`w-full justify-start transition-all duration-200 ${
-              isActive(item.value)
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'hover:bg-accent hover:text-accent-foreground'
-            }`}
+            className={`${
+              isActive(item.value) 
+                ? 'sidebar-item-active-premium' 
+                : 'sidebar-item-premium'
+            } mb-1`}
           >
-            <item.icon className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
+            <item.icon className={`h-5 w-5 ${isActive(item.value) ? 'text-white' : ''} transition-colors`} />
             {!collapsed && (
-              <div className="flex flex-col items-start">
-                <span className="text-sm font-medium">{item.title}</span>
+              <div className="flex flex-col items-start ml-3">
+                <span className="font-semibold text-sm">{item.title}</span>
                 {item.description && (
-                  <span className="text-xs text-muted-foreground">{item.description}</span>
+                  <span className="text-xs opacity-70 mt-0.5">{item.description}</span>
                 )}
               </div>
             )}
@@ -89,21 +96,35 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ activeTab, onTabChange }
   );
 
   return (
-    <Sidebar className={`border-r bg-card/50 backdrop-blur-sm ${collapsed ? 'w-16' : 'w-80'}`}>
-      <SidebarContent className="p-4">
-        {/* Main Navigation */}
+    <Sidebar className="border-r bg-white/50 backdrop-blur-md">
+      <SidebarHeader className="p-6 border-b border-border/50">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-brand-accent flex items-center justify-center">
+            <BarChart3 className="h-4 w-4 text-white" />
+          </div>
+          {!collapsed && (
+            <div>
+              <h2 className="text-lg font-bold bg-gradient-to-r from-primary to-brand-accent bg-clip-text text-transparent">
+                Call Analytics
+              </h2>
+              <p className="text-xs text-muted-foreground">Enterprise Suite</p>
+            </div>
+          )}
+        </div>
+      </SidebarHeader>
+
+      <SidebarContent className="px-4 py-6">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            Navigazione
+          <SidebarGroupLabel className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-3">
+            Navigazione Principale
           </SidebarGroupLabel>
           <SidebarGroupContent>
             {renderMenuItems(mainItems, collapsed)}
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Analytics Tools */}
-        <SidebarGroup className="mt-6">
-          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+        <SidebarGroup className="mt-8">
+          <SidebarGroupLabel className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-3">
             Strumenti Analytics
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -111,26 +132,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ activeTab, onTabChange }
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* History */}
-        <SidebarGroup className="mt-6">
-          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            Storico
+        <SidebarGroup className="mt-8">
+          <SidebarGroupLabel className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-3">
+            Report & Gestione
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            {renderMenuItems(historyItems, collapsed)}
+            {renderMenuItems(reportsItems, collapsed)}
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Footer */}
-        {!collapsed && (
-          <div className="mt-auto pt-4 border-t">
-            <div className="text-xs text-muted-foreground text-center">
-              Call Analytics Enterprise
-              <br />
-              <span className="font-medium">v2.0.0</span>
-            </div>
-          </div>
-        )}
       </SidebarContent>
     </Sidebar>
   );

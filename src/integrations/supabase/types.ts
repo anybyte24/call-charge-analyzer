@@ -67,6 +67,7 @@ export type Database = {
           created_at: string
           file_data: Json
           id: string
+          last_accessed: string | null
           organization_id: string | null
           session_name: string
           updated_at: string
@@ -77,6 +78,7 @@ export type Database = {
           created_at?: string
           file_data: Json
           id?: string
+          last_accessed?: string | null
           organization_id?: string | null
           session_name: string
           updated_at?: string
@@ -87,6 +89,7 @@ export type Database = {
           created_at?: string
           file_data?: Json
           id?: string
+          last_accessed?: string | null
           organization_id?: string | null
           session_name?: string
           updated_at?: string

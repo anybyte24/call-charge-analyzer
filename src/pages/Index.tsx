@@ -240,7 +240,7 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
         <Tabs defaultValue="upload" className="space-y-8">
           <div className="flex justify-center">
             <ModernCard variant="glass" className="p-2">
-              <TabsList className="grid grid-cols-13 w-fit bg-transparent gap-1">
+              <TabsList className="grid grid-cols-10 w-fit bg-transparent gap-1">
                 <TabsTrigger 
                   value="upload" 
                   className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
@@ -308,13 +308,6 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
                 >
                   <Download className="h-4 w-4" />
                   <span className="hidden sm:inline font-medium">Export</span>
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="history" 
-                  className="flex items-center space-x-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
-                >
-                  <History className="h-4 w-4" />
-                  <span className="hidden sm:inline font-medium">Storico</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="ai-insights" 

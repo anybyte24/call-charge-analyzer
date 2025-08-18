@@ -7,13 +7,43 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
+      analysis_sessions: {
+        Row: {
+          analysis_results: Json | null
+          created_at: string
+          file_data: Json
+          id: string
+          session_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_results?: Json | null
+          created_at?: string
+          file_data: Json
+          id?: string
+          session_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_results?: Json | null
+          created_at?: string
+          file_data?: Json
+          id?: string
+          session_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       client_numbers: {
         Row: {
           caller_number: string
@@ -51,6 +81,7 @@ export type Database = {
           client_id: string
           created_at: string
           currency: string
+          forfait_only: boolean
           id: string
           landline_rate: number
           mobile_rate: number
@@ -62,6 +93,7 @@ export type Database = {
           client_id: string
           created_at?: string
           currency?: string
+          forfait_only?: boolean
           id?: string
           landline_rate?: number
           mobile_rate?: number
@@ -73,6 +105,7 @@ export type Database = {
           client_id?: string
           created_at?: string
           currency?: string
+          forfait_only?: boolean
           id?: string
           landline_rate?: number
           mobile_rate?: number

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { SEO } from '@/components/SEO';
 import FileUploadAdvanced from '@/components/FileUploadAdvanced';
 import Dashboard from '@/components/Dashboard';
 import CallerAnalysisTable from '@/components/CallerAnalysisTable';
@@ -173,7 +174,13 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <>
+      <SEO 
+        title="Call Charge Analyzer - Dashboard Analisi Costi Telefonate VOIP"
+        description="Dashboard professionale per l'analisi dei costi delle telefonate VOIP. Monitora, analizza e ottimizza le spese telefoniche della tua azienda con report dettagliati."
+        keywords="dashboard telefonie, analisi costi VOIP, gestione chiamate aziendali, report telefonici, ottimizzazione costi telefonia"
+      />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="container mx-auto px-4 py-8">
         {/* Modern Header */}
         <div className="mb-8 text-center">
@@ -408,6 +415,7 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
         </Tabs>
       </div>
     </div>
+    </>
   );
 };
 

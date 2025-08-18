@@ -2,6 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { SEO } from '@/components/SEO';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { ModernCard } from '@/components/ModernCard';
+import { ModernButton } from '@/components/ModernButton';
+import { AnimatedCounter } from '@/components/AnimatedCounter';
+import { StaggeredAnimation } from '@/components/StaggeredAnimation';
 import FileUploadAdvanced from '@/components/FileUploadAdvanced';
 import Dashboard from '@/components/Dashboard';
 import CallerAnalysisTable from '@/components/CallerAnalysisTable';
@@ -14,7 +19,10 @@ import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 import { CallAnalyzer } from '@/utils/call-analyzer';
 import { CostRecalculator } from '@/utils/cost-recalculator';
 import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis';
-import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase, Banknote, TrendingUp } from 'lucide-react';
+import { 
+  BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, 
+  Sparkles, Briefcase, Banknote, TrendingUp, Zap, Activity, Layers 
+} from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import CompanyCostsManager from '@/components/CompanyCostsManager';
 import OcrTariffImporter from '@/components/OcrTariffImporter';
@@ -180,116 +188,193 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
         description="Dashboard professionale per l'analisi dei costi delle telefonate VOIP. Monitora, analizza e ottimizza le spese telefoniche della tua azienda con report dettagliati."
         keywords="dashboard telefonie, analisi costi VOIP, gestione chiamate aziendali, report telefonici, ottimizzazione costi telefonia"
       />
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Modern Header */}
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-lg">
-              <BarChart3 className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-            Call Analytics Enterprise
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Sistema avanzato per l'analisi e fatturazione delle chiamate telefoniche
-          </p>
+      
+      {/* Modern Background */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        {/* Floating Background Elements */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse-slow" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-brand-500/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-gradient-to-r from-primary/3 to-brand-500/3 rounded-full blur-3xl animate-float" />
         </div>
 
-        {/* Main Tabs Interface */}
-        <Tabs defaultValue="upload" className="space-y-6">
-<div className="flex justify-center">
-  <TabsList className="grid grid-cols-10 w-fit bg-white/70 backdrop-blur-sm border shadow-lg rounded-xl p-1">
-    <TabsTrigger value="upload" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-      <Upload className="h-4 w-4" />
-      <span className="hidden sm:inline">Carica</span>
-    </TabsTrigger>
-    <TabsTrigger value="dashboard" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-      <BarChart3 className="h-4 w-4" />
-      <span className="hidden sm:inline">Dashboard</span>
-    </TabsTrigger>
-    <TabsTrigger value="callers" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-      <Users className="h-4 w-4" />
-      <span className="hidden sm:inline">Chiamanti</span>
-    </TabsTrigger>
-    <TabsTrigger value="clients" className="flex items-center space-x-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white rounded-lg">
-      <Briefcase className="h-4 w-4" />
-      <span className="hidden sm:inline">Clienti</span>
-    </TabsTrigger>
-    <TabsTrigger value="company-costs" className="flex items-center space-x-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white rounded-lg">
-      <Banknote className="h-4 w-4" />
-      <span className="hidden sm:inline">Costi azienda</span>
-    </TabsTrigger>
-    <TabsTrigger value="yearly" className="flex items-center space-x-2 data-[state=active]:bg-pink-500 data-[state=active]:text-white rounded-lg">
-      <TrendingUp className="h-4 w-4" />
-      <span className="hidden sm:inline">Annuale</span>
-    </TabsTrigger>
-    <TabsTrigger value="settings" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-      <Settings className="h-4 w-4" />
-      <span className="hidden sm:inline">Prefissi</span>
-    </TabsTrigger>
-    <TabsTrigger value="unknown" className="flex items-center space-x-2 data-[state=active]:bg-amber-500 data-[state=active]:text-white rounded-lg">
-      <AlertTriangle className="h-4 w-4" />
-      <span className="hidden sm:inline">Non Riconosciuti</span>
-      {unknownNumbers.length > 0 && (
-        <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center">
-          {unknownNumbers.length}
-        </span>
-      )}
-    </TabsTrigger>
-    <TabsTrigger value="export" className="flex items-center space-x-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg">
-      <Download className="h-4 w-4" />
-      <span className="hidden sm:inline">Export</span>
-    </TabsTrigger>
-    <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-lg">
-      <History className="h-4 w-4" />
-      <span className="hidden sm:inline">Storico</span>
-    </TabsTrigger>
-  </TabsList>
-</div>
+        {/* Header with Theme Toggle */}
+        <div className="relative z-10 container mx-auto px-4 py-8">
+          <div className="flex justify-between items-start mb-8">
+            <div className="text-center flex-1">
+              <StaggeredAnimation delay={150}>
+                <div className="flex items-center justify-center mb-6">
+                  <ModernCard variant="glass" className="p-4 hover:scale-105 transition-transform duration-300">
+                    <div className="relative">
+                      <BarChart3 className="h-12 w-12 text-primary animate-bounce-gentle" />
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-brand-500 rounded-full animate-pulse" />
+                    </div>
+                  </ModernCard>
+                </div>
+                
+                <h1 className="text-5xl font-bold gradient-text mb-4 text-balance">
+                  Call Analytics
+                  <span className="block text-3xl font-normal text-muted-foreground mt-2">
+                    Enterprise Suite
+                  </span>
+                </h1>
+                
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
+                  Sistema avanzato per l'analisi e fatturazione delle chiamate telefoniche con 
+                  <span className="text-primary font-medium"> AI-powered insights</span>
+                </p>
+              </StaggeredAnimation>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+            </div>
+          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar */}
-            <div className="lg:col-span-1 space-y-4">
-              <HistoryPanel 
-                sessions={sessions}
-                onSessionSelect={handleSessionSelect}
-                currentSessionId={currentSession?.id}
-              />
+        {/* Main Tabs Interface */}
+        <Tabs defaultValue="upload" className="space-y-8">
+          <div className="flex justify-center">
+            <ModernCard variant="glass" className="p-2">
+              <TabsList className="grid grid-cols-10 w-fit bg-transparent gap-1">
+                <TabsTrigger 
+                  value="upload" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Upload className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Carica</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="dashboard" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Activity className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Dashboard</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="callers" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-brand-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Users className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Chiamanti</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="clients" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Briefcase className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Clienti</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="company-costs" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-emerald-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Banknote className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Costi</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="yearly" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-pink-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Annuale</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="settings" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-slate-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Prefissi</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="unknown" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-amber-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent relative"
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Non Riconosciuti</span>
+                  {unknownNumbers.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center animate-pulse">
+                      {unknownNumbers.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="export" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Export</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="history" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <History className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">Storico</span>
+                </TabsTrigger>
+              </TabsList>
+            </ModernCard>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Modern Sidebar */}
+            <div className="lg:col-span-1 space-y-6">
+              <ModernCard variant="glass" className="p-6">
+                <HistoryPanel 
+                  sessions={sessions}
+                  onSessionSelect={handleSessionSelect}
+                  currentSessionId={currentSession?.id}
+                />
+              </ModernCard>
               
               {currentSession && currentRecords.length > 0 && (
-                <ExportPanel
-                  records={currentRecords}
-                  summary={currentSession.summary}
-                  callerAnalysis={currentSession.callerAnalysis}
-                  fileName={currentSession.fileName}
-                />
+                <ModernCard variant="elevated" className="p-6">
+                  <ExportPanel
+                    records={currentRecords}
+                    summary={currentSession.summary}
+                    callerAnalysis={currentSession.callerAnalysis}
+                    fileName={currentSession.fileName}
+                  />
+                </ModernCard>
               )}
             </div>
 
             {/* Main Content */}
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-3 space-y-6">
               <TabsContent value="upload" className="mt-0">
-                <div className="space-y-6">
-                  <FileUploadAdvanced 
-                    onFileUpload={handleFileUpload}
-                    isLoading={isAnalyzing}
-                  />
-                  {!currentSession && (
-                    <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
-                      <div className="p-4 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                        <Sparkles className="h-10 w-10 text-blue-600" />
+                <ModernCard variant="elevated" className="p-8">
+                  <div className="space-y-8">
+                    <FileUploadAdvanced 
+                      onFileUpload={handleFileUpload}
+                      isLoading={isAnalyzing}
+                    />
+                    {!currentSession && (
+                      <div className="text-center py-16">
+                        <ModernCard variant="glass" className="p-8 max-w-md mx-auto">
+                          <div className="space-y-6">
+                            <div className="relative mx-auto w-20 h-20">
+                              <div className="absolute inset-0 bg-gradient-to-r from-primary to-brand-500 rounded-full blur-lg opacity-30 animate-pulse"></div>
+                              <div className="relative bg-gradient-to-r from-primary to-brand-500 rounded-full p-4 text-white">
+                                <Zap className="h-12 w-12 animate-bounce-gentle" />
+                              </div>
+                            </div>
+                            <div className="space-y-3">
+                              <h3 className="text-2xl font-bold gradient-text">
+                                Benvenuto in Call Analytics
+                              </h3>
+                              <p className="text-muted-foreground text-lg">
+                                Carica il tuo primo file CSV per iniziare l'analisi avanzata delle chiamate
+                              </p>
+                            </div>
+                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                              <Layers className="h-4 w-4" />
+                              <span>Powered by AI Analytics</span>
+                            </div>
+                          </div>
+                        </ModernCard>
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                        Benvenuto in Call Analytics
-                      </h3>
-                      <p className="text-gray-600">
-                        Carica il tuo primo file CSV per iniziare l'analisi delle chiamate
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                </ModernCard>
               </TabsContent>
 
               <TabsContent value="dashboard" className="mt-0">
@@ -413,8 +498,8 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
             </div>
           </div>
         </Tabs>
+        </div>
       </div>
-    </div>
     </>
   );
 };

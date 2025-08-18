@@ -22,13 +22,15 @@ import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis
 import { 
   BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, 
   Sparkles, Briefcase, Banknote, TrendingUp, Zap, Activity, Layers,
-  Brain, Workflow, FileText
+  Brain, Workflow, FileText, Server
 } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import CompanyCostsManager from '@/components/CompanyCostsManager';
 import OcrTariffImporter from '@/components/OcrTariffImporter';
 import YearlyAnalytics from '@/components/YearlyAnalytics';
 import { AIInsights } from '@/components/AIInsights';
+import { AIEnhancedInsights } from '@/components/AIEnhancedInsights';
+import { FTPImporter } from '@/components/FTPImporter';
 import { RealTimeMetrics } from '@/components/RealTimeMetrics';
 import { AdvancedExport } from '@/components/AdvancedExport';
 import { AutomationWorkflow } from '@/components/AutomationWorkflow';
@@ -240,7 +242,7 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
         <Tabs defaultValue="upload" className="space-y-8">
           <div className="flex justify-center">
             <ModernCard variant="glass" className="p-2">
-              <TabsList className="grid grid-cols-10 w-fit bg-transparent gap-1">
+              <TabsList className="grid grid-cols-14 w-fit bg-transparent gap-1">
                 <TabsTrigger 
                   value="upload" 
                   className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
@@ -329,6 +331,20 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
                 >
                   <Workflow className="h-4 w-4" />
                   <span className="hidden sm:inline font-medium">Automazioni</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="ai-enhanced" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Brain className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">AI Avanzato</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="ftp-import" 
+                  className="flex items-center space-x-2 data-[state=active]:bg-cyan-500 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200 hover:bg-accent"
+                >
+                  <Server className="h-4 w-4" />
+                  <span className="hidden sm:inline font-medium">FTP Import</span>
                 </TabsTrigger>
               </TabsList>
             </ModernCard>
@@ -527,6 +543,14 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
 
               <TabsContent value="automation" className="mt-0">
                 <AutomationWorkflow />
+              </TabsContent>
+
+              <TabsContent value="ai-enhanced" className="mt-0">
+                <AIEnhancedInsights data={currentRecords} />
+              </TabsContent>
+
+              <TabsContent value="ftp-import" className="mt-0">
+                <FTPImporter />
               </TabsContent>
             </div>
           </div>

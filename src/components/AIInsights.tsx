@@ -28,22 +28,6 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ data, className }) => {
 
   // Load existing insights from database
   useEffect(() => {
-    const loadInsights = async () => {
-      if (!currentOrganization) return;
-
-      const { data: dbInsights, error } = await supabase
-        .from('ai_insights')
-        .select('*')
-        .eq('organization_id', currentOrganization.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (!error && dbInsights) {
-        setInsights(dbInsights);
-      }
-    };
-
     loadInsights();
   }, [currentOrganization]);
 
@@ -60,11 +44,23 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ data, className }) => {
   }, [aiInsights]);
 
   const generateInsights = async (analysisType: string) => {
-    if (!currentOrganization || !data || data.length === 0) return;
+    if (!currentOrganization || !data || data.length === 0) {
+      console.log('Missing requirements:', { 
+        organization: !!currentOrganization, 
+        data: data?.length || 0 
+      });
+      return;
+    }
 
     setGeneratingInsights(true);
     try {
-      const { data: result, error } = await supabase.functions.invoke('ai-insights', {
+      console.log('Calling AI insights function with:', {
+        analysisType,
+        dataLength: data.length,
+        organizationId: currentOrganization.id
+      });
+
+      const response = await supabase.functions.invoke('ai-insights', {
         body: {
           data: data.slice(0, 100), // Limit data for API call
           analysis_type: analysisType,
@@ -72,15 +68,43 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ data, className }) => {
         }
       });
 
-      if (error) throw error;
+      console.log('Function response:', response);
 
-      console.log('AI Insights generated:', result);
+      if (response.error) {
+        throw new Error(response.error.message || 'Errore nella generazione degli insights');
+      }
+
+      if (response.data?.success) {
+        console.log('AI Insights generated successfully:', response.data);
+        // Refresh insights
+        setTimeout(() => {
+          loadInsights();
+        }, 1000);
+      } else {
+        throw new Error('Risposta invalida dal server');
+      }
       
-      // The insights will be automatically updated via real-time subscription
     } catch (error) {
       console.error('Error generating insights:', error);
+      alert(`Errore nella generazione degli insights: ${error.message}`);
     } finally {
       setGeneratingInsights(false);
+    }
+  };
+
+  const loadInsights = async () => {
+    if (!currentOrganization) return;
+
+    const { data: dbInsights, error } = await supabase
+      .from('ai_insights')
+      .select('*')
+      .eq('organization_id', currentOrganization.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (!error && dbInsights) {
+      setInsights(dbInsights);
     }
   };
 

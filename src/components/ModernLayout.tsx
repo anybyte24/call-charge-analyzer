@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEO } from '@/components/SEO';
+import { OrganizationSelector } from '@/components/OrganizationSelector';
 import { 
   Menu, 
   Activity, 
@@ -65,6 +66,8 @@ export const ModernLayout: React.FC<ModernLayoutProps> = ({
               </div>
               
               <div className="flex items-center gap-4">
+                <OrganizationSelector />
+                
                 <Button variant="outline" size="sm" className="btn-secondary-premium gap-2 h-10">
                   <Search className="h-4 w-4" />
                   <span className="hidden md:inline">Cerca analytics...</span>

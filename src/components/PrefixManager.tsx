@@ -81,8 +81,8 @@ const PrefixManager: React.FC<PrefixManagerProps> = ({ prefixConfig, onConfigCha
             </TableRow>
           </TableHeader>
           <TableBody>
-            {prefixConfig.map((prefix) => (
-              <TableRow key={prefix.prefix}>
+            {prefixConfig.map((prefix, index) => (
+              <TableRow key={`${prefix.prefix}-${index}`}>
                 <TableCell className="font-mono">
                   {editingId === prefix.prefix ? (
                     <Input

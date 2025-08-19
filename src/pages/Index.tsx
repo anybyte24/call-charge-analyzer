@@ -15,11 +15,14 @@ import { AutomationWorkflow } from '@/components/AutomationWorkflow';
 import { AdvancedExport } from '@/components/AdvancedExport';
 import { ModernLayout } from '@/components/ModernLayout';
 import { EmptyState } from '@/components/EmptyState';
+import { WelcomeScreen } from '@/components/WelcomeScreen';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useToast } from '@/hooks/use-toast';
 import { CallAnalyzer } from '@/utils/call-analyzer';
 import type { CallRecord, CallSummary, CallerAnalysis, PrefixConfig } from '@/types/call-analysis';
 
 const Index = () => {
+  const { currentOrganization } = useOrganization();
   const [activeTab, setActiveTab] = useState('upload');
   const [currentRecords, setCurrentRecords] = useState<CallRecord[]>([]);
   const [analysisData, setAnalysisData] = useState<CallRecord[]>([]);
@@ -60,6 +63,16 @@ const Index = () => {
   }, [toast]);
 
   const renderTabContent = () => {
+    // Show welcome screen if no organization or no data
+    if (!currentOrganization || (activeTab === 'upload' && currentRecords.length === 0)) {
+      return (
+        <WelcomeScreen 
+          onUpload={() => setActiveTab('upload')} 
+          hasData={currentRecords.length > 0}
+        />
+      );
+    }
+
     switch (activeTab) {
       case 'upload':
         return (

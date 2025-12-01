@@ -3,12 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useClients } from '@/hooks/useClients';
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
-import { NumberCategorizer } from '@/utils/number-categorizer';
-import { CallerAnalysis, PrefixConfig } from '@/types/call-analysis';
+
+import { CallerAnalysis } from '@/types/call-analysis';
 
 interface ClientPricingSummaryProps {
   callerAnalysis: CallerAnalysis[];
-  prefixConfig?: PrefixConfig[];
 }
 
 function formatDuration(seconds: number): string {
@@ -18,18 +17,8 @@ function formatDuration(seconds: number): string {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnalysis, prefixConfig }) => {
+const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnalysis }) => {
   const { numberToClientMap, clientPricing, globalPricing } = useClients();
-
-  const fallbackRates = React.useMemo(() => {
-    const src = (prefixConfig && prefixConfig.length ? prefixConfig : NumberCategorizer.defaultPrefixConfig);
-    const avg = (cat: 'mobile' | 'landline' | 'international' | 'special') => {
-      const vals = src.filter(p => p.category === cat).map(p => Number(p.costPerMinute || 0));
-      if (!vals.length) return 0;
-      return vals.reduce((a,b)=>a+b,0) / vals.length;
-    };
-    return { mobile: avg('mobile'), landline: avg('landline'), international: avg('international'), premium: avg('special') };
-  }, [prefixConfig]);
 
   type Agg = {
     id: string;
@@ -44,10 +33,8 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
   const rows = React.useMemo(() => {
     const map = new Map<string, Agg>();
 
-    const intlRateBase = Number(globalPricing?.international_rate || 0);
-    const premiumRateBase = Number(globalPricing?.premium_rate || 0);
-    const intlRate = intlRateBase || fallbackRates.international;
-    const premiumRate = premiumRateBase || fallbackRates.premium;
+    const intlRate = Number(globalPricing?.international_rate || 0);
+    const premiumRate = Number(globalPricing?.premium_rate || 0);
 
     callerAnalysis.forEach((ca) => {
       const clientInfo = numberToClientMap[ca.callerNumber];
@@ -76,61 +63,53 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
         agg.myCost += Number(cat.cost || 0);
       });
 
-// ricavo: tariffe per cliente
-const clientRate = clientPricing.find((p) => p.client_id === key);
-const mobileRate = Number(clientRate?.mobile_rate || 0);
-const landlineRate = Number(clientRate?.landline_rate || 0);
+      // ricavo: tariffe per cliente
+      const clientRate = clientPricing.find((p) => p.client_id === key);
+      const mobileRate = Number(clientRate?.mobile_rate || 0);
+      const landlineRate = Number(clientRate?.landline_rate || 0);
+      const flat = Number(clientRate?.monthly_flat_fee || 0);
 
-const flat = Number(clientRate?.monthly_flat_fee || 0);
-const onlyFlat = Boolean(clientRate?.forfait_only);
+      let revenueForCaller = flat ? 0 : 0; // forfait si somma una sola volta a fine cliente
+      let mobileSec = 0, landlineSec = 0, intlSec = 0, premiumSec = 0;
 
-let revenueForCaller = 0; // forfait si somma una sola volta a fine cliente
-// Applica fatturazione 60/60: ogni chiamata minimo 1 min, poi somma
-let mobileMin = 0, landlineMin = 0, intlMin = 0, premiumMin = 0;
+      ca.categories.forEach((cat) => {
+        const sec = cat.totalSeconds || 0;
+        switch (cat.category.toLowerCase()) {
+          case 'mobile':
+            mobileSec += sec;
+            break;
+          case 'landline':
+          case 'fisso':
+            landlineSec += sec;
+            break;
+          case 'international':
+          case 'internazionale':
+            intlSec += sec;
+            break;
+          case 'special':
+          case 'numero speciale':
+          case 'numero premium':
+            premiumSec += sec;
+            break;
+          default:
+            break;
+        }
+      });
 
-ca.categories.forEach((cat) => {
-  const totalSec = cat.totalSeconds || 0;
-  const calls = cat.count || 0;
-  // minuti fatturati per categoria: almeno 1 per chiamata
-  const billedMinutes = Math.max(calls, Math.ceil(totalSec / 60));
-  switch (cat.category.toLowerCase()) {
-    case 'mobile':
-      mobileMin += billedMinutes;
-      break;
-    case 'landline':
-    case 'fisso':
-      landlineMin += billedMinutes;
-      break;
-    case 'international':
-    case 'internazionale':
-      intlMin += billedMinutes;
-      break;
-    case 'special':
-    case 'numero speciale':
-    case 'numero premium':
-      premiumMin += billedMinutes;
-      break;
-    default:
-      break;
-  }
-});
+      revenueForCaller += (mobileSec / 60) * mobileRate;
+      revenueForCaller += (landlineSec / 60) * landlineRate;
+      revenueForCaller += (intlSec / 60) * intlRate;
+      revenueForCaller += (premiumSec / 60) * premiumRate;
 
-if (!onlyFlat) {
-  revenueForCaller += mobileMin * mobileRate; // €/min * minuti fatturati
-  revenueForCaller += landlineMin * landlineRate;
-  revenueForCaller += intlMin * intlRate;
-  revenueForCaller += premiumMin * premiumRate;
-}
-
-agg.revenue += revenueForCaller;
+      agg.revenue += revenueForCaller;
     });
 
-// aggiungi forfait una volta per cliente
-for (const [key, agg] of map) {
-  const clientRate = clientPricing.find((p) => p.client_id === key);
-  const flat = Number(clientRate?.monthly_flat_fee || 0);
-  if (flat > 0) agg.revenue += flat;
-}
+    // aggiungi forfait una volta per cliente
+    for (const [key, agg] of map) {
+      const clientRate = clientPricing.find((p) => p.client_id === key);
+      const flat = Number(clientRate?.monthly_flat_fee || 0);
+      if (flat > 0) agg.revenue += flat;
+    }
 
     return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue);
   }, [callerAnalysis, numberToClientMap, clientPricing, globalPricing]);

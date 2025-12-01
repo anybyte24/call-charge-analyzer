@@ -1,12 +1,14 @@
-User-agent: *
+User-agent: Googlebot
 Allow: /
 
-# Disallow admin and auth pages from indexing
-Disallow: /admin/
-Disallow: /auth/
+User-agent: Bingbot
+Allow: /
 
-# Point to sitemap
-Sitemap: https://your-domain.com/sitemap.xml
+User-agent: Twitterbot
+Allow: /
 
-# Crawl delay for respectful crawling
-Crawl-delay: 1
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: *
+Allow: /

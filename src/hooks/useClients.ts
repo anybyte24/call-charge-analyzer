@@ -27,7 +27,6 @@ export interface ClientPricing {
   mobile_rate: number;
   landline_rate: number;
   monthly_flat_fee: number;
-  forfait_only?: boolean; // new flag
   currency?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -173,24 +172,23 @@ export const useClients = () => {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["client_numbers"] }),
   });
 
-const upsertClientPricing = useMutation({
-  mutationFn: async ({ clientId, mobile_rate, landline_rate, monthly_flat_fee, forfait_only }: { clientId: string; mobile_rate: number; landline_rate: number; monthly_flat_fee: number; forfait_only: boolean; }) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Devi effettuare l'accesso");
-    const { error } = await supabase
-      .from("client_pricing")
-      .upsert({
-        user_id: user.id,
-        client_id: clientId,
-        mobile_rate,
-        landline_rate,
-        monthly_flat_fee,
-        forfait_only,
-      }, { onConflict: "user_id,client_id" });
-    if (error) throw error;
-  },
-  onSuccess: () => qc.invalidateQueries({ queryKey: ["client_pricing"] }),
-});
+  const upsertClientPricing = useMutation({
+    mutationFn: async ({ clientId, mobile_rate, landline_rate, monthly_flat_fee }: { clientId: string; mobile_rate: number; landline_rate: number; monthly_flat_fee: number; }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Devi effettuare l'accesso");
+      const { error } = await supabase
+        .from("client_pricing")
+        .upsert({
+          user_id: user.id,
+          client_id: clientId,
+          mobile_rate,
+          landline_rate,
+          monthly_flat_fee,
+        }, { onConflict: "user_id,client_id" });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["client_pricing"] }),
+  });
 
   const upsertGlobalPricing = useMutation({
     mutationFn: async ({ international_rate, premium_rate }: { international_rate: number; premium_rate: number; }) => {

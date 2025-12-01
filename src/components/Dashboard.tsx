@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity, Filter, Table, RefreshCw } from 'lucide-react';
-import { CallSummary, CallerAnalysis, CallRecord, PrefixConfig } from '@/types/call-analysis';
+import { CallSummary, CallerAnalysis, CallRecord } from '@/types/call-analysis';
 import CallAnalyticsCharts from './CallAnalyticsCharts';
 import HourlyDistributionChart from './HourlyDistributionChart';
 import TopNumbersAnalysis from './TopNumbersAnalysis';
@@ -14,8 +14,6 @@ import TooltipInfo, { KPITooltips } from './TooltipInfo';
 import { ResponsiveKPIGrid, ResponsiveContainer } from './ResponsiveLayout';
 import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 import ClientPricingSummary from './ClientPricingSummary';
-import { useClients } from '@/hooks/useClients';
-import { NumberCategorizer } from '@/utils/number-categorizer';
 
 
 interface DashboardProps {
@@ -24,7 +22,6 @@ interface DashboardProps {
   totalRecords: number;
   fileName: string;
   records: CallRecord[];
-  prefixConfig?: PrefixConfig[];
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -32,8 +29,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   callerAnalysis, 
   totalRecords, 
   fileName,
-  records,
-  prefixConfig
+  records
 }) => {
   const [filteredRecords, setFilteredRecords] = React.useState<CallRecord[]>(records);
   const { recalculateCosts, loading: recalculateLoading } = useAnalysisStorage();
@@ -43,60 +39,6 @@ const Dashboard: React.FC<DashboardProps> = ({
   const totalHours = Math.floor(totalDuration / 3600);
   const totalMinutes = Math.floor((totalDuration % 3600) / 60);
   
-  const { numberToClientMap, clientPricing } = useClients();
-  const fallbackRates = React.useMemo(() => {
-    const src = (prefixConfig && prefixConfig.length) ? prefixConfig : NumberCategorizer.defaultPrefixConfig;
-    const avg = (cat: 'mobile' | 'landline' | 'international' | 'special') => {
-      const vals = src.filter(p => p.category === cat).map(p => Number(p.costPerMinute || 0));
-      if (!vals.length) return 0;
-      return vals.reduce((a,b)=>a+b,0) / vals.length;
-    };
-    return { mobile: avg('mobile'), landline: avg('landline'), international: avg('international'), premium: avg('special') };
-  }, [prefixConfig]);
-
-  const { totalRevenue, totalMargin } = React.useMemo(() => {
-    type Agg = { revenue: number; flat: number };
-    const map = new Map<string, Agg>();
-
-    callerAnalysis.forEach((ca) => {
-      const clientInfo = (numberToClientMap as any)[ca.callerNumber];
-      const key = clientInfo?.id || 'no-client';
-      if (!map.has(key)) map.set(key, { revenue: 0, flat: 0 });
-      const agg = map.get(key)!;
-
-      const clientRate = clientPricing.find(p => p.client_id === key);
-      const mobileRate = Number(clientRate?.mobile_rate || 0) || fallbackRates.mobile;
-      const landlineRate = Number(clientRate?.landline_rate || 0) || fallbackRates.landline;
-      const intlRate = fallbackRates.international;
-      const premiumRate = fallbackRates.premium;
-      const onlyFlat = Boolean(clientRate?.forfait_only);
-      const flat = Number(clientRate?.monthly_flat_fee || 0);
-
-      let rev = 0;
-      ca.categories.forEach((cat) => {
-        const totalSec = cat.totalSeconds || 0;
-        const calls = (cat as any).count || 0;
-        const billedMin = Math.max(calls, Math.ceil(totalSec / 60));
-        const k = cat.category.toLowerCase();
-        if (!onlyFlat) {
-          if (k.includes('mobile')) rev += billedMin * mobileRate;
-          else if (k.includes('landline') || k.includes('fisso')) rev += billedMin * landlineRate;
-          else if (k.includes('international') || k.includes('internazionale')) rev += billedMin * intlRate;
-          else if (k.includes('special') || k.includes('premium') || k.includes('numero')) rev += billedMin * premiumRate;
-        }
-      });
-
-      agg.revenue += rev;
-      agg.flat = Math.max(agg.flat, flat);
-    });
-
-    let totalRevenue = 0;
-    map.forEach(v => {
-      totalRevenue += v.revenue + (v.flat || 0);
-    });
-    const totalMargin = totalRevenue - totalCost;
-    return { totalRevenue, totalMargin };
-  }, [callerAnalysis, numberToClientMap, clientPricing, fallbackRates, totalCost]);
 
   const handleRecalculateCosts = async () => {
     console.log('🔄 Starting manual cost recalculation...');
@@ -274,32 +216,6 @@ const Dashboard: React.FC<DashboardProps> = ({
               <p className="text-xs text-gray-500 mt-1">Per chiamata</p>
             </CardContent>
           </Card>
-
-          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center space-x-1">
-                <span>Da Addebitare (Totale)</span>
-                <TooltipInfo content="Somma degli importi fatturati ai clienti, calcolati dalle tariffe Prefissi e personalizzazioni" />
-              </CardTitle>
-              <Euro className="h-4 w-4 text-sky-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-sky-600">€{totalRevenue.toFixed(2)}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center space-x-1">
-                <span>Margine Totale</span>
-                <TooltipInfo content="Ricavo meno costo azienda" />
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-emerald-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-emerald-600">€{totalMargin.toFixed(2)}</div>
-            </CardContent>
-          </Card>
         </ResponsiveKPIGrid>
       </ResponsiveContainer>
 
@@ -370,7 +286,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </TabsContent>
 
         <TabsContent value="clients" className="space-y-4">
-          <ClientPricingSummary callerAnalysis={callerAnalysis} prefixConfig={prefixConfig} />
+          <ClientPricingSummary callerAnalysis={callerAnalysis} />
         </TabsContent>
 
 

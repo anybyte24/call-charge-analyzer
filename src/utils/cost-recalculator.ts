@@ -38,13 +38,13 @@ export class CostRecalculator {
     if (durationSeconds === 0 || costPerMinute === 0) {
       return 0;
     }
-
-    // Fatturazione 60/60: minimo 60s e scatti da 60s
-    const billedMinutes = Math.max(1, Math.ceil(durationSeconds / 60));
-
-    // Calcola il costo in base ai minuti fatturati
-    const cost = billedMinutes * costPerMinute;
-
+    
+    // Converti i secondi in minuti decimali
+    const exactMinutes = durationSeconds / 60;
+    
+    // Calcola il costo esatto
+    const cost = exactMinutes * costPerMinute;
+    
     // Arrotonda a 4 decimali per precisione
     return parseFloat(cost.toFixed(4));
   }

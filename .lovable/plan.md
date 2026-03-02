@@ -1,80 +1,83 @@
 
 
-## Revisione Completa - Miglioramenti e Implementazioni Possibili
+## Stato delle 8 Priorita' e Fix Scheda "Chiamanti"
 
-### Stato Attuale
-L'app e' un sistema maturo di analisi/fatturazione chiamate con: upload CSV, categorizzazione prefissi (nazionali + internazionali), gestione clienti con pricing, forfait con esubero, filtro mensile, export Excel, e confronto margini ALFA vs NYBYTE.
+### Stato attuale delle 8 priorita'
 
----
-
-### BUG DA CORREGGERE
-
-**1. Console.log di debug ovunque (Produzione)**
-`number-categorizer.ts` ha decine di `console.log` con emoji (righe 927, 928, 931, 936, 941, 945, 948, 952-965, 976, 984, 993, 998, 1009, 1013, 1022). Questi rallentano significativamente l'analisi di CSV grandi (migliaia di record) e sporcano la console. Vanno rimossi o sostituiti con un flag `DEBUG`.
-
-**2. `CostAlertsManager` non collegato**
-Il componente esiste ma non e' usato da nessuna parte nell'app. Gli alert sono solo in-memory (stato locale), non persistiti su Supabase.
-
-**3. Esubero forfait usa solo tariffa mobile**
-In `ClientPricingSummary.tsx` riga 238-239, l'esubero forfait viene calcolato usando solo `clientMobileRate`. Dovrebbe distinguere tra minuti mobile, fisso e internazionale nell'esubero per un calcolo accurato.
-
-**4. `forfait_minutes` castato con `as any`**
-In `ClientPricingSummary.tsx` riga 165 e `ClientsManager.tsx` riga 65, `forfait_minutes` viene acceduto con `(clientRate as any)?.forfait_minutes`. Il tipo `ClientPricing` in `useClients.ts` ha gia' il campo ma il cast suggerisce un disallineamento.
+| # | Task | Stato |
+|---|------|-------|
+| 1 | Rimuovere console.log di debug | FATTO |
+| 2 | Rimuovere `as any` per forfait_minutes | PARZIALE - resta un `as any` in `useClients.ts` riga 198 nell'upsert |
+| 3 | Rimuovere `window.location.reload()` | FATTO |
+| 4 | Export Excel con margini | FATTO - colonne Ricavo/Margine presenti |
+| 5 | KPI margine nella dashboard | DA FARE |
+| 6 | Confronto multi-mese | DA FARE |
+| 7 | Esubero forfait per categoria | FATTO - media ponderata implementata |
+| 8 | Collegare CostAlertsManager | DA FARE |
 
 ---
 
-### MIGLIORAMENTI FUNZIONALI
+### Problema critico: Scheda "Chiamanti"
 
-**5. Report Excel cliente: includere ricavo e margine**
-Il report Excel per cliente (`exportClientReport`) esporta solo costo operatore. Manca:
-- Colonna "Ricavo" calcolata con le tariffe di vendita del cliente
-- Colonna "Margine" (ricavo - costo)
-- Foglio riepilogo con totali margine
-- Info forfait (minuti usati, inclusi, esubero)
-
-**6. Dashboard riepilogo margini globale**
-Non esiste un riepilogo immediato dei margini totali nella dashboard principale. Aggiungere:
-- KPI card "Margine Totale" nel header con colore verde/rosso
-- KPI card "Clienti in Perdita" con conteggio
-- Mini-grafico trend margine per mese
-
-**7. Confronto multi-mese nella tab Clienti**
-Il filtro mese mostra un mese alla volta. Sarebbe utile:
-- Vista comparativa: tabella con colonne mese-per-mese per ogni cliente
-- Trend: grafico a linee del costo/ricavo per cliente nei mesi
-
-**8. Esportazione fattura/preventivo per cliente**
-Oltre al report Excel dettagliato, generare un documento di fatturazione con:
-- Riepilogo: forfait + esubero + totale
-- Dettaglio per categoria (mobile, fisso, internazionale)
-- Formato stampabile
+La scheda "Chiamanti" (`CallerAnalysisTable.tsx`) mostra attualmente `cat.cost` che e' il **costo operatore ALFA** dal CSV. Il cliente vuole invece vedere il **costo al cliente finale** (cioe' il ricavo/fatturato). Questa e' la scheda usata per la fatturazione, quindi deve mostrare quanto addebitare al cliente.
 
 ---
 
-### MIGLIORAMENTI TECNICI
+### Piano di implementazione
 
-**9. Rimuovere il `window.location.reload()` dopo ricalcolo**
-In `Dashboard.tsx` riga 49, dopo il ricalcolo costi viene fatto un reload della pagina. Bisognerebbe invalidare le query React Query e aggiornare lo stato senza ricaricare.
+**1. Fix `CallerAnalysisTable` - Mostrare costo al cliente finale**
 
-**10. Persistenza alert costi su Supabase**
-`CostAlertsManager` usa stato locale. Per essere utile dovrebbe:
-- Salvare gli alert su una tabella `cost_alerts` in Supabase
-- Verificare automaticamente le soglie quando si carica un CSV
-- Mostrare notifiche quando una soglia viene superata
+Modificare `CallerAnalysisTable.tsx` per:
+- Accettare nuove props: `clientPricing`, `globalPricing`, `records` (per accedere al tipo di categoria di ogni record)
+- Rinominare la colonna "Costo" in "Da Fatturare"
+- Calcolare il ricavo per categoria usando le tariffe di vendita del cliente (mobile_rate, landline_rate, international_rate, premium_rate) invece del costo operatore
+- Per clienti forfait: mostrare il canone mensile + eventuale esubero
+- Aggiungere una colonna "Costo Operatore" piu' piccola per confronto rapido
 
-**11. Limite 1000 righe Supabase**
-`loadSessions` non gestisce il limite di 1000 righe di Supabase. Per utenti con molte sessioni, alcune potrebbero non essere caricate.
+Logica di calcolo ricavo per ogni macro-gruppo:
+- Mobile: `minuti * client.mobile_rate`
+- Fisso: `minuti * client.landline_rate`
+- Internazionale: `minuti * client.international_rate` (o effective rate per paese)
+- Premium: `minuti * client.premium_rate`
+- Numero Verde: 0
+
+**2. Aggiornare `Index.tsx`**
+
+Passare le props aggiuntive a `CallerAnalysisTable`:
+- `clientPricing` e `globalPricing` dal hook `useClients`
+- `records` dalla sessione corrente
+
+**3. Fix residuo `as any` in `useClients.ts`**
+
+Rimuovere il cast `as any` alla riga 198 dell'upsert in `upsertClientPricing`, allineando il tipo del payload con lo schema Supabase.
+
+**4. KPI Margine nella Dashboard principale**
+
+Aggiungere 2 card KPI nella griglia esistente del `Dashboard.tsx`:
+- **Margine Totale**: ricavo totale - costo totale, con colore verde/rosso
+- **Margine %**: percentuale margine complessiva
+
+Questo richiede calcolare il ricavo anche nella dashboard, usando le stesse tariffe di vendita usate in `ClientPricingSummary`.
 
 ---
 
-### PRIORITA' CONSIGLIATA
+### Dettagli tecnici
 
-1. **Rimuovere console.log di debug** - Impatto immediato sulle performance
-2. **Rimuovere `as any` per forfait_minutes** - Pulizia tipo
-3. **Rimuovere `window.location.reload()`** - UX migliore
-4. **Migliorare export Excel cliente con margini** - Valore business alto
-5. **KPI margine nella dashboard principale** - Visibilita' immediata
-6. **Confronto multi-mese** - Analisi avanzata
-7. **Esubero forfait per categoria** - Accuratezza fatturazione
-8. **Collegare CostAlertsManager** - Feature completata
+**File: `src/components/CallerAnalysisTable.tsx`**
+- Aggiungere props: `clientPricing: ClientPricing[]`, `globalPricing: UserGlobalPricing | null`, `records: CallRecord[]`
+- Importare i tipi da `useClients.ts` e le tariffe effective
+- Per ogni caller, cercare il cliente associato tramite `numberToClient`, poi la sua tariffa in `clientPricing`
+- Calcolare il ricavo per ogni macro-gruppo usando `cat.totalSeconds / 60 * tariffa_vendita`
+- Colonne tabella: Categoria | Chiamate | Durata | Da Fatturare | Costo Operatore | % del Totale
+- Nel riepilogo collassabile di ogni numero: mostrare il totale da fatturare
+
+**File: `src/pages/Index.tsx`**
+- Passare `clientPricing`, `globalPricing`, e `records` al componente `CallerAnalysisTable`
+
+**File: `src/hooks/useClients.ts`**
+- Riga 198: sostituire `as any` con il tipo corretto dell'insert di `client_pricing`
+
+**File: `src/components/Dashboard.tsx`**
+- Aggiungere 2 KPI card per margine totale e margine percentuale nella griglia KPI esistente
+- Calcolare il ricavo aggregato usando `clientPricing` + `EFFECTIVE_NATIONAL_RATES`
 

@@ -41,17 +41,13 @@ const Dashboard: React.FC<DashboardProps> = ({
   
 
   const handleRecalculateCosts = async () => {
-    console.log('🔄 Starting manual cost recalculation...');
     try {
       const success = await recalculateCosts();
-      console.log('✅ Recalculation completed:', success);
       if (success) {
-        // Ricarica la pagina per mostrare i dati aggiornati
-        console.log('🔄 Reloading page to show updated data...');
         window.location.reload();
       }
     } catch (error) {
-      console.error('❌ Error during recalculation:', error);
+      console.error('Error during recalculation:', error);
     }
   };
 
@@ -285,10 +281,13 @@ const Dashboard: React.FC<DashboardProps> = ({
           <HourlyDistributionChart records={records} />
         </TabsContent>
 
+        <TabsContent value="numbers" className="space-y-4">
+          <TopNumbersAnalysis records={records} />
+        </TabsContent>
+
         <TabsContent value="clients" className="space-y-4">
           <ClientPricingSummary callerAnalysis={callerAnalysis} />
         </TabsContent>
-
 
         <TabsContent value="filters" className="space-y-4">
           <AdvancedFilters 

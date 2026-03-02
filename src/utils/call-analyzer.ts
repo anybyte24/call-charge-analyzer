@@ -11,41 +11,27 @@ export class CallAnalyzer {
   static parseDuration(duration: string): number {
     if (!duration || duration.trim() === '') return 0;
     
-    // Clean the duration string
     const cleanDuration = duration.replace(/"/g, '').trim();
     
-    console.log('Parsing duration:', cleanDuration);
-    
-    // Check for time format (HH:MM:SS or MM:SS)
     if (cleanDuration.includes(':')) {
       const parts = cleanDuration.split(':');
       
       if (parts.length === 3) {
-        // HH:MM:SS format
         const hours = parseInt(parts[0]) || 0;
         const minutes = parseInt(parts[1]) || 0;
         const seconds = parseInt(parts[2]) || 0;
-        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-        console.log('Duration HH:MM:SS:', hours, minutes, seconds, '=', totalSeconds, 'seconds');
-        return totalSeconds;
+        return hours * 3600 + minutes * 60 + seconds;
       } else if (parts.length === 2) {
-        // MM:SS format
         const minutes = parseInt(parts[0]) || 0;
         const seconds = parseInt(parts[1]) || 0;
-        const totalSeconds = minutes * 60 + seconds;
-        console.log('Duration MM:SS:', minutes, seconds, '=', totalSeconds, 'seconds');
-        return totalSeconds;
+        return minutes * 60 + seconds;
       }
     }
     
-    // Single number might be seconds
     if (!isNaN(parseInt(cleanDuration))) {
-      const seconds = parseInt(cleanDuration);
-      console.log('Duration as seconds:', seconds);
-      return seconds;
+      return parseInt(cleanDuration);
     }
     
-    console.log('Could not parse duration:', cleanDuration);
     return 0;
   }
 
@@ -57,53 +43,29 @@ export class CallAnalyzer {
   }
 
   static calculateCallCost(durationSeconds: number, costPerMinute: number): number {
-    // Se non c'è durata o costo, ritorna 0
-    if (durationSeconds === 0 || costPerMinute === 0) {
-      console.log(`💰 No cost: duration=${durationSeconds}s, rate=€${costPerMinute}/min → €0.00`);
-      return 0;
-    }
-    
-    // Converti i secondi in minuti per il calcolo preciso
+    if (durationSeconds === 0 || costPerMinute === 0) return 0;
     const exactMinutes = durationSeconds / 60;
-    
-    // Applica il costo per minuto direttamente
     const cost = exactMinutes * costPerMinute;
-    
-    console.log(`💰 NEW Cost calculation: ${durationSeconds}s = ${exactMinutes.toFixed(2)} min × €${costPerMinute}/min = €${cost.toFixed(4)}`);
-    
     return parseFloat(cost.toFixed(4));
   }
 
   static parseCSV(csvContent: string, prefixConfig: PrefixConfig[] = this.defaultPrefixConfig): CallRecord[] {
-    console.log('Starting CSV parse, content length:', csvContent.length);
-    
     const lines = csvContent.split('\n');
     const records: CallRecord[] = [];
     
-    console.log('Total lines:', lines.length);
-    console.log('First few lines:', lines.slice(0, 5));
-    
-    // Skip header if present
     let startIndex = 0;
     const firstLine = lines[0]?.toLowerCase() || '';
     if (firstLine.includes('ora') || firstLine.includes('data') || firstLine.includes('durata') || firstLine.includes('numero')) {
       startIndex = 1;
-      console.log('Skipping header line:', lines[0]);
     }
     
     for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
       
-      console.log(`Processing line ${i}:`, line);
-      
-      // Parse CSV line with proper handling of quoted fields
       const fields = this.parseCSVLine(line, ',');
-      console.log(`Line ${i} fields:`, fields);
       
       if (fields.length >= 5) {
-        // Based on your CSV structure:
-        // 0: Ora Chiamata, 1: Data Chiamata, 2: Chiamante, 3: Chiamato, 4: Durata
         const cleanFields = fields.map(field => field.replace(/"/g, '').trim());
         
         const timeCall = cleanFields[0] || '';
@@ -112,30 +74,9 @@ export class CallAnalyzer {
         const calledNumber = cleanFields[3] || '';
         const duration = cleanFields[4] || '00:00:00';
         
-        console.log('Parsed fields:', {
-          timeCall,
-          dateCall,
-          callerNumber,
-          calledNumber,
-          duration
-        });
-        
         const categoryWithCost = this.categorizeNumber(calledNumber, prefixConfig);
         const durationSeconds = this.parseDuration(duration);
-        
-        // Calcola il costo della chiamata con log dettagliato
-        console.log(`🔍 Calculating cost for ${calledNumber}: ${durationSeconds}s at €${categoryWithCost.costPerMinute}/min`);
         const callCost = this.calculateCallCost(durationSeconds, categoryWithCost.costPerMinute);
-        console.log(`💶 Final cost for ${calledNumber}: €${callCost.toFixed(4)}`);
-        
-        console.log('Parsed record:', {
-          calledNumber,
-          callerNumber,
-          duration,
-          durationSeconds,
-          category: categoryWithCost,
-          cost: callCost
-        });
         
         records.push({
           id: `${i}-${Date.now()}`,
@@ -154,8 +95,6 @@ export class CallAnalyzer {
       }
     }
     
-    console.log('Total records parsed:', records.length);
-    console.log('Sample records:', records.slice(0, 3));
     return records;
   }
 
@@ -184,56 +123,41 @@ export class CallAnalyzer {
   static generateSummary(records: CallRecord[]): CallSummary[] {
     const categoryMap = new Map<string, CallSummary>();
     
-    console.log('🔍 === GENERATING SUMMARY ===');
-    console.log('📊 Total records to analyze:', records.length);
-    
     records.forEach(record => {
-      // Applica la stessa logica di raggruppamento usata in CallerAnalysisTable
       let macroCategory = '';
       const category = record.category.description;
       
-      // Per le categorie internazionali dettagliate
       if (['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].some(paese => category.includes(paese))) {
         if (category.includes('Mobile')) {
-          // Estrai solo il nome del paese + Mobile
           const paese = ['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].find(p => category.includes(p));
           macroCategory = `${paese} Mobile`;
         } else if (category.includes('Fisso')) {
-          // Estrai solo il nome del paese + Fisso
           const paese = ['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].find(p => category.includes(p));
           macroCategory = `${paese} Fisso`;
         } else {
-          // Se non ha Fisso/Mobile, usa la categoria originale
           macroCategory = category;
         }
       }
-      // Per TUTTI i mobili italiani (TIM, Vodafone, Wind, Iliad, Fastweb, Tre), raggruppa sotto "Mobile"
       else if (category.includes('TIM') || category.includes('Vodafone') || 
                category.includes('Wind') || category.includes('Iliad') || 
                category.includes('Fastweb') || category.includes('Tre') ||
                category === 'Mobile') {
         macroCategory = 'Mobile';
       }
-      // Per numeri speciali, mantieni la categoria specifica
       else if (category === 'Numero Verde') {
         macroCategory = 'Numero Verde';
       } else if (category === 'Numero Premium') {
         macroCategory = 'Numero Premium';
       }
-      // Per tutti gli altri (fissi italiani e internazionali non dettagliati), raggruppa sotto "Fisso"
       else if (record.category.type === 'landline') {
         macroCategory = 'Fisso';
       }
-      // Per mobili generici non ancora categorizzati
       else if (record.category.type === 'mobile') {
         macroCategory = 'Mobile';
       }
-      // Per le altre categorie internazionali, usa la categoria originale
       else {
         macroCategory = category;
       }
-      
-      console.log(`📂 Record categorization: ${record.calledNumber} → Original: "${category}" → Macro: "${macroCategory}" → Cost: €${record.cost?.toFixed(4)} (${record.durationSeconds}s)`);
       
       const existing = categoryMap.get(macroCategory);
       
@@ -241,9 +165,8 @@ export class CallAnalyzer {
         existing.count++;
         existing.totalSeconds += record.durationSeconds;
         existing.cost = (existing.cost || 0) + (record.cost || 0);
-        console.log(`📈 Updated "${macroCategory}": ${existing.count} calls, ${existing.totalSeconds}s, €${existing.cost.toFixed(4)}`);
       } else {
-        const newCategory = {
+        categoryMap.set(macroCategory, {
           category: macroCategory,
           count: 1,
           totalSeconds: record.durationSeconds,
@@ -251,13 +174,10 @@ export class CallAnalyzer {
           totalHours: 0,
           formattedDuration: '',
           cost: record.cost || 0
-        };
-        categoryMap.set(macroCategory, newCategory);
-        console.log(`🆕 New category "${macroCategory}": 1 call, ${record.durationSeconds}s, €${(record.cost || 0).toFixed(4)}`);
+        });
       }
     });
     
-    // Calculate minutes, hours and format duration
     const summaries = Array.from(categoryMap.values()).map(summary => ({
       ...summary,
       totalMinutes: Math.floor(summary.totalSeconds / 60),
@@ -271,7 +191,6 @@ export class CallAnalyzer {
   static generateCallerAnalysis(records: CallRecord[]): CallerAnalysis[] {
     const callerMap = new Map<string, CallRecord[]>();
     
-    // Group by caller number
     records.forEach(record => {
       const caller = record.callerNumber;
       if (!callerMap.has(caller)) {
@@ -280,7 +199,6 @@ export class CallAnalyzer {
       callerMap.get(caller)!.push(record);
     });
     
-    // Analyze each caller
     const analyses: CallerAnalysis[] = [];
     
     callerMap.forEach((callerRecords, callerNumber) => {
@@ -326,19 +244,16 @@ export class CallAnalyzer {
   }
 
   static exportToPDF(summary: CallSummary[], callerAnalysis: CallerAnalysis[], fileName: string, allRecords?: CallRecord[]): string {
-    // Return HTML that can be printed as PDF
     const totalCost = summary.reduce((sum, cat) => sum + (cat.cost || 0), 0);
     const totalCalls = summary.reduce((sum, cat) => sum + cat.count, 0);
     const totalDuration = summary.reduce((sum, cat) => sum + cat.totalSeconds, 0);
     
-    // Ordina le chiamate per data e ora se fornite
     const sortedRecords = allRecords ? [...allRecords].sort((a, b) => {
       const dateA = new Date(`${a.date} ${a.timestamp}`);
       const dateB = new Date(`${b.date} ${b.timestamp}`);
       return dateA.getTime() - dateB.getTime();
     }) : [];
 
-    // Analisi oraria
     let hourlyAnalysis = '';
     if (allRecords && allRecords.length > 0) {
       const hourCounts = new Array(24).fill(0).map((_, hour) => ({
@@ -390,7 +305,6 @@ export class CallAnalyzer {
       `;
     }
 
-    // Analisi numeri più chiamati
     let topNumbersAnalysis = '';
     if (allRecords && allRecords.length > 0) {
       const numberMap = new Map();

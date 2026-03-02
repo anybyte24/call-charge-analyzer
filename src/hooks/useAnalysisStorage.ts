@@ -177,46 +177,17 @@ export const useAnalysisStorage = () => {
     setLoading(true);
 
     try {
-      console.log('🔄 === STARTING COST RECALCULATION ===');
-      console.log('👤 User:', user ? 'authenticated' : 'not authenticated');
-      console.log('📱 Is temporary user:', isTemporary);
-      
       if (isTemporary) {
-        // Recalculate for localStorage sessions
-        console.log('💾 Checking localStorage sessions...');
         const savedSessions = JSON.parse(localStorage.getItem('analysis_sessions') || '[]');
-        console.log('📂 Found sessions:', savedSessions.length);
         let updated = false;
 
-        const updatedSessions = savedSessions.map((session: any, index: number) => {
-          console.log(`🔍 Checking session ${index + 1}:`, session.fileName);
-          console.log(`📋 Session has records:`, session.records ? `Yes (${session.records.length})` : 'No');
-          
-          if (sessionId && session.id !== sessionId) {
-            console.log(`⏭️ Skipping session (ID mismatch): ${session.id} !== ${sessionId}`);
-            return session;
-          }
-          
-          if (!session.records || !Array.isArray(session.records)) {
-            console.log(`❌ Session ${session.fileName} has no records to recalculate`);
-            return session;
-          }
+        const updatedSessions = savedSessions.map((session: any) => {
+          if (sessionId && session.id !== sessionId) return session;
+          if (!session.records || !Array.isArray(session.records)) return session;
 
-          console.log(`💫 Recalculating session: ${session.fileName} (${session.records.length} records)`);
-          
-          // Usa il NUOVO sistema di ricalcolo
-          console.log(`🔄 Using NEW cost recalculation system for ${session.fileName}`);
           const recalculatedRecords = CostRecalculator.recalculateAllCosts(session.records);
-          
-          // Verifica l'integrità
-          const isValid = CostRecalculator.verifyCosts(recalculatedRecords);
-          console.log(`✅ Cost integrity check for ${session.fileName}:`, isValid);
-
-          // Rigenera summary e caller analysis
           const newSummary = CallAnalyzer.generateSummary(recalculatedRecords);
           const newCallerAnalysis = CallAnalyzer.generateCallerAnalysis(recalculatedRecords);
-
-          console.log(`✅ New summary for ${session.fileName}:`, newSummary.map(s => `${s.category}: €${s.cost?.toFixed(2)}`));
 
           updated = true;
           return {
@@ -228,15 +199,11 @@ export const useAnalysisStorage = () => {
         });
 
         if (updated) {
-          console.log('💾 Saving updated sessions to localStorage...');
           localStorage.setItem('analysis_sessions', JSON.stringify(updatedSessions));
-          console.log('✅ Sessions saved to localStorage');
           toast({
             title: "Costi ricalcolati",
             description: "I costi sono stati aggiornati con i nuovi prezzi."
           });
-        } else {
-          console.log('⚠️ No sessions were updated');
         }
         
         return updated;
@@ -259,15 +226,7 @@ export const useAnalysisStorage = () => {
         const records = fileData.records;
         if (!records || !Array.isArray(records)) continue;
 
-        console.log(`💫 Recalculating session: ${session.session_name}`);
-        
-        // Usa il NUOVO sistema di ricalcolo
-        console.log(`🔄 Using NEW cost recalculation system for ${session.session_name}`);
         const recalculatedRecords = CostRecalculator.recalculateAllCosts(records as CallRecord[]);
-        
-        // Verifica l'integrità
-        const isValid = CostRecalculator.verifyCosts(recalculatedRecords);
-        console.log(`✅ Cost integrity check for ${session.session_name}:`, isValid);
 
         // Rigenera summary e caller analysis
         const newSummary = CallAnalyzer.generateSummary(recalculatedRecords);
@@ -299,7 +258,7 @@ export const useAnalysisStorage = () => {
         });
       }
 
-      console.log('✅ Cost recalculation completed');
+      
       return updatedCount > 0;
       
     } catch (error) {

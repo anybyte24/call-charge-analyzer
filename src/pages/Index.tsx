@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import FileUploadAdvanced from '@/components/FileUploadAdvanced';
@@ -16,21 +16,34 @@ import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, S
 import { useClients } from '@/hooks/useClients';
 
 const Index = () => {
-  const { saveSession } = useAnalysisStorage();
+  const { saveSession, loadSessions, deleteSession, loading: storageLoading } = useAnalysisStorage();
   const [currentSession, setCurrentSession] = useState<AnalysisSession | null>(null);
   const [currentRecords, setCurrentRecords] = useState<CallRecord[]>([]);
   const [sessions, setSessions] = useState<AnalysisSession[]>([]);
   const [prefixConfig, setPrefixConfig] = useState<PrefixConfig[]>(CallAnalyzer.defaultPrefixConfig);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [unknownNumbers, setUnknownNumbers] = useState<string[]>([]);
-const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set(currentSession.callerAnalysis.map(c => c.callerNumber))) : [], [currentSession]);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set(currentSession.callerAnalysis.map(c => c.callerNumber))) : [], [currentSession]);
   const { numberToClientMap } = useClients();
+
+  // Load sessions from Supabase on mount
+  useEffect(() => {
+    if (sessionsLoaded) return;
+    const load = async () => {
+      const loaded = await loadSessions();
+      if (loaded.length > 0) {
+        setSessions(loaded);
+      }
+      setSessionsLoaded(true);
+    };
+    load();
+  }, [loadSessions, sessionsLoaded]);
 
   const handleFileUpload = async (content: string, fileName: string) => {
     setIsAnalyzing(true);
     
     try {
-      // Parse CSV with current prefix configuration
       const records = CallAnalyzer.parseCSV(content, prefixConfig);
       
       if (records.length === 0) {
@@ -42,7 +55,6 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
         return;
       }
 
-      // Extract unknown numbers for review
       const unknowns = records
         .filter(record => record.category.type === 'unknown')
         .map(record => record.calledNumber)
@@ -50,11 +62,9 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
       
       setUnknownNumbers(unknowns);
 
-      // Generate analysis
       const summary = CallAnalyzer.generateSummary(records);
       const callerAnalysis = CallAnalyzer.generateCallerAnalysis(records);
 
-      // Create session
       const session: AnalysisSession = {
         id: Date.now().toString(),
         fileName,
@@ -72,10 +82,8 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
       const totalCost = summary.reduce((sum, cat) => sum + (cat.cost || 0), 0);
       const unknownCount = unknowns.length;
 
-      // Save session automatically
-      if (currentSession) {
-        await saveSession(currentSession, records);
-      }
+      // Save the NEW session (not currentSession which is the old one)
+      await saveSession(session, records);
 
       toast({
         title: "Analisi completata",
@@ -96,13 +104,33 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
 
   const handleSessionSelect = (session: AnalysisSession) => {
     setCurrentSession(session);
-    setCurrentRecords([]);
+    // Reload records from session if available
+    setCurrentRecords(session.records || []);
+    
+    // Re-extract unknown numbers from records
+    if (session.records && session.records.length > 0) {
+      const unknowns = session.records
+        .filter(record => record.category.type === 'unknown')
+        .map(record => record.calledNumber)
+        .filter((value, index, self) => self.indexOf(value) === index);
+      setUnknownNumbers(unknowns);
+    }
+  };
+
+  const handleSessionDelete = async (sessionId: string) => {
+    const success = await deleteSession(sessionId);
+    if (success) {
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      if (currentSession?.id === sessionId) {
+        setCurrentSession(null);
+        setCurrentRecords([]);
+      }
+    }
   };
 
   const handlePrefixConfigChange = (newConfig: PrefixConfig[]) => {
     setPrefixConfig(newConfig);
     
-    // Re-analyze current session if exists
     if (currentSession && currentRecords.length > 0) {
       const updatedRecords = currentRecords.map(record => {
         const categoryWithCost = CallAnalyzer.categorizeNumber(record.calledNumber, newConfig);
@@ -127,7 +155,6 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
       });
       setCurrentRecords(updatedRecords);
 
-      // Update unknown numbers
       const unknowns = updatedRecords
         .filter(record => record.category.type === 'unknown')
         .map(record => record.calledNumber)
@@ -205,7 +232,9 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
               <HistoryPanel 
                 sessions={sessions}
                 onSessionSelect={handleSessionSelect}
+                onSessionDelete={handleSessionDelete}
                 currentSessionId={currentSession?.id}
+                loading={storageLoading}
               />
               
               {currentSession && currentRecords.length > 0 && (
@@ -288,19 +317,7 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
               </TabsContent>
 
               <TabsContent value="clients" className="mt-0">
-                {currentSession ? (
-                  <ClientsManager availableCallerNumbers={availableCallerNumbers} />
-                ) : (
-                  <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
-                    <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Nessun cliente da gestire
-                    </h3>
-                    <p className="text-gray-500">
-                      Carica un file CSV nella sezione "Carica" per popolare i numeri disponibili e associare i clienti
-                    </p>
-                  </div>
-                )}
+                <ClientsManager availableCallerNumbers={availableCallerNumbers} />
               </TabsContent>
 
               <TabsContent value="unknown" className="mt-0">
@@ -338,7 +355,9 @@ const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set
                   <HistoryPanel 
                     sessions={sessions}
                     onSessionSelect={handleSessionSelect}
+                    onSessionDelete={handleSessionDelete}
                     currentSessionId={currentSession?.id}
+                    loading={storageLoading}
                   />
                 </div>
               </TabsContent>

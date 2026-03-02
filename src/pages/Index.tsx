@@ -12,7 +12,7 @@ import ClientsManager from '@/components/ClientsManager';
 import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 import { CallAnalyzer } from '@/utils/call-analyzer';
 import { AnalysisSession, CallRecord, PrefixConfig } from '@/types/call-analysis';
-import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase } from 'lucide-react';
+import { BarChart3, Users, History, Upload, Settings, Download, AlertTriangle, Sparkles, Briefcase, Phone } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 
 const Index = () => {
@@ -82,7 +82,6 @@ const Index = () => {
       const totalCost = summary.reduce((sum, cat) => sum + (cat.cost || 0), 0);
       const unknownCount = unknowns.length;
 
-      // Save the NEW session (not currentSession which is the old one)
       await saveSession(session, records);
 
       toast({
@@ -104,10 +103,8 @@ const Index = () => {
 
   const handleSessionSelect = (session: AnalysisSession) => {
     setCurrentSession(session);
-    // Reload records from session if available
     setCurrentRecords(session.records || []);
     
-    // Re-extract unknown numbers from records
     if (session.records && session.records.length > 0) {
       const unknowns = session.records
         .filter(record => record.category.type === 'unknown')
@@ -164,71 +161,78 @@ const Index = () => {
     }
   };
 
+  const EmptyState = ({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) => (
+    <div className="flex flex-col items-center justify-center py-16 px-6">
+      <div className="p-4 rounded-2xl bg-muted mb-4">
+        <Icon className="h-8 w-8 text-muted-foreground" />
+      </div>
+      <h3 className="text-lg font-semibold text-foreground mb-1">{title}</h3>
+      <p className="text-sm text-muted-foreground text-center max-w-sm">{description}</p>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Modern Header */}
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-lg">
-              <BarChart3 className="h-8 w-8 text-white" />
+    <div className="min-h-screen bg-background">
+      <div className="max-w-[1440px] mx-auto">
+        {/* Main Tabs Interface */}
+        <Tabs defaultValue="upload" className="min-h-screen">
+          {/* Top Navigation Bar */}
+          <div className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b">
+            <div className="px-4 lg:px-6">
+              <div className="flex items-center h-14 gap-4">
+                <div className="flex items-center gap-2.5 mr-4 shrink-0">
+                  <div className="p-1.5 rounded-lg" style={{ background: 'linear-gradient(135deg, hsl(var(--gradient-hero-from)), hsl(var(--gradient-hero-to)))' }}>
+                    <Phone className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="font-bold text-sm text-foreground hidden md:inline">Call Analytics</span>
+                </div>
+                <TabsList className="h-9 bg-transparent border-0 p-0 gap-0.5">
+                  <TabsTrigger value="upload" className="h-8 px-3 text-xs font-medium rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    <span className="hidden sm:inline">Carica</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="dashboard" className="h-8 px-3 text-xs font-medium rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+                    <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                    <span className="hidden sm:inline">Dashboard</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="callers" className="h-8 px-3 text-xs font-medium rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+                    <Users className="h-3.5 w-3.5 mr-1.5" />
+                    <span className="hidden sm:inline">Chiamanti</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="clients" className="h-8 px-3 text-xs font-medium rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+                    <Briefcase className="h-3.5 w-3.5 mr-1.5" />
+                    <span className="hidden sm:inline">Clienti</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="settings" className="h-8 px-3 text-xs font-medium rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+                    <Settings className="h-3.5 w-3.5 mr-1.5" />
+                    <span className="hidden sm:inline">Prefissi</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="unknown" className="h-8 px-3 text-xs font-medium rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm relative">
+                    <AlertTriangle className="h-3.5 w-3.5 mr-1.5" />
+                    <span className="hidden sm:inline">Non Riconosciuti</span>
+                    {unknownNumbers.length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                        {unknownNumbers.length}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="export" className="h-8 px-3 text-xs font-medium rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                    <span className="hidden sm:inline">Export</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="h-8 px-3 text-xs font-medium rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+                    <History className="h-3.5 w-3.5 mr-1.5" />
+                    <span className="hidden sm:inline">Storico</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
             </div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-            Call Analytics Enterprise
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Sistema avanzato per l'analisi e fatturazione delle chiamate telefoniche
-          </p>
-        </div>
 
-        {/* Main Tabs Interface */}
-        <Tabs defaultValue="upload" className="space-y-6">
-          <div className="flex justify-center">
-            <TabsList className="grid grid-cols-8 w-fit bg-white/70 backdrop-blur-sm border shadow-lg rounded-xl p-1">
-              <TabsTrigger value="upload" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-                <Upload className="h-4 w-4" />
-                <span className="hidden sm:inline">Carica</span>
-              </TabsTrigger>
-              <TabsTrigger value="dashboard" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-                <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Dashboard</span>
-              </TabsTrigger>
-              <TabsTrigger value="callers" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Chiamanti</span>
-              </TabsTrigger>
-              <TabsTrigger value="clients" className="flex items-center space-x-2 data-[state=active]:bg-indigo-500 data-[state=active]:text-white rounded-lg">
-                <Briefcase className="h-4 w-4" />
-                <span className="hidden sm:inline">Clienti</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center space-x-2 data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-lg">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Prefissi</span>
-              </TabsTrigger>
-              <TabsTrigger value="unknown" className="flex items-center space-x-2 data-[state=active]:bg-amber-500 data-[state=active]:text-white rounded-lg">
-                <AlertTriangle className="h-4 w-4" />
-                <span className="hidden sm:inline">Non Riconosciuti</span>
-                {unknownNumbers.length > 0 && (
-                  <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center">
-                    {unknownNumbers.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="export" className="flex items-center space-x-2 data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-lg">
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Export</span>
-              </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-lg">
-                <History className="h-4 w-4" />
-                <span className="hidden sm:inline">Storico</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Content Area */}
+          <div className="flex">
             {/* Sidebar */}
-            <div className="lg:col-span-1 space-y-4">
+            <aside className="hidden lg:block w-72 shrink-0 border-r min-h-[calc(100vh-3.5rem)] p-4 space-y-4 bg-card/50">
               <HistoryPanel 
                 sessions={sessions}
                 onSessionSelect={handleSessionSelect}
@@ -245,51 +249,37 @@ const Index = () => {
                   fileName={currentSession.fileName}
                 />
               )}
-            </div>
+            </aside>
 
             {/* Main Content */}
-            <div className="lg:col-span-3">
+            <main className="flex-1 min-w-0 p-4 lg:p-6">
               <TabsContent value="upload" className="mt-0">
-                <div className="space-y-6">
+                <div className="space-y-6 max-w-2xl mx-auto">
                   <FileUploadAdvanced 
                     onFileUpload={handleFileUpload}
                     isLoading={isAnalyzing}
                   />
                   {!currentSession && (
-                    <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
-                      <div className="p-4 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                        <Sparkles className="h-10 w-10 text-blue-600" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                        Benvenuto in Call Analytics
-                      </h3>
-                      <p className="text-gray-600">
-                        Carica il tuo primo file CSV per iniziare l'analisi delle chiamate
-                      </p>
-                    </div>
+                    <EmptyState
+                      icon={Sparkles}
+                      title="Benvenuto in Call Analytics"
+                      description="Carica il tuo primo file CSV per iniziare l'analisi delle chiamate telefoniche"
+                    />
                   )}
                 </div>
               </TabsContent>
 
               <TabsContent value="dashboard" className="mt-0">
                 {currentSession ? (
-            <Dashboard 
-              summary={currentSession.summary} 
-              callerAnalysis={currentSession.callerAnalysis}
-              totalRecords={currentSession.totalRecords}
-              fileName={currentSession.fileName}
-              records={currentRecords}
-            />
+                  <Dashboard 
+                    summary={currentSession.summary} 
+                    callerAnalysis={currentSession.callerAnalysis}
+                    totalRecords={currentSession.totalRecords}
+                    fileName={currentSession.fileName}
+                    records={currentRecords}
+                  />
                 ) : (
-                  <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
-                    <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Nessun dato da visualizzare
-                    </h3>
-                    <p className="text-gray-500">
-                      Carica un file CSV nella sezione "Carica" per vedere i dati qui
-                    </p>
-                  </div>
+                  <EmptyState icon={BarChart3} title="Nessun dato" description="Carica un file CSV nella sezione Carica per vedere la dashboard" />
                 )}
               </TabsContent>
 
@@ -303,15 +293,7 @@ const Index = () => {
                     records={currentRecords}
                   />
                 ) : (
-                  <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
-                    <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Nessun chiamante da analizzare
-                    </h3>
-                    <p className="text-gray-500">
-                      Carica un file CSV per vedere l'analisi dei chiamanti
-                    </p>
-                  </div>
+                  <EmptyState icon={Users} title="Nessun chiamante" description="Carica un file CSV per vedere l'analisi dei chiamanti" />
                 )}
               </TabsContent>
 
@@ -344,30 +326,20 @@ const Index = () => {
                     fileName={currentSession.fileName}
                   />
                 ) : (
-                  <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
-                    <Download className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Nessun dato da esportare
-                    </h3>
-                    <p className="text-gray-500">
-                      Carica e analizza un file CSV per abilitare le funzioni di export
-                    </p>
-                  </div>
+                  <EmptyState icon={Download} title="Nessun dato da esportare" description="Carica e analizza un file CSV per abilitare le funzioni di export" />
                 )}
               </TabsContent>
 
               <TabsContent value="history" className="mt-0">
-                <div className="bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm p-6">
-                  <HistoryPanel 
-                    sessions={sessions}
-                    onSessionSelect={handleSessionSelect}
-                    onSessionDelete={handleSessionDelete}
-                    currentSessionId={currentSession?.id}
-                    loading={storageLoading}
-                  />
-                </div>
+                <HistoryPanel 
+                  sessions={sessions}
+                  onSessionSelect={handleSessionSelect}
+                  onSessionDelete={handleSessionDelete}
+                  currentSessionId={currentSession?.id}
+                  loading={storageLoading}
+                />
               </TabsContent>
-            </div>
+            </main>
           </div>
         </Tabs>
       </div>

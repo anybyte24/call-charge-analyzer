@@ -162,7 +162,7 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
       // Client-specific pricing
       const clientRate = clientPricing.find((p) => p.client_id === key);
       const forfaitOnly = clientRate?.forfait_only === true;
-      const forfaitMinutes = Number((clientRate as any)?.forfait_minutes || 0);
+      const forfaitMinutes = Number(clientRate?.forfait_minutes || 0);
       const clientMobileRate = Number(clientRate?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
       const clientLandlineRate = Number(clientRate?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
       const clientIntlRate = Number(clientRate?.international_rate || 0) || globalIntlSellingRate;
@@ -226,18 +226,40 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
       const clientRate = clientPricing.find((p) => p.client_id === key);
       const flat = Number(clientRate?.monthly_flat_fee || 0);
       const forfaitOnly = clientRate?.forfait_only === true;
-      const forfaitMinutes = Number((clientRate as any)?.forfait_minutes || 0);
+      const forfaitMinutes = Number(clientRate?.forfait_minutes || 0);
 
       if (forfaitOnly) {
         if (flat > 0) agg.revenue += flat;
         const totalMinutes = agg.totalSeconds / 60;
 
         if (forfaitMinutes > 0 && totalMinutes > forfaitMinutes) {
-          // Calculate overage revenue at selling rates
+          // Calculate overage revenue per category using correct selling rates
           const overageMin = totalMinutes - forfaitMinutes;
           const clientMobileRate = Number(clientRate?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
-          // Use average selling rate for overage (simplified: use mobile rate)
-          const overageRevenue = overageMin * clientMobileRate;
+          const clientLandlineRate = Number(clientRate?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
+          const clientIntlRate = Number(clientRate?.international_rate || 0) || Number(globalPricing?.international_rate || 0);
+          
+          // Calculate proportional overage by category from filtered records
+          const clientNumbers = Array.from(agg.numbers);
+          const clientRecs = filteredRecords.filter(r => clientNumbers.includes(r.callerNumber));
+          let mobileMins = 0, landlineMins = 0, intlMins = 0;
+          clientRecs.forEach(r => {
+            const t = r.category.type;
+            const m = r.durationSeconds / 60;
+            if (t === 'mobile') mobileMins += m;
+            else if (t === 'landline') landlineMins += m;
+            else if (t === 'international') intlMins += m;
+            else landlineMins += m; // default to landline
+          });
+          const totalCatMins = mobileMins + landlineMins + intlMins;
+          const overageRevenue = totalCatMins > 0
+            ? overageMin * (
+                (mobileMins / totalCatMins) * clientMobileRate +
+                (landlineMins / totalCatMins) * clientLandlineRate +
+                (intlMins / totalCatMins) * clientIntlRate
+              )
+            : overageMin * clientMobileRate;
+          
           agg.revenue += overageRevenue;
           agg.forfaitInfo = {
             used: Math.round(totalMinutes),
@@ -475,7 +497,22 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
                               const clientNumbers = (assignments || [])
                                 .filter(a => a.client_id === r.id)
                                 .map(a => a.caller_number);
-                              exportClientReport(filteredRecords.length > 0 ? filteredRecords : records, r.name, clientNumbers, fileName);
+                              const cp = clientPricing.find(p => p.client_id === r.id);
+                              exportClientReport(
+                                filteredRecords.length > 0 ? filteredRecords : records,
+                                r.name,
+                                clientNumbers,
+                                fileName,
+                                cp ? {
+                                  mobile_rate: Number(cp.mobile_rate),
+                                  landline_rate: Number(cp.landline_rate),
+                                  international_rate: Number(cp.international_rate),
+                                  premium_rate: Number(cp.premium_rate),
+                                  monthly_flat_fee: Number(cp.monthly_flat_fee),
+                                  forfait_only: Boolean(cp.forfait_only),
+                                  forfait_minutes: Number(cp.forfait_minutes),
+                                } : undefined
+                              );
                             }}
                           >
                             <FileDown className="h-4 w-4 mr-1" />

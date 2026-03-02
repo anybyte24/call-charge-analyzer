@@ -316,6 +316,7 @@ export type Database = {
           client_id: string
           created_at: string
           currency: string
+          forfait_minutes: number
           forfait_only: boolean
           id: string
           international_rate: number
@@ -331,6 +332,7 @@ export type Database = {
           client_id: string
           created_at?: string
           currency?: string
+          forfait_minutes?: number
           forfait_only?: boolean
           id?: string
           international_rate?: number
@@ -346,6 +348,7 @@ export type Database = {
           client_id?: string
           created_at?: string
           currency?: string
+          forfait_minutes?: number
           forfait_only?: boolean
           id?: string
           international_rate?: number

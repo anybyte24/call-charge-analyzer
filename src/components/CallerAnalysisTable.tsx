@@ -76,7 +76,7 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({
   };
 
   /** Calculate revenue (Da Fatturare) for a macro category */
-  const calculateRevenue = (macroCategory: string, totalSeconds: number, clientId?: string): number => {
+  const calculateRevenue = (macroCategory: string, totalSeconds: number, clientId?: string, operatorCost: number = 0): number => {
     const min = totalSeconds / 60;
     const catLower = macroCategory.toLowerCase();
 
@@ -94,7 +94,10 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({
     // Numero Verde
     if (catLower === 'numero verde') return 0;
     // Premium
-    if (catLower === 'numero premium' || catLower.includes('premium') || catLower.includes('speciale')) return min * clientPremRate;
+    if (catLower === 'numero premium' || catLower.includes('premium') || catLower.includes('speciale')) {
+      return clientPremRate > 0 ? min * clientPremRate : (operatorCost * 1.5);
+    }
+    }
 
     // International - try to resolve country
     const resolved = resolveCountryFromCategory(macroCategory);
@@ -222,7 +225,7 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({
                   // Calculate total revenue for this caller
                   const callerRevenue = isForfait
                     ? 0 // forfait handled at group level
-                    : macroGroups.reduce((sum, g) => sum + calculateRevenue(g.macroCategory, g.totalSeconds, clientId), 0);
+                    : macroGroups.reduce((sum, g) => sum + calculateRevenue(g.macroCategory, g.totalSeconds, clientId, g.cost), 0);
 
                   return (
                     <Collapsible key={caller.callerNumber}>
@@ -275,7 +278,7 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({
                             <TableBody>
                               {macroGroups.map((group, idx) => {
                                 const percentage = ((group.totalSeconds / caller.totalDuration) * 100).toFixed(1);
-                                const revenue = calculateRevenue(group.macroCategory, group.totalSeconds, clientId);
+                                const revenue = calculateRevenue(group.macroCategory, group.totalSeconds, clientId, group.cost);
                                 return (
                                   <TableRow key={idx}>
                                     <TableCell>

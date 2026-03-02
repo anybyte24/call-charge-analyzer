@@ -12,6 +12,7 @@ import { Trash2, RotateCcw, Search } from "lucide-react";
 import { NYBYTE_NATIONAL_TARIFFS, NYBYTE_INTERNATIONAL_TARIFFS, tariffsToFlatMap } from "@/data/nybyte-tariffs";
 import { ALFA_NATIONAL_TARIFFS, ALFA_INTERNATIONAL_TARIFFS, alfaTariffsToFlatMap } from "@/data/alfa-operator-tariffs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EFFECTIVE_INTERNATIONAL_RATES, EFFECTIVE_NATIONAL_RATES } from "@/utils/effective-selling-rates";
 
 interface ClientsManagerProps {
   availableCallerNumbers: string[];
@@ -164,6 +165,12 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
     if (!tariffSearch.trim()) return ALFA_INTERNATIONAL_TARIFFS;
     const q = tariffSearch.toLowerCase();
     return ALFA_INTERNATIONAL_TARIFFS.filter(t => t.country.toLowerCase().includes(q));
+  }, [tariffSearch]);
+
+  const filteredEffectiveRates = useMemo(() => {
+    if (!tariffSearch.trim()) return EFFECTIVE_INTERNATIONAL_RATES;
+    const q = tariffSearch.toLowerCase();
+    return EFFECTIVE_INTERNATIONAL_RATES.filter(r => r.country.toLowerCase().includes(q));
   }, [tariffSearch]);
 
   return (
@@ -378,32 +385,35 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
               </CardContent>
             </Card>
 
-            {/* Confronto margini ALFA vs NYBYTE */}
+            {/* Confronto margini ALFA vs Vendita Effettiva */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Confronto Margini: Costo ALFA vs Vendita NYBYTE</CardTitle>
+                  <CardTitle>Confronto Margini: Costo ALFA vs Vendita Effettiva</CardTitle>
                   <div className="relative w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="Cerca paese..." value={tariffSearch} onChange={(e) => setTariffSearch(e.target.value)} className="pl-9" />
                   </div>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  ⚠️ Dove il costo ALFA supera il prezzo NYBYTE, il prezzo di vendita viene alzato a ALFA × 1.5 (evidenziato in arancione)
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <Card className="p-3 border-dashed">
                     <p className="text-sm font-medium">Margine Nazionale Mobile</p>
                     <p className="text-lg font-bold text-green-600">
-                      {((1 - ALFA_NATIONAL_TARIFFS.mobile / NYBYTE_NATIONAL_TARIFFS.mobile) * 100).toFixed(1)}%
+                      {((1 - ALFA_NATIONAL_TARIFFS.mobile / EFFECTIVE_NATIONAL_RATES.mobile) * 100).toFixed(1)}%
                     </p>
-                    <p className="text-xs text-muted-foreground">ALFA {ALFA_NATIONAL_TARIFFS.mobile} → NYBYTE {NYBYTE_NATIONAL_TARIFFS.mobile} €/min</p>
+                    <p className="text-xs text-muted-foreground">ALFA {ALFA_NATIONAL_TARIFFS.mobile} → Vendita {EFFECTIVE_NATIONAL_RATES.mobile} €/min</p>
                   </Card>
                   <Card className="p-3 border-dashed">
                     <p className="text-sm font-medium">Margine Nazionale Fisso</p>
                     <p className="text-lg font-bold text-green-600">
-                      {((1 - ALFA_NATIONAL_TARIFFS.landline / NYBYTE_NATIONAL_TARIFFS.landline) * 100).toFixed(1)}%
+                      {((1 - ALFA_NATIONAL_TARIFFS.landline / EFFECTIVE_NATIONAL_RATES.landline) * 100).toFixed(1)}%
                     </p>
-                    <p className="text-xs text-muted-foreground">ALFA {ALFA_NATIONAL_TARIFFS.landline} → NYBYTE {NYBYTE_NATIONAL_TARIFFS.landline} €/min</p>
+                    <p className="text-xs text-muted-foreground">ALFA {ALFA_NATIONAL_TARIFFS.landline} → Vendita {EFFECTIVE_NATIONAL_RATES.landline} €/min</p>
                   </Card>
                 </div>
                 <div className="max-h-96 overflow-auto">
@@ -412,30 +422,33 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                       <TableRow>
                         <TableHead>Paese</TableHead>
                         <TableHead className="text-right">ALFA Fisso</TableHead>
-                        <TableHead className="text-right">NYBYTE Fisso</TableHead>
+                        <TableHead className="text-right">Vendita Fisso</TableHead>
                         <TableHead className="text-right">Margine %</TableHead>
                         <TableHead className="text-right">ALFA Mobile</TableHead>
-                        <TableHead className="text-right">NYBYTE Mobile</TableHead>
+                        <TableHead className="text-right">Vendita Mobile</TableHead>
                         <TableHead className="text-right">Margine %</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredTariffs.map((alfa) => {
-                        const nybyte = NYBYTE_INTERNATIONAL_TARIFFS.find(n => n.country === alfa.country);
-                        const nybLandline = nybyte?.landline || 0;
-                        const nybMobile = nybyte?.mobile || 0;
-                        const marginLandline = nybLandline > 0 ? ((1 - alfa.landline / nybLandline) * 100) : 0;
-                        const marginMobile = nybMobile > 0 ? ((1 - alfa.mobile / nybMobile) * 100) : 0;
+                      {filteredEffectiveRates.map((eff) => {
+                        const marginLandline = eff.landline > 0 ? ((1 - eff.alfaLandline / eff.landline) * 100) : 0;
+                        const marginMobile = eff.mobile > 0 ? ((1 - eff.alfaMobile / eff.mobile) * 100) : 0;
                         return (
-                          <TableRow key={alfa.country}>
-                            <TableCell className="font-medium">{alfa.country}</TableCell>
-                            <TableCell className="text-right font-mono">{alfa.landline.toFixed(4)}</TableCell>
-                            <TableCell className="text-right font-mono">{nybLandline.toFixed(4)}</TableCell>
+                          <TableRow key={eff.country}>
+                            <TableCell className="font-medium">{eff.country}</TableCell>
+                            <TableCell className="text-right font-mono">{eff.alfaLandline.toFixed(4)}</TableCell>
+                            <TableCell className={`text-right font-mono ${eff.landlineAdjusted ? 'text-orange-600 font-semibold' : ''}`}>
+                              {eff.landline.toFixed(4)}
+                              {eff.landlineAdjusted && ' ⚠️'}
+                            </TableCell>
                             <TableCell className={`text-right font-semibold ${marginLandline >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                               {marginLandline.toFixed(1)}%
                             </TableCell>
-                            <TableCell className="text-right font-mono">{alfa.mobile.toFixed(4)}</TableCell>
-                            <TableCell className="text-right font-mono">{nybMobile.toFixed(4)}</TableCell>
+                            <TableCell className="text-right font-mono">{eff.alfaMobile.toFixed(4)}</TableCell>
+                            <TableCell className={`text-right font-mono ${eff.mobileAdjusted ? 'text-orange-600 font-semibold' : ''}`}>
+                              {eff.mobile.toFixed(4)}
+                              {eff.mobileAdjusted && ' ⚠️'}
+                            </TableCell>
                             <TableCell className={`text-right font-semibold ${marginMobile >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                               {marginMobile.toFixed(1)}%
                             </TableCell>
@@ -445,6 +458,9 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                     </TableBody>
                   </Table>
                 </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  ⚠️ = Prezzo vendita alzato automaticamente (ALFA × 1.5) perché il costo operatore superava il listino NYBYTE
+                </p>
               </CardContent>
             </Card>
 

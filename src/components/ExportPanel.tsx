@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,57 +42,38 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     if (selectedCaller === 'all') {
       return { records, summary, callerAnalysis };
     }
-    
     const filteredRecords = records.filter(r => r.callerNumber === selectedCaller);
     const filteredSummary = CallAnalyzer.generateSummary(filteredRecords);
     const filteredCallerAnalysis = callerAnalysis.filter(c => c.callerNumber === selectedCaller);
-    
-    return { 
-      records: filteredRecords, 
-      summary: filteredSummary, 
-      callerAnalysis: filteredCallerAnalysis 
-    };
+    return { records: filteredRecords, summary: filteredSummary, callerAnalysis: filteredCallerAnalysis };
   };
 
   const generateCustomCSV = () => {
     const { records: filteredRecords, summary: filteredSummary, callerAnalysis: filteredCallerAnalysis } = getFilteredData();
     let csv = '';
-
-    // Include summary
     if (exportType === 'summary' || exportType === 'complete') {
       csv += 'RIEPILOGO GENERALE\n';
       csv += 'Categoria,Chiamate,Durata,Costo\n';
-      
       filteredSummary.forEach(cat => {
         csv += `${cat.category},${cat.count},${cat.formattedDuration},€${cat.cost?.toFixed(2) || '0.00'}\n`;
       });
     }
-
-    // Include caller analysis
     if (exportType === 'details' || exportType === 'complete') {
       if (csv) csv += '\n\n';
-      
       csv += 'ANALISI PER CHIAMANTE\n';
       csv += 'Numero Chiamante,Totale Chiamate,Durata Totale,Costo Totale\n';
-      
       filteredCallerAnalysis.forEach(caller => {
         const totalCost = caller.categories.reduce((sum, cat) => sum + (cat.cost || 0), 0);
         csv += `${caller.callerNumber},${caller.totalCalls},${caller.formattedTotalDuration},€${totalCost.toFixed(2)}\n`;
       });
     }
-
-    // SEMPRE includere le chiamate singole (anche per summary e details)
     if (csv) csv += '\n\n';
-    
     if (groupByCategory && selectedCaller !== 'all') {
-      // Group calls by category for single caller
       const categories = [...new Set(filteredRecords.map(r => r.category.description))];
-      
       categories.forEach(category => {
         const categoryRecords = filteredRecords.filter(r => r.category.description === category);
         csv += `CHIAMATE ${category.toUpperCase()}\n`;
         csv += 'Data,Ora,Chiamante,Chiamato,Durata,Costo\n';
-        
         categoryRecords.forEach(record => {
           csv += `${record.date},${record.timestamp},${record.callerNumber},${record.calledNumber},${record.duration},€${record.cost?.toFixed(2) || '0.00'}\n`;
         });
@@ -102,20 +82,15 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     } else {
       csv += 'DETTAGLIO TUTTE LE CHIAMATE\n';
       csv += 'Data,Ora,Chiamante,Chiamato,Durata,Categoria,Costo\n';
-      
-      // Ordina le chiamate per data e ora
       const sortedRecords = [...filteredRecords].sort((a, b) => {
         const dateA = new Date(`${a.date} ${a.timestamp}`);
         const dateB = new Date(`${b.date} ${b.timestamp}`);
         return dateA.getTime() - dateB.getTime();
       });
-      
       sortedRecords.forEach(record => {
         csv += `${record.date},${record.timestamp},${record.callerNumber},${record.calledNumber},${record.duration},${record.category.description},€${record.cost?.toFixed(2) || '0.00'}\n`;
       });
     }
-
-    console.log('Generated CSV with all calls:', csv);
     return csv;
   };
 
@@ -123,52 +98,38 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     const csvContent = generateCustomCSV();
     const timestamp = new Date().toISOString().split('T')[0];
     const suffix = selectedCaller === 'all' ? 'complete' : `caller-${selectedCaller}`;
-    const typeStr = exportType;
-    downloadFile(csvContent, `report-${fileName}-${suffix}-${typeStr}-${timestamp}.csv`, 'text/csv');
+    downloadFile(csvContent, `report-${fileName}-${suffix}-${exportType}-${timestamp}.csv`, 'text/csv');
   };
 
   const handleExportPDF = () => {
     const { records: filteredRecords, summary: filteredSummary, callerAnalysis: filteredCallerAnalysis } = getFilteredData();
     const reportTitle = selectedCaller === 'all' ? fileName : `${fileName} - ${selectedCaller}`;
-    
-    // Passa anche le chiamate filtrate al PDF
     const htmlContent = CallAnalyzer.exportToPDF(filteredSummary, filteredCallerAnalysis, reportTitle, filteredRecords);
     const newWindow = window.open();
     if (newWindow) {
       newWindow.document.write(htmlContent);
       newWindow.document.close();
-      setTimeout(() => {
-        newWindow.print();
-      }, 1000);
+      setTimeout(() => { newWindow.print(); }, 1000);
     }
   };
 
   const handleExportJSON = () => {
     const { records: filteredRecords, summary: filteredSummary, callerAnalysis: filteredCallerAnalysis } = getFilteredData();
-    
-    // Ordina le chiamate per data e ora
     const sortedRecords = [...filteredRecords].sort((a, b) => {
       const dateA = new Date(`${a.date} ${a.timestamp}`);
       const dateB = new Date(`${b.date} ${b.timestamp}`);
       return dateA.getTime() - dateB.getTime();
     });
-    
     const exportData = {
-      fileName,
-      caller: selectedCaller,
-      exportType,
+      fileName, caller: selectedCaller, exportType,
       exportDate: new Date().toISOString(),
-      summary: filteredSummary,
-      callerAnalysis: filteredCallerAnalysis,
-      totalRecords: sortedRecords.length,
-      allCalls: sortedRecords // SEMPRE includere tutte le chiamate
+      summary: filteredSummary, callerAnalysis: filteredCallerAnalysis,
+      totalRecords: sortedRecords.length, allCalls: sortedRecords
     };
-    
     const jsonContent = JSON.stringify(exportData, null, 2);
     const timestamp = new Date().toISOString().split('T')[0];
     const suffix = selectedCaller === 'all' ? 'complete' : `caller-${selectedCaller}`;
-    const typeStr = exportType;
-    downloadFile(jsonContent, `data-${fileName}-${suffix}-${typeStr}-${timestamp}.json`, 'application/json');
+    downloadFile(jsonContent, `data-${fileName}-${suffix}-${exportType}-${timestamp}.json`, 'application/json');
   };
 
   const { summary: currentSummary } = getFilteredData();
@@ -176,33 +137,33 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
   const totalCalls = currentSummary.reduce((sum, cat) => sum + cat.count, 0);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Download className="h-5 w-5" />
-          <span>Esporta Report</span>
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Download className="h-4 w-4 text-primary" />
+          Esporta Report
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         <div>
-          <label className="text-sm font-medium mb-2 block">Filtra per Chiamante</label>
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Filtra per Chiamante</label>
           <Select value={selectedCaller} onValueChange={setSelectedCaller}>
-            <SelectTrigger>
+            <SelectTrigger className="h-8 text-xs">
               <SelectValue placeholder="Seleziona chiamante" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
-                <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4" />
+                <div className="flex items-center gap-1.5">
+                  <User className="h-3 w-3" />
                   <span>Tutti i chiamanti</span>
                 </div>
               </SelectItem>
               {callerAnalysis.map((caller) => (
                 <SelectItem key={caller.callerNumber} value={caller.callerNumber}>
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4" />
+                  <div className="flex items-center gap-1.5">
+                    <User className="h-3 w-3" />
                     <span>{caller.callerNumber}</span>
-                    <span className="text-xs text-gray-500">({caller.totalCalls} chiamate)</span>
+                    <span className="text-muted-foreground">({caller.totalCalls})</span>
                   </div>
                 </SelectItem>
               ))}
@@ -211,116 +172,67 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-2 block">Tipo di Export</label>
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tipo di Export</label>
           <Select value={exportType} onValueChange={(value: ExportType) => setExportType(value)}>
-            <SelectTrigger>
+            <SelectTrigger className="h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="summary">
-                <div className="flex items-center space-x-2">
-                  <BarChart className="h-4 w-4" />
-                  <span>Solo Riepilogo</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="details">
-                <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4" />
-                  <span>Solo Analisi Chiamanti</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="calls">
-                <div className="flex items-center space-x-2">
-                  <List className="h-4 w-4" />
-                  <span>Solo Dettaglio Chiamate</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="complete">
-                <div className="flex items-center space-x-2">
-                  <Database className="h-4 w-4" />
-                  <span>Report Completo</span>
-                </div>
-              </SelectItem>
+              <SelectItem value="summary"><div className="flex items-center gap-1.5"><BarChart className="h-3 w-3" /><span>Solo Riepilogo</span></div></SelectItem>
+              <SelectItem value="details"><div className="flex items-center gap-1.5"><User className="h-3 w-3" /><span>Solo Analisi Chiamanti</span></div></SelectItem>
+              <SelectItem value="calls"><div className="flex items-center gap-1.5"><List className="h-3 w-3" /><span>Solo Dettaglio Chiamate</span></div></SelectItem>
+              <SelectItem value="complete"><div className="flex items-center gap-1.5"><Database className="h-3 w-3" /><span>Report Completo</span></div></SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {selectedCaller !== 'all' && (exportType === 'calls' || exportType === 'complete') && (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2">
             <Checkbox 
               id="groupByCategory" 
               checked={groupByCategory} 
               onCheckedChange={(checked) => setGroupByCategory(checked === true)}
             />
-            <label htmlFor="groupByCategory" className="text-sm">
-              Raggruppa chiamate per categoria
+            <label htmlFor="groupByCategory" className="text-xs text-muted-foreground">
+              Raggruppa per categoria
             </label>
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+        <div className="grid grid-cols-2 gap-3 p-3 bg-muted/50 rounded-lg">
           <div>
-            <p className="text-sm text-gray-600">Totale Chiamate</p>
-            <p className="text-xl font-bold">{totalCalls}</p>
+            <p className="text-[11px] text-muted-foreground">Totale Chiamate</p>
+            <p className="text-base font-bold text-foreground">{totalCalls}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Costo Totale</p>
-            <p className="text-xl font-bold text-green-600">€{totalCost.toFixed(2)}</p>
+            <p className="text-[11px] text-muted-foreground">Costo Totale</p>
+            <p className="text-base font-bold text-kpi-cost">€{totalCost.toFixed(2)}</p>
           </div>
         </div>
 
-        <div className="space-y-3">
-          <Button 
-            onClick={handleExportCSV} 
-            className="w-full justify-start"
-            variant="outline"
-          >
-            <FileText className="h-4 w-4 mr-2" />
+        <div className="space-y-1.5">
+          <Button onClick={handleExportCSV} className="w-full justify-start h-8 text-xs" variant="outline">
+            <FileText className="h-3.5 w-3.5 mr-2" />
             Esporta come CSV
-            <span className="ml-auto text-xs text-gray-500">
-              {exportType === 'summary' ? 'Solo riepilogo' : 
-               exportType === 'details' ? 'Solo chiamanti' : 
-               exportType === 'calls' ? 'Solo chiamate' : 'Completo'}
+            <span className="ml-auto text-[10px] text-muted-foreground">
+              {exportType === 'summary' ? 'Riepilogo' : exportType === 'details' ? 'Chiamanti' : exportType === 'calls' ? 'Chiamate' : 'Completo'}
             </span>
           </Button>
-
-          <Button 
-            onClick={handleExportPDF} 
-            className="w-full justify-start"
-            variant="outline"
-          >
-            <Printer className="h-4 w-4 mr-2" />
+          <Button onClick={handleExportPDF} className="w-full justify-start h-8 text-xs" variant="outline">
+            <Printer className="h-3.5 w-3.5 mr-2" />
             Genera Report PDF
-            <span className="ml-auto text-xs text-gray-500">
-              Pronto per la stampa
-            </span>
+            <span className="ml-auto text-[10px] text-muted-foreground">Pronto per la stampa</span>
           </Button>
-
-          <Button 
-            onClick={handleExportJSON} 
-            className="w-full justify-start"
-            variant="outline"
-          >
-            <Download className="h-4 w-4 mr-2" />
+          <Button onClick={handleExportJSON} className="w-full justify-start h-8 text-xs" variant="outline">
+            <Download className="h-3.5 w-3.5 mr-2" />
             Esporta Dati JSON
-            <span className="ml-auto text-xs text-gray-500">
-              Formato tecnico
-            </span>
+            <span className="ml-auto text-[10px] text-muted-foreground">Formato tecnico</span>
           </Button>
         </div>
 
-        <div className="pt-4 border-t">
-          <p className="text-xs text-gray-500">
-            {selectedCaller === 'all' 
-              ? `Export ${exportType === 'summary' ? 'riepilogo generale' : 
-                        exportType === 'details' ? 'analisi chiamanti' : 
-                        exportType === 'calls' ? 'dettaglio chiamate' : 'completo'} per tutti i chiamanti.`
-              : `Export ${exportType === 'summary' ? 'riepilogo' : 
-                        exportType === 'details' ? 'analisi chiamanti' : 
-                        exportType === 'calls' ? 'dettaglio chiamate' : 'completo'} per ${selectedCaller}${groupByCategory && (exportType === 'calls' || exportType === 'complete') ? ' raggruppato per categoria' : ''}.`
-            }
-          </p>
-        </div>
+        <p className="text-[10px] text-muted-foreground pt-1 border-t">
+          Export {exportType === 'complete' ? 'completo' : exportType} per {selectedCaller === 'all' ? 'tutti i chiamanti' : selectedCaller}.
+        </p>
       </CardContent>
     </Card>
   );

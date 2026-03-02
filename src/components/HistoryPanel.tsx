@@ -30,46 +30,46 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <FileText className="h-5 w-5" />
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <FileText className="h-4 w-4 text-primary" />
           <span>Storico Analisi</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {loading ? (
           <div className="flex items-center justify-center py-6">
-            <Loader2 className="h-5 w-5 animate-spin text-gray-400 mr-2" />
-            <span className="text-sm text-gray-500">Caricamento...</span>
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+            <span className="text-xs text-muted-foreground">Caricamento...</span>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-1.5">
             {sessions.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">
+              <p className="text-xs text-muted-foreground text-center py-4">
                 Nessuna analisi salvata
               </p>
             ) : (
               sessions.map((session) => (
                 <div
                   key={session.id}
-                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                  className={`group p-2.5 rounded-lg cursor-pointer transition-all text-xs ${
                     currentSessionId === session.id 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'bg-primary/10 border border-primary/20' 
+                      : 'hover:bg-muted/80 border border-transparent'
                   }`}
                   onClick={() => onSessionSelect(session)}
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">
+                      <h4 className="font-medium text-foreground truncate text-xs">
                         {session.fileName}
                       </h4>
-                      <div className="flex items-center space-x-2 text-xs text-gray-500 mt-1">
-                        <Calendar className="h-3 w-3 flex-shrink-0" />
+                      <div className="flex items-center gap-1.5 text-muted-foreground mt-1">
+                        <Calendar className="h-3 w-3 shrink-0" />
                         <span>{formatDate(session.uploadDate)}</span>
                       </div>
-                      <p className="text-xs text-gray-600 mt-1">
+                      <p className="text-muted-foreground mt-0.5">
                         {session.totalRecords?.toLocaleString()} record
                       </p>
                     </div>
@@ -77,13 +77,13 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-gray-400 hover:text-red-500"
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                         onClick={(e) => {
                           e.stopPropagation();
                           onSessionDelete(session.id);
                         }}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     )}
                   </div>

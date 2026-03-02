@@ -318,10 +318,12 @@ export type Database = {
           currency: string
           forfait_only: boolean
           id: string
+          international_rate: number
           landline_rate: number
           mobile_rate: number
           monthly_flat_fee: number
           organization_id: string | null
+          premium_rate: number
           updated_at: string
           user_id: string
         }
@@ -331,10 +333,12 @@ export type Database = {
           currency?: string
           forfait_only?: boolean
           id?: string
+          international_rate?: number
           landline_rate?: number
           mobile_rate?: number
           monthly_flat_fee?: number
           organization_id?: string | null
+          premium_rate?: number
           updated_at?: string
           user_id: string
         }
@@ -344,10 +348,12 @@ export type Database = {
           currency?: string
           forfait_only?: boolean
           id?: string
+          international_rate?: number
           landline_rate?: number
           mobile_rate?: number
           monthly_flat_fee?: number
           organization_id?: string | null
+          premium_rate?: number
           updated_at?: string
           user_id?: string
         }
@@ -517,6 +523,7 @@ export type Database = {
           created_at: string
           currency: string
           id: string
+          international_costs: Json | null
           international_rate: number
           landline_cost: number
           mobile_cost: number
@@ -529,6 +536,7 @@ export type Database = {
           created_at?: string
           currency?: string
           id?: string
+          international_costs?: Json | null
           international_rate?: number
           landline_cost?: number
           mobile_cost?: number
@@ -541,6 +549,7 @@ export type Database = {
           created_at?: string
           currency?: string
           id?: string
+          international_costs?: Json | null
           international_rate?: number
           landline_cost?: number
           mobile_cost?: number

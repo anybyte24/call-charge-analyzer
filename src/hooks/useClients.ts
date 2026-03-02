@@ -27,6 +27,8 @@ export interface ClientPricing {
   mobile_rate: number;
   landline_rate: number;
   monthly_flat_fee: number;
+  international_rate: number;
+  premium_rate: number;
   currency?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -39,6 +41,7 @@ export interface UserGlobalPricing {
   premium_rate: number;
   mobile_cost: number;
   landline_cost: number;
+  international_costs: Record<string, number>;
   currency?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -175,7 +178,7 @@ export const useClients = () => {
   });
 
   const upsertClientPricing = useMutation({
-    mutationFn: async ({ clientId, mobile_rate, landline_rate, monthly_flat_fee }: { clientId: string; mobile_rate: number; landline_rate: number; monthly_flat_fee: number; }) => {
+    mutationFn: async ({ clientId, mobile_rate, landline_rate, monthly_flat_fee, international_rate, premium_rate }: { clientId: string; mobile_rate: number; landline_rate: number; monthly_flat_fee: number; international_rate?: number; premium_rate?: number; }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Devi effettuare l'accesso");
       const { error } = await supabase
@@ -186,25 +189,31 @@ export const useClients = () => {
           mobile_rate,
           landline_rate,
           monthly_flat_fee,
-        }, { onConflict: "user_id,client_id" });
+          international_rate: international_rate ?? 0,
+          premium_rate: premium_rate ?? 0,
+        } as any, { onConflict: "user_id,client_id" });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["client_pricing"] }),
   });
 
   const upsertGlobalPricing = useMutation({
-    mutationFn: async ({ international_rate, premium_rate, mobile_cost, landline_cost }: { international_rate: number; premium_rate: number; mobile_cost: number; landline_cost: number; }) => {
+    mutationFn: async ({ international_rate, premium_rate, mobile_cost, landline_cost, international_costs }: { international_rate: number; premium_rate: number; mobile_cost: number; landline_cost: number; international_costs?: Record<string, number>; }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Devi effettuare l'accesso");
+      const payload: any = {
+        user_id: user.id,
+        international_rate,
+        premium_rate,
+        mobile_cost,
+        landline_cost,
+      };
+      if (international_costs !== undefined) {
+        payload.international_costs = international_costs;
+      }
       const { error } = await supabase
         .from("user_global_pricing")
-        .upsert({
-          user_id: user.id,
-          international_rate,
-          premium_rate,
-          mobile_cost,
-          landline_cost,
-        }, { onConflict: "user_id" });
+        .upsert(payload, { onConflict: "user_id" });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["user_global_pricing"] }),

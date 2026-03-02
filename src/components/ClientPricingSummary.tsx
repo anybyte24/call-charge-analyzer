@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useClients } from '@/hooks/useClients';
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
-
 import { CallerAnalysis } from '@/types/call-analysis';
+import { NYBYTE_NATIONAL_TARIFFS } from '@/data/nybyte-tariffs';
 
 interface ClientPricingSummaryProps {
   callerAnalysis: CallerAnalysis[];
@@ -26,17 +26,20 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
     numbers: Set<string>;
     totalCalls: number;
     totalSeconds: number;
-    myCost: number; // costo a me dai dati del CSV
-    revenue: number; // ricavo calcolato da tariffe
+    myCost: number;
+    revenue: number;
   };
 
   const rows = React.useMemo(() => {
     const map = new Map<string, Agg>();
 
-    const intlRate = Number(globalPricing?.international_rate || 0);
-    const premiumRate = Number(globalPricing?.premium_rate || 0);
-    const operatorMobileCost = Number(globalPricing?.mobile_cost || 0.0159);
-    const operatorLandlineCost = Number(globalPricing?.landline_cost || 0.00159);
+    // Tariffe di VENDITA globali (ricavo)
+    const globalIntlSellingRate = Number(globalPricing?.international_rate || 0);
+    const globalPremiumSellingRate = Number(globalPricing?.premium_rate || 0);
+    
+    // Tariffe COSTO OPERATORE (dal listino NYBYTE o personalizzate)
+    const operatorMobileCost = Number(globalPricing?.mobile_cost || NYBYTE_NATIONAL_TARIFFS.mobile);
+    const operatorLandlineCost = Number(globalPricing?.landline_cost || NYBYTE_NATIONAL_TARIFFS.landline);
 
     callerAnalysis.forEach((ca) => {
       const clientInfo = numberToClientMap[ca.callerNumber];
@@ -44,24 +47,17 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
       const name = clientInfo?.name || 'Senza cliente';
 
       if (!map.has(key)) {
-        map.set(key, {
-          id: key,
-          name,
-          numbers: new Set<string>(),
-          totalCalls: 0,
-          totalSeconds: 0,
-          myCost: 0,
-          revenue: 0,
-        });
+        map.set(key, { id: key, name, numbers: new Set<string>(), totalCalls: 0, totalSeconds: 0, myCost: 0, revenue: 0 });
       }
       const agg = map.get(key)!;
-
       agg.numbers.add(ca.callerNumber);
       agg.totalCalls += ca.totalCalls;
       agg.totalSeconds += ca.totalDuration;
 
-      // costo effettivo basato su tariffe operatore
       let mobileSec = 0, landlineSec = 0, intlSec = 0, premiumSec = 0;
+      // Accumulate cost from CSV category data for international calls
+      let intlCostFromCSV = 0;
+      
       ca.categories.forEach((cat) => {
         const sec = cat.totalSeconds || 0;
         switch (cat.category.toLowerCase()) {
@@ -75,6 +71,8 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
           case 'international':
           case 'internazionale':
             intlSec += sec;
+            // Use cost from CSV (already calculated with per-country rates from number-categorizer)
+            intlCostFromCSV += cat.cost || 0;
             break;
           case 'special':
           case 'numero speciale':
@@ -82,30 +80,35 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
             premiumSec += sec;
             break;
           default:
+            // Check if it's an international sub-category (country names)
+            if (cat.category.includes('Mobile') || cat.category.includes('Fisso')) {
+              intlSec += sec;
+              intlCostFromCSV += cat.cost || 0;
+            }
             break;
         }
       });
 
+      // COSTO OPERATORE: nazionali dalle tariffe, internazionali dal CSV (già calcolati con tariffe per paese)
       agg.myCost += (mobileSec / 60) * operatorMobileCost;
       agg.myCost += (landlineSec / 60) * operatorLandlineCost;
-      agg.myCost += (intlSec / 60) * intlRate;
-      agg.myCost += (premiumSec / 60) * premiumRate;
+      agg.myCost += intlCostFromCSV; // Already calculated per-country
+      agg.myCost += (premiumSec / 60) * 0.90; // Premium cost from operator (899 default)
 
-      // ricavo: tariffe per cliente
+      // RICAVO: tariffe di vendita al cliente
       const clientRate = clientPricing.find((p) => p.client_id === key);
       const mobileRate = Number(clientRate?.mobile_rate || 0);
       const landlineRate = Number(clientRate?.landline_rate || 0);
+      const clientIntlRate = Number(clientRate?.international_rate || 0) || globalIntlSellingRate;
+      const clientPremRate = Number(clientRate?.premium_rate || 0) || globalPremiumSellingRate;
 
-      let revenueForCaller = 0;
-      revenueForCaller += (mobileSec / 60) * mobileRate;
-      revenueForCaller += (landlineSec / 60) * landlineRate;
-      revenueForCaller += (intlSec / 60) * intlRate;
-      revenueForCaller += (premiumSec / 60) * premiumRate;
-
-      agg.revenue += revenueForCaller;
+      agg.revenue += (mobileSec / 60) * mobileRate;
+      agg.revenue += (landlineSec / 60) * landlineRate;
+      agg.revenue += (intlSec / 60) * clientIntlRate;
+      agg.revenue += (premiumSec / 60) * clientPremRate;
     });
 
-    // aggiungi forfait una volta per cliente
+    // Forfait
     for (const [key, agg] of map) {
       const clientRate = clientPricing.find((p) => p.client_id === key);
       const flat = Number(clientRate?.monthly_flat_fee || 0);
@@ -168,12 +171,9 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
 
   return (
     <div className="space-y-4">
-      {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
-          <CardHeader>
-            <CardTitle>Top 10 Clienti per Costo</CardTitle>
-          </CardHeader>
+        <Card className="bg-background/70 backdrop-blur-sm border shadow-lg">
+          <CardHeader><CardTitle>Top 10 Clienti per Costo</CardTitle></CardHeader>
           <CardContent style={{ height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topByCost}>
@@ -188,10 +188,8 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
-          <CardHeader>
-            <CardTitle>Top 10 Clienti per Durata</CardTitle>
-          </CardHeader>
+        <Card className="bg-background/70 backdrop-blur-sm border shadow-lg">
+          <CardHeader><CardTitle>Top 10 Clienti per Durata</CardTitle></CardHeader>
           <CardContent style={{ height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topByDuration}>
@@ -206,10 +204,8 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
-          <CardHeader>
-            <CardTitle>Quota Costo per Cliente</CardTitle>
-          </CardHeader>
+        <Card className="bg-background/70 backdrop-blur-sm border shadow-lg">
+          <CardHeader><CardTitle>Quota Costo per Cliente</CardTitle></CardHeader>
           <CardContent style={{ height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -225,10 +221,8 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
           </CardContent>
         </Card>
 
-        <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
-          <CardHeader>
-            <CardTitle>Costo per Categoria (Top 7 Clienti)</CardTitle>
-          </CardHeader>
+        <Card className="bg-background/70 backdrop-blur-sm border shadow-lg">
+          <CardHeader><CardTitle>Costo per Categoria (Top 7 Clienti)</CardTitle></CardHeader>
           <CardContent style={{ height: 320 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stacked}>
@@ -246,11 +240,8 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
         </Card>
       </div>
 
-      {/* Table */}
-      <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
-        <CardHeader>
-          <CardTitle>Analisi Clienti (tariffe salvate)</CardTitle>
-        </CardHeader>
+      <Card className="bg-background/70 backdrop-blur-sm border shadow-lg">
+        <CardHeader><CardTitle>Analisi Clienti (tariffe salvate)</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
@@ -260,7 +251,7 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
                   <TableHead>Numeri</TableHead>
                   <TableHead>Chiamate</TableHead>
                   <TableHead>Durata</TableHead>
-                  <TableHead>Costo</TableHead>
+                  <TableHead>Costo Operatore</TableHead>
                   <TableHead>Ricavo</TableHead>
                   <TableHead>Margine</TableHead>
                   <TableHead>%</TableHead>
@@ -269,16 +260,16 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
               <TableBody>
                 {rows.map((r) => {
                   const margin = r.revenue - r.myCost;
-                  const marginPct = r.revenue > 0 ? (margin / r.revenue) * 100 : 0;
+                  const marginPct = r.revenue > 0 ? (margin / r.revenue) * 100 : (r.myCost > 0 ? -100 : 0);
                   return (
                     <TableRow key={r.id + r.name}>
                       <TableCell>{r.name}</TableCell>
                       <TableCell>{r.numbers.size}</TableCell>
                       <TableCell>{r.totalCalls}</TableCell>
                       <TableCell className="font-mono text-sm">{formatDuration(r.totalSeconds)}</TableCell>
-                      <TableCell className="font-semibold text-green-600">€{r.myCost.toFixed(2)}</TableCell>
-                      <TableCell className="font-semibold text-indigo-600">€{r.revenue.toFixed(2)}</TableCell>
-                      <TableCell className="font-semibold text-orange-600">€{margin.toFixed(2)}</TableCell>
+                      <TableCell className="font-semibold text-destructive">€{r.myCost.toFixed(2)}</TableCell>
+                      <TableCell className="font-semibold text-primary">€{r.revenue.toFixed(2)}</TableCell>
+                      <TableCell className={`font-semibold ${margin >= 0 ? 'text-green-600' : 'text-destructive'}`}>€{margin.toFixed(2)}</TableCell>
                       <TableCell>{marginPct.toFixed(1)}%</TableCell>
                     </TableRow>
                   );
@@ -287,7 +278,7 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
             </Table>
           </div>
           <div className="mt-4 text-sm text-muted-foreground">
-            Totale costo: <span className="font-medium">€{totals.totalCost.toFixed(2)}</span> • Ricavo: <span className="font-medium">€{totals.totalRevenue.toFixed(2)}</span> • Margine: <span className="font-medium">€{totals.totalMargin.toFixed(2)}</span>
+            Costo operatore: <span className="font-medium">€{totals.totalCost.toFixed(2)}</span> • Ricavo: <span className="font-medium">€{totals.totalRevenue.toFixed(2)}</span> • Margine: <span className={`font-medium ${totals.totalMargin >= 0 ? 'text-green-600' : 'text-destructive'}`}>€{totals.totalMargin.toFixed(2)}</span>
           </div>
         </CardContent>
       </Card>

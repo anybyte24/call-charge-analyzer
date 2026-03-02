@@ -44,7 +44,7 @@ export const useAnalysisStorage = () => {
             fileName: session.fileName,
             totalRecords: session.totalRecords,
             prefixConfig: session.prefixConfig,
-            records: records.slice(0, 1000),
+            records: records,
           } as any,
           analysis_results: {
             summary: session.summary,

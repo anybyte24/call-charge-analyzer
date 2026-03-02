@@ -286,7 +286,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </TabsContent>
 
         <TabsContent value="clients" className="space-y-4">
-          <ClientPricingSummary callerAnalysis={callerAnalysis} />
+          <ClientPricingSummary callerAnalysis={callerAnalysis} records={records} fileName={fileName} />
         </TabsContent>
 
         <TabsContent value="filters" className="space-y-4">

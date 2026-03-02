@@ -115,7 +115,68 @@ export const useExcelExport = () => {
     }
   }, [toast]);
 
-  return { exportToExcel };
+  const exportClientReport = useCallback(async (
+    records: CallRecord[],
+    clientName: string,
+    clientNumbers: string[],
+    fileName: string
+  ) => {
+    try {
+      const clientRecords = records.filter(r => clientNumbers.includes(r.callerNumber));
+      if (clientRecords.length === 0) {
+        toast({ title: "Nessuna chiamata", description: `Nessuna chiamata trovata per ${clientName}.` });
+        return;
+      }
+
+      const workbook = XLSX.utils.book_new();
+
+      const detailData = clientRecords.map(record => ({
+        'Data': record.date,
+        'Ora': record.timestamp,
+        'Chiamante': record.callerNumber,
+        'Chiamato': record.calledNumber,
+        'Durata': record.duration,
+        'Durata (secondi)': record.durationSeconds,
+        'Categoria': record.category.description,
+        'Costo': `€${record.cost?.toFixed(4) || '0.0000'}`
+      }));
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(detailData), 'Dettaglio Chiamate');
+
+      // Summary by category
+      const catMap = new Map<string, { count: number; seconds: number; cost: number }>();
+      clientRecords.forEach(r => {
+        const cat = r.category.description;
+        const existing = catMap.get(cat) || { count: 0, seconds: 0, cost: 0 };
+        existing.count++;
+        existing.seconds += r.durationSeconds;
+        existing.cost += r.cost || 0;
+        catMap.set(cat, existing);
+      });
+      const summaryData = Array.from(catMap.entries()).map(([cat, v]) => ({
+        'Categoria': cat,
+        'Chiamate': v.count,
+        'Durata Totale': formatDuration(v.seconds),
+        'Costo Totale': `€${v.cost.toFixed(2)}`
+      }));
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(summaryData), 'Riepilogo');
+
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `report_${clientName.replace(/\s+/g, '_')}_${fileName.replace('.csv', '')}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Report esportato", description: `Report per ${clientName} scaricato.` });
+    } catch (error) {
+      console.error('Error exporting client report:', error);
+      toast({ title: "Errore export", description: "Errore durante l'export del report cliente.", variant: "destructive" });
+    }
+  }, [toast]);
+
+  return { exportToExcel, exportClientReport };
 };
 
 // Utility functions

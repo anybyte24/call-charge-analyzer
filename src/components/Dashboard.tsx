@@ -248,10 +248,9 @@ const Dashboard: React.FC<DashboardProps> = ({
     // Aggregate per caller (since we don't have per-called-number from callerAnalysis)
     // We use records if available, but fall back to callerAnalysis summary
     if (records.length > 0) {
-      const numberMap = new Map<string, { number: string; callerNumbers: Set<string>; calls: number; seconds: number; cost: number; revenue: number; category: string }>();
+      const numberMap = new Map<string, { number: string; callerNumbers: Set<string>; calls: number; seconds: number; cost: number; revenue: number; category: string; rateUsed: number; clientName: string }>();
       
       records.forEach(r => {
-        // Check if this record's category matches the macro
         const catDesc = r.category.description;
         const catType = r.category.type;
         const cl = catDesc.toLowerCase();
@@ -266,7 +265,6 @@ const Dashboard: React.FC<DashboardProps> = ({
         } else if (drillDownCategory === 'Numero Premium') {
           matches = cl.includes('numero premium') || cl.includes('numero speciale');
         } else {
-          // International - check via generateSummary macro logic
           const resolved = resolveCountryFromCategory(catDesc);
           if (resolved) matches = catDesc === drillDownCategory || catDesc.startsWith(drillDownCategory);
           else matches = catDesc === drillDownCategory;
@@ -284,25 +282,38 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         const min = r.durationSeconds / 60;
         let rev = 0;
+        let rateUsed = 0;
+        
         if (catType === 'mobile' || cl === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => cl.includes(op))) {
+          rateUsed = mobileRate;
           rev = min * mobileRate;
-        } else if (catType === 'landline' && !cl.includes('fisso -') && cl === 'fisso') {
+        } else if (catType === 'landline') {
+          rateUsed = landlineRate;
           rev = min * landlineRate;
         } else if (cl.includes('numero verde')) {
+          rateUsed = 0;
           rev = 0;
         } else if (cl.includes('numero premium') || cl.includes('numero speciale')) {
+          rateUsed = premRate > 0 ? premRate : (r.cost || 0) / (min || 1);
           rev = premRate > 0 ? min * premRate : (r.cost || 0);
         } else {
           const resolved = resolveCountryFromCategory(catDesc);
           if (resolved) {
             const eff = effRatesMap.get(resolved.countryEng);
-            if (eff) rev = min * (resolved.isMobile ? eff.mobile : eff.landline);
-            else rev = min * intlRate;
+            if (eff) {
+              rateUsed = resolved.isMobile ? eff.mobile : eff.landline;
+              rev = min * rateUsed;
+            } else {
+              rateUsed = intlRate;
+              rev = min * intlRate;
+            }
           } else {
+            rateUsed = intlRate;
             rev = min * intlRate;
           }
         }
 
+        const clientLabel = callerClient?.name || '';
         const existing = numberMap.get(r.calledNumber);
         if (existing) {
           existing.calls++;
@@ -310,6 +321,11 @@ const Dashboard: React.FC<DashboardProps> = ({
           existing.cost += r.cost || 0;
           existing.revenue += rev;
           existing.callerNumbers.add(r.callerNumber);
+          // Keep the lowest rate for diagnostic visibility
+          if (rateUsed < existing.rateUsed) existing.rateUsed = rateUsed;
+          if (clientLabel && !existing.clientName.includes(clientLabel)) {
+            existing.clientName = existing.clientName ? `${existing.clientName}, ${clientLabel}` : clientLabel;
+          }
         } else {
           numberMap.set(r.calledNumber, {
             number: r.calledNumber,
@@ -319,6 +335,8 @@ const Dashboard: React.FC<DashboardProps> = ({
             cost: r.cost || 0,
             revenue: rev,
             category: r.category.description,
+            rateUsed,
+            clientName: clientLabel,
           });
         }
       });
@@ -712,10 +730,12 @@ const Dashboard: React.FC<DashboardProps> = ({
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-muted/50">
-                    <th className="text-left p-2 font-medium">Numero Chiamato</th>
-                    <th className="text-left p-2 font-medium">Sotto-cat.</th>
+                    <th className="text-left p-2 font-medium">Numero</th>
+                    <th className="text-left p-2 font-medium">Cat.</th>
+                    <th className="text-left p-2 font-medium">Cliente</th>
                     <th className="text-right p-2 font-medium">Chiam.</th>
                     <th className="text-right p-2 font-medium">Durata</th>
+                    <th className="text-right p-2 font-medium">€/min vendita</th>
                     <th className="text-right p-2 font-medium">Costo Op.</th>
                     <th className="text-right p-2 font-medium">Ricavo</th>
                     <th className="text-right p-2 font-medium">Margine</th>
@@ -727,10 +747,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                     const isLoss = margin < -0.001;
                     return (
                       <tr key={i} className={`border-t ${isLoss ? 'bg-destructive/5' : 'hover:bg-muted/30'}`}>
-                        <td className="p-2 font-mono">{row.number}</td>
+                        <td className="p-2 font-mono text-[11px]">{row.number}</td>
                         <td className="p-2 text-muted-foreground">{row.category}</td>
+                        <td className="p-2 text-muted-foreground truncate max-w-[100px]" title={'clientName' in row ? (row as any).clientName : ''}>{('clientName' in row ? (row as any).clientName : '') || '—'}</td>
                         <td className="p-2 text-right">{row.calls}</td>
                         <td className="p-2 text-right">{formatDuration(row.seconds)}</td>
+                        <td className="p-2 text-right font-mono text-muted-foreground">{'rateUsed' in row ? `€${((row as any).rateUsed as number).toFixed(4)}` : '—'}</td>
                         <td className="p-2 text-right">€{row.cost.toFixed(2)}</td>
                         <td className="p-2 text-right text-primary font-medium">€{row.revenue.toFixed(2)}</td>
                         <td className={`p-2 text-right font-semibold ${isLoss ? 'text-destructive' : 'text-kpi-cost'}`}>

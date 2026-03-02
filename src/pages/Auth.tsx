@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { ALLOWED_EMAILS } from "@/config/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,8 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     setSeo();
@@ -56,6 +59,28 @@ const Auth = () => {
       }
     }
   }, [user, loading, navigate, toast, signOut]);
+
+  const onForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        toast({
+          title: "Errore",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      setResetSent(true);
+      toast({ title: "Email inviata", description: "Controlla la tua casella email per il link di reset." });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,22 +120,51 @@ const Auth = () => {
           <CardTitle>Accesso</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">Email</label>
-              <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">Password</label>
-              <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Accesso in corso..." : "Accedi"}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              La registrazione è disabilitata. Solo email autorizzate possono accedere.
-            </p>
-          </form>
+          {forgotMode ? (
+            resetSent ? (
+              <div className="space-y-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Se l'email è registrata, riceverai un link per reimpostare la password.
+                </p>
+                <Button className="w-full" variant="outline" onClick={() => { setForgotMode(false); setResetSent(false); }}>
+                  Torna al login
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={onForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">Email</label>
+                  <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? "Invio in corso..." : "Invia link di reset"}
+                </Button>
+                <Button type="button" variant="ghost" className="w-full" onClick={() => setForgotMode(false)}>
+                  Torna al login
+                </Button>
+              </form>
+            )
+          ) : (
+            <form onSubmit={onSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium">Email</label>
+                <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium">Password</label>
+                <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+              </div>
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? "Accesso in corso..." : "Accedi"}
+              </Button>
+              <div className="flex justify-between items-center">
+                <button type="button" className="text-xs text-primary hover:underline" onClick={() => setForgotMode(true)}>
+                  Password dimenticata?
+                </button>
+                <p className="text-xs text-muted-foreground">Solo email autorizzate.</p>
+              </div>
+            </form>
+          )}
         </CardContent>
       </Card>
     </main>

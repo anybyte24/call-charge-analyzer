@@ -1,1 +1,8 @@
 project_id = "hwazxzzuizyvbxgmuuwi"
+
+[auth]
+site_url = "https://voip.anybyte.it"
+additional_redirect_urls = ["https://call-charge-analyzer.lovable.app", "https://id-preview--94b0e5f7-6ed3-4ad7-86ae-38e4c93e6278.lovable.app"]
+
+[auth.email]
+otp_expiry = 600

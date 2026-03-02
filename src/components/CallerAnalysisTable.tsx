@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,7 +22,6 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
       if (!map.has(groupName)) map.set(groupName, []);
       map.get(groupName)!.push(c);
     });
-    // Order: clients alphabetically, "Senza cliente" last
     return Array.from(map.entries()).sort(([a], [b]) => {
       if (a === 'Senza cliente') return 1;
       if (b === 'Senza cliente') return -1;
@@ -48,65 +46,46 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
       case 'numero verde': return 'bg-emerald-100 text-emerald-800';
       case 'numero premium': return 'bg-red-100 text-red-800';
       default: 
-        // Per le nazioni internazionali
         if (['spagna', 'francia', 'germania', 'regno unito', 'svizzera', 'austria', 'paesi bassi', 'belgio'].some(n => category.toLowerCase().includes(n))) {
-          if (category.toLowerCase().includes('mobile')) {
-            return 'bg-blue-100 text-blue-800';
-          } else if (category.toLowerCase().includes('fisso')) {
-            return 'bg-green-100 text-green-800';
-          }
+          if (category.toLowerCase().includes('mobile')) return 'bg-blue-100 text-blue-800';
+          if (category.toLowerCase().includes('fisso')) return 'bg-green-100 text-green-800';
           return 'bg-purple-100 text-purple-800';
         }
         return 'bg-gray-100 text-gray-800';
     }
   };
 
-  // Raggruppa le categorie per macro-categoria
   const groupCategoriesByMacro = (categories: CallSummary[]) => {
     const macroGroups = new Map<string, CallSummary[]>();
     
     categories.forEach(cat => {
-      console.log('🔍 Processing category:', cat.category);
-      
       let macroCategory = '';
       
-      // Per le categorie internazionali dettagliate
       if (['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].some(paese => cat.category.includes(paese))) {
         if (cat.category.includes('Mobile')) {
-          // Estrai solo il nome del paese + Mobile (es: "Spagna Mobile", "Francia Mobile")
           const paese = ['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].find(p => cat.category.includes(p));
           macroCategory = `${paese} Mobile`;
         } else if (cat.category.includes('Fisso')) {
-          // Estrai solo il nome del paese + Fisso (es: "Spagna Fisso", "Francia Fisso")
           const paese = ['Spagna', 'Francia', 'Germania', 'Regno Unito', 'Svizzera', 'Austria', 'Paesi Bassi', 'Belgio'].find(p => cat.category.includes(p));
           macroCategory = `${paese} Fisso`;
         } else {
-          // Se non ha Fisso/Mobile, usa solo il nome del paese
           macroCategory = cat.category;
         }
-        console.log('🌍 International category processed:', cat.category, '→', macroCategory);
       }
-      // Per TUTTI i mobili italiani (specifici e generici), raggruppa sotto "Mobile"
       else if (cat.category.includes('TIM') || cat.category.includes('Vodafone') || 
                cat.category.includes('Wind') || cat.category.includes('Iliad') || 
                cat.category.includes('Fastweb') || cat.category.includes('Tre') ||
                cat.category === 'Mobile') {
         macroCategory = 'Mobile';
-        console.log('📱 Italian mobile category grouped:', cat.category, '→', macroCategory);
       }
-      // Per numeri speciali, mantieni la categoria specifica
       else if (cat.category === 'Numero Verde') {
         macroCategory = 'Numero Verde';
       } else if (cat.category === 'Numero Premium') {
         macroCategory = 'Numero Premium';
       }
-      // Per tutti gli altri (fissi italiani), raggruppa sotto "Fisso"
       else {
         macroCategory = 'Fisso';
-        console.log('🏠 Italian landline category grouped:', cat.category, '→', macroCategory);
       }
-      
-      console.log('📋 Final mapping: Original:', cat.category, '→ Macro:', macroCategory);
       
       if (!macroGroups.has(macroCategory)) {
         macroGroups.set(macroCategory, []);
@@ -114,13 +93,10 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({ callerAnalysi
       macroGroups.get(macroCategory)!.push(cat);
     });
 
-    // Converti in array e aggrega i totali per macro-categoria
     return Array.from(macroGroups.entries()).map(([macroCategory, cats]) => {
       const totalCount = cats.reduce((sum, cat) => sum + cat.count, 0);
       const totalSeconds = cats.reduce((sum, cat) => sum + cat.totalSeconds, 0);
       const totalCost = cats.reduce((sum, cat) => sum + (cat.cost || 0), 0);
-      
-      console.log('📊 Macro category summary:', macroCategory, 'Count:', totalCount, 'Seconds:', totalSeconds, 'Cost:', totalCost);
       
       return {
         macroCategory,

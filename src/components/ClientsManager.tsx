@@ -58,10 +58,14 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
   // Pricing state: global (shared)
   const [globalInternationalRate, setGlobalInternationalRate] = useState<number>(0);
   const [globalPremiumRate, setGlobalPremiumRate] = useState<number>(0);
+  const [globalMobileCost, setGlobalMobileCost] = useState<number>(0.0159);
+  const [globalLandlineCost, setGlobalLandlineCost] = useState<number>(0.00159);
 
   React.useEffect(() => {
     setGlobalInternationalRate(Number(globalPricing?.international_rate) || 0);
     setGlobalPremiumRate(Number(globalPricing?.premium_rate) || 0);
+    setGlobalMobileCost(Number(globalPricing?.mobile_cost) || 0.0159);
+    setGlobalLandlineCost(Number(globalPricing?.landline_cost) || 0.00159);
   }, [globalPricing]);
 
   const handleSaveClientPricing = async () => {
@@ -84,6 +88,8 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
       await upsertGlobalPricing.mutateAsync({
         international_rate: globalInternationalRate,
         premium_rate: globalPremiumRate,
+        mobile_cost: globalMobileCost,
+        landline_cost: globalLandlineCost,
       });
       toast({ title: "Tariffe globali salvate" });
     } catch (e: any) {
@@ -224,6 +230,25 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
               </CardContent>
             </Card>
 
+            {/* Tariffe operatore - i tuoi costi reali */}
+            <Card className="border-primary/30">
+              <CardHeader>
+                <CardTitle>Le mie tariffe operatore (costo sostenuto)</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">Mobile €/min</label>
+                  <Input type="number" step="0.00001" value={globalMobileCost}
+                    onChange={(e) => setGlobalMobileCost(parseFloat(e.target.value) || 0)} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Fisso €/min</label>
+                  <Input type="number" step="0.00001" value={globalLandlineCost}
+                    onChange={(e) => setGlobalLandlineCost(parseFloat(e.target.value) || 0)} />
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Tariffe globali - condivise per tutti i clienti */}
             <Card>
               <CardHeader>
@@ -242,7 +267,7 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                 </div>
                 <div className="flex items-end">
                   <Button onClick={handleSaveGlobalPricing} disabled={upsertGlobalPricing.isPending}>
-                    Salva tariffe globali
+                    Salva tutte le tariffe
                   </Button>
                 </div>
               </CardContent>

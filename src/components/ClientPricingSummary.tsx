@@ -35,6 +35,8 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
 
     const intlRate = Number(globalPricing?.international_rate || 0);
     const premiumRate = Number(globalPricing?.premium_rate || 0);
+    const operatorMobileCost = Number(globalPricing?.mobile_cost || 0.0159);
+    const operatorLandlineCost = Number(globalPricing?.landline_cost || 0.00159);
 
     callerAnalysis.forEach((ca) => {
       const clientInfo = numberToClientMap[ca.callerNumber];
@@ -58,20 +60,8 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
       agg.totalCalls += ca.totalCalls;
       agg.totalSeconds += ca.totalDuration;
 
-      // costo effettivo (dai dati)
-      ca.categories.forEach((cat) => {
-        agg.myCost += Number(cat.cost || 0);
-      });
-
-      // ricavo: tariffe per cliente
-      const clientRate = clientPricing.find((p) => p.client_id === key);
-      const mobileRate = Number(clientRate?.mobile_rate || 0);
-      const landlineRate = Number(clientRate?.landline_rate || 0);
-      const flat = Number(clientRate?.monthly_flat_fee || 0);
-
-      let revenueForCaller = flat ? 0 : 0; // forfait si somma una sola volta a fine cliente
+      // costo effettivo basato su tariffe operatore
       let mobileSec = 0, landlineSec = 0, intlSec = 0, premiumSec = 0;
-
       ca.categories.forEach((cat) => {
         const sec = cat.totalSeconds || 0;
         switch (cat.category.toLowerCase()) {
@@ -96,6 +86,17 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
         }
       });
 
+      agg.myCost += (mobileSec / 60) * operatorMobileCost;
+      agg.myCost += (landlineSec / 60) * operatorLandlineCost;
+      agg.myCost += (intlSec / 60) * intlRate;
+      agg.myCost += (premiumSec / 60) * premiumRate;
+
+      // ricavo: tariffe per cliente
+      const clientRate = clientPricing.find((p) => p.client_id === key);
+      const mobileRate = Number(clientRate?.mobile_rate || 0);
+      const landlineRate = Number(clientRate?.landline_rate || 0);
+
+      let revenueForCaller = 0;
       revenueForCaller += (mobileSec / 60) * mobileRate;
       revenueForCaller += (landlineSec / 60) * landlineRate;
       revenueForCaller += (intlSec / 60) * intlRate;

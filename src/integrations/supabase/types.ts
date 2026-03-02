@@ -518,6 +518,8 @@ export type Database = {
           currency: string
           id: string
           international_rate: number
+          landline_cost: number
+          mobile_cost: number
           organization_id: string | null
           premium_rate: number
           updated_at: string
@@ -528,6 +530,8 @@ export type Database = {
           currency?: string
           id?: string
           international_rate?: number
+          landline_cost?: number
+          mobile_cost?: number
           organization_id?: string | null
           premium_rate?: number
           updated_at?: string
@@ -538,6 +542,8 @@ export type Database = {
           currency?: string
           id?: string
           international_rate?: number
+          landline_cost?: number
+          mobile_cost?: number
           organization_id?: string | null
           premium_rate?: number
           updated_at?: string

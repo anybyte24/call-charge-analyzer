@@ -95,8 +95,7 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({
     if (catLower === 'numero verde') return 0;
     // Premium
     if (catLower === 'numero premium' || catLower.includes('premium') || catLower.includes('speciale')) {
-      return clientPremRate > 0 ? min * clientPremRate : (operatorCost * 1.5);
-    }
+      return clientPremRate > 0 ? min * clientPremRate : operatorCost;
     }
 
     // International - try to resolve country

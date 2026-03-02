@@ -29,6 +29,7 @@ export interface ClientPricing {
   monthly_flat_fee: number;
   international_rate: number;
   premium_rate: number;
+  forfait_only: boolean;
   currency?: string | null;
   created_at?: string;
   updated_at?: string;

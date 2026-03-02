@@ -6,6 +6,7 @@ import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Toolti
 import { CallerAnalysis } from '@/types/call-analysis';
 import { ALFA_NATIONAL_TARIFFS } from '@/data/alfa-operator-tariffs';
 import { NYBYTE_NATIONAL_TARIFFS } from '@/data/nybyte-tariffs';
+import { EFFECTIVE_NATIONAL_RATES, EFFECTIVE_INTERNATIONAL_RATES } from '@/utils/effective-selling-rates';
 
 interface ClientPricingSummaryProps {
   callerAnalysis: CallerAnalysis[];
@@ -42,6 +43,14 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
     const operatorMobileCost = Number(globalPricing?.mobile_cost || ALFA_NATIONAL_TARIFFS.mobile);
     const operatorLandlineCost = Number(globalPricing?.landline_cost || ALFA_NATIONAL_TARIFFS.landline);
 
+    // Build a lookup for effective international selling rates by category description
+    const effectiveIntlMap = new Map<string, number>();
+    EFFECTIVE_INTERNATIONAL_RATES.forEach(r => {
+      // Map country names to their effective rates (both landline and mobile)
+      effectiveIntlMap.set(r.country.toLowerCase(), r.landline);
+      effectiveIntlMap.set(`${r.country.toLowerCase()} mobile`, r.mobile);
+    });
+
     callerAnalysis.forEach((ca) => {
       const clientInfo = numberToClientMap[ca.callerNumber];
       const key = clientInfo?.id || 'no-client';
@@ -56,12 +65,13 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
       agg.totalSeconds += ca.totalDuration;
 
       let mobileSec = 0, landlineSec = 0, intlSec = 0, premiumSec = 0;
-      // Accumulate cost from CSV category data for international calls
       let intlCostFromCSV = 0;
+      let intlRevenueFromCategories = 0;
       
       ca.categories.forEach((cat) => {
         const sec = cat.totalSeconds || 0;
-        switch (cat.category.toLowerCase()) {
+        const catLower = cat.category.toLowerCase();
+        switch (catLower) {
           case 'mobile':
             mobileSec += sec;
             break;
@@ -72,7 +82,6 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
           case 'international':
           case 'internazionale':
             intlSec += sec;
-            // Use cost from CSV (already calculated with per-country rates from number-categorizer)
             intlCostFromCSV += cat.cost || 0;
             break;
           case 'special':
@@ -81,33 +90,47 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
             premiumSec += sec;
             break;
           default:
-            // Check if it's an international sub-category (country names)
-            if (cat.category.includes('Mobile') || cat.category.includes('Fisso')) {
+            // International sub-categories (country names like "Albania Mobile", "Francia")
+            if (catLower.includes('mobile') || catLower.includes('fisso')) {
               intlSec += sec;
               intlCostFromCSV += cat.cost || 0;
+              // Calculate revenue using effective per-country selling rate
+              const isMobile = catLower.includes('mobile');
+              const countryName = catLower.replace(/\s*(mobile|fisso|mob).*$/i, '').trim();
+              const lookupKey = isMobile ? `${countryName} mobile` : countryName;
+              const effectiveRate = effectiveIntlMap.get(lookupKey) || effectiveIntlMap.get(countryName);
+              if (effectiveRate) {
+                intlRevenueFromCategories += (sec / 60) * effectiveRate;
+              }
             }
             break;
         }
       });
 
-      // COSTO OPERATORE: nazionali dalle tariffe, internazionali dal CSV (già calcolati con tariffe per paese)
+      // COSTO OPERATORE
       agg.myCost += (mobileSec / 60) * operatorMobileCost;
       agg.myCost += (landlineSec / 60) * operatorLandlineCost;
-      agg.myCost += intlCostFromCSV; // Already calculated per-country
-      agg.myCost += (premiumSec / 60) * 0.90; // Premium cost from operator (899 default)
+      agg.myCost += intlCostFromCSV;
+      agg.myCost += (premiumSec / 60) * 0.90;
 
       // RICAVO: tariffe di vendita al cliente
       const clientRate = clientPricing.find((p) => p.client_id === key);
-      const forfaitOnly = (clientRate as any)?.forfait_only === true;
-      const mobileRate = Number(clientRate?.mobile_rate || 0) || NYBYTE_NATIONAL_TARIFFS.mobile;
-      const landlineRate = Number(clientRate?.landline_rate || 0) || NYBYTE_NATIONAL_TARIFFS.landline;
+      const forfaitOnly = clientRate?.forfait_only === true;
+      // Use effective rates (which already account for ALFA markup) as fallback
+      const mobileRate = Number(clientRate?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
+      const landlineRate = Number(clientRate?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
       const clientIntlRate = Number(clientRate?.international_rate || 0) || globalIntlSellingRate;
       const clientPremRate = Number(clientRate?.premium_rate || 0) || globalPremiumSellingRate;
 
       if (!forfaitOnly) {
         agg.revenue += (mobileSec / 60) * mobileRate;
         agg.revenue += (landlineSec / 60) * landlineRate;
-        agg.revenue += (intlSec / 60) * clientIntlRate;
+        // For international: use per-country effective rates when available, otherwise flat rate
+        if (intlRevenueFromCategories > 0) {
+          agg.revenue += intlRevenueFromCategories;
+        } else if (intlSec > 0 && clientIntlRate > 0) {
+          agg.revenue += (intlSec / 60) * clientIntlRate;
+        }
         agg.revenue += (premiumSec / 60) * clientPremRate;
       }
     });

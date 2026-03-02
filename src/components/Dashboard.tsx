@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity, Filter, Table, RefreshCw, TrendingDown, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity, Filter, Table, RefreshCw, TrendingDown, ArrowUpRight, ArrowDownRight, Wallet, Search } from 'lucide-react';
 import { CallSummary, CallerAnalysis, CallRecord } from '@/types/call-analysis';
 import CallAnalyticsCharts from './CallAnalyticsCharts';
 import HourlyDistributionChart from './HourlyDistributionChart';
@@ -34,6 +35,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const { numberToClientMap, clientPricing, globalPricing } = useClients();
   const [filteredRecords, setFilteredRecords] = React.useState<CallRecord[]>(records);
+  const [drillDownCategory, setDrillDownCategory] = React.useState<string | null>(null);
   const { recalculateCosts, loading: recalculateLoading } = useAnalysisStorage();
   const totalCalls = summary.reduce((sum, cat) => sum + cat.count, 0);
   const totalDuration = summary.reduce((sum, cat) => sum + cat.totalSeconds, 0);
@@ -169,13 +171,15 @@ const Dashboard: React.FC<DashboardProps> = ({
           macroName = 'Numero Premium';
           rev = premRate > 0 ? min * premRate : (cat.cost || 0);
         } else {
+          // International or unrecognized
           const resolved = resolveCountryFromCategory(cat.category);
           if (resolved) {
             const eff = effRatesMap.get(resolved.countryEng);
             if (eff) rev = min * (resolved.isMobile ? eff.mobile : eff.landline);
             else rev = min * intlRate;
           } else {
-            rev = min * landlineRate;
+            // NOT Fisso — keep as its own category (unrecognized international)
+            rev = min * intlRate;
           }
         }
 
@@ -196,14 +200,14 @@ const Dashboard: React.FC<DashboardProps> = ({
       
       if (catLower === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => catLower.includes(op))) {
         macro = 'Mobile';
-      } else if (catLower === 'fisso' || (!catLower.includes('numero') && !catLower.includes('speciale') && !resolveCountryFromCategory(cat.category))) {
+      } else if (catLower === 'fisso') {
         macro = 'Fisso';
       } else if (catLower.includes('numero verde')) {
         macro = 'Numero Verde';
       } else if (catLower.includes('numero premium') || catLower.includes('numero speciale')) {
         macro = 'Numero Premium';
       }
-      // else keep original name (international countries)
+      // else keep original name (international countries or unrecognized)
 
       const existing = map.get(macro) || { count: 0, totalSeconds: 0, cost: 0 };
       existing.count += cat.count;
@@ -219,6 +223,45 @@ const Dashboard: React.FC<DashboardProps> = ({
       icon: getCategoryIcon(name),
     })).sort((a, b) => b.count - a.count);
   }, [summary, categoryRevenue]);
+
+  // Drill-down: compute per-called-number detail for selected macro category
+  const drillDownData = React.useMemo(() => {
+    if (!drillDownCategory) return [];
+
+    // Determine which record categories belong to this macro
+    const belongsToMacro = (catDesc: string, catType: string) => {
+      const cl = catDesc.toLowerCase();
+      if (drillDownCategory === 'Mobile') {
+        return catType === 'mobile' || cl === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => cl.includes(op));
+      }
+      if (drillDownCategory === 'Fisso') return cl === 'fisso' && catType === 'landline';
+      if (drillDownCategory === 'Numero Verde') return cl.includes('numero verde');
+      if (drillDownCategory === 'Numero Premium') return cl.includes('numero premium') || cl.includes('numero speciale');
+      // International: match by original summary category name
+      return catDesc === drillDownCategory;
+    };
+
+    const numberMap = new Map<string, { number: string; calls: number; seconds: number; cost: number; category: string }>();
+    records.forEach(r => {
+      if (!belongsToMacro(r.category.description, r.category.type)) return;
+      const existing = numberMap.get(r.calledNumber);
+      if (existing) {
+        existing.calls++;
+        existing.seconds += r.durationSeconds;
+        existing.cost += r.cost || 0;
+      } else {
+        numberMap.set(r.calledNumber, {
+          number: r.calledNumber,
+          calls: 1,
+          seconds: r.durationSeconds,
+          cost: r.cost || 0,
+          category: r.category.description,
+        });
+      }
+    });
+
+    return Array.from(numberMap.values()).sort((a, b) => b.cost - a.cost);
+  }, [drillDownCategory, records]);
 
   const formatDuration = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -426,7 +469,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   const margin = cat.revenue - cat.cost;
                   const pct = cat.count / totalCalls * 100;
                   return (
-                    <div key={index} className="group rounded-xl border bg-card p-5 hover:shadow-md transition-all">
+                    <div key={index} className="group rounded-xl border bg-card p-5 hover:shadow-md transition-all cursor-pointer" onClick={() => setDrillDownCategory(cat.name)}>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2.5">
                           <span className="text-xl">{cat.icon}</span>
@@ -435,6 +478,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                             <p className="text-xs text-muted-foreground">{cat.count.toLocaleString()} chiamate · {pct.toFixed(1)}%</p>
                           </div>
                         </div>
+                        <Search className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                       <div className="h-1.5 rounded-full bg-muted mb-3 overflow-hidden">
                         <div className={`h-full rounded-full ${getCategoryBarColor(cat.name)} transition-all`} style={{ width: `${pct}%` }} />
@@ -496,6 +540,50 @@ const Dashboard: React.FC<DashboardProps> = ({
           />
         </TabsContent>
       </Tabs>
+
+      {/* Drill-down Dialog */}
+      <Dialog open={!!drillDownCategory} onOpenChange={(open) => !open && setDrillDownCategory(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5 text-primary" />
+              Dettaglio: {drillDownCategory}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              {drillDownData.length} numeri chiamati — ordinati per costo operatore decrescente
+            </p>
+            <div className="rounded-lg border overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-muted/50">
+                    <th className="text-left p-2 font-medium">Numero Chiamato</th>
+                    <th className="text-left p-2 font-medium">Sotto-categoria</th>
+                    <th className="text-right p-2 font-medium">Chiamate</th>
+                    <th className="text-right p-2 font-medium">Durata</th>
+                    <th className="text-right p-2 font-medium">Costo Op.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {drillDownData.slice(0, 100).map((row, i) => (
+                    <tr key={i} className="border-t hover:bg-muted/30">
+                      <td className="p-2 font-mono">{row.number}</td>
+                      <td className="p-2 text-muted-foreground">{row.category}</td>
+                      <td className="p-2 text-right">{row.calls}</td>
+                      <td className="p-2 text-right">{formatDuration(row.seconds)}</td>
+                      <td className="p-2 text-right font-semibold">€{row.cost.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {drillDownData.length > 100 && (
+              <p className="text-xs text-muted-foreground text-center">Mostrati i primi 100 di {drillDownData.length} numeri</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

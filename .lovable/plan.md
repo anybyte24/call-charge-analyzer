@@ -1,88 +1,81 @@
 
 
-## Correzione Tariffe: Invertire Costi Operatore e Tariffe di Vendita
+## Correzioni e Implementazioni Mancanti
 
-### Il problema scoperto
+### PROBLEMI TROVATI
 
-Analizzando i PDF appena caricati, ho capito che le tariffe sono attualmente **invertite** nell'app:
+**1. Ricavo clienti sempre zero se non configurati**
 
-| | Attualmente nell'app | Corretto |
-|---|---|---|
-| **Costo operatore (quello che paghi tu)** | NYBYTE: mobile 0.09, fisso 0.01 | ALFA: mobile **0.0159**, fisso **0.0059** |
-| **Tariffa di vendita (quello che addebiti ai clienti)** | Non definito chiaramente | NYBYTE: mobile **0.09**, fisso **0.01** |
+In `ClientPricingSummary.tsx` (righe 100-101), quando un cliente non ha tariffe configurate, `mobileRate` e `landlineRate` vengono impostati a 0. Questo significa che il ricavo per chiamate nazionali e' sempre 0 finche' non si configurano manualmente le tariffe per ogni cliente. Dovrebbero usare le tariffe NYBYTE come default di vendita:
 
-I PDF ALFA contengono il tuo **vero costo operatore** -- molto piu' basso delle tariffe NYBYTE. Le tariffe NYBYTE sono quelle che addebiti ai clienti.
+```
+// Attuale (sbagliato):
+const mobileRate = Number(clientRate?.mobile_rate || 0);
+const landlineRate = Number(clientRate?.landline_rate || 0);
 
-### Esempio concreto del margine corretto
+// Corretto:
+const mobileRate = Number(clientRate?.mobile_rate || 0) || NYBYTE_NATIONAL_TARIFFS.mobile;
+const landlineRate = Number(clientRate?.landline_rate || 0) || NYBYTE_NATIONAL_TARIFFS.landline;
+```
 
-Una chiamata mobile nazionale di 10 minuti:
-- **Costo tuo (ALFA)**: 10 x 0.0159 = **0.159 EUR**
-- **Addebito al cliente (NYBYTE)**: 10 x 0.09 = **0.90 EUR**
-- **Margine**: 0.90 - 0.159 = **0.741 EUR** (82% margine)
+**2. Tariffe internazionali mostrate con solo 2 decimali**
+
+In `ClientsManager.tsx` riga 334-335, le tariffe ALFA sono mostrate con `toFixed(2)` ma molte hanno 4 cifre significative (es. 0.0159). Dovrebbe essere `toFixed(4)`.
+
+**3. Campo `forfait_only` non usato nei calcoli**
+
+Il campo `forfait_only` esiste in `client_pricing` ma non viene considerato in `ClientPricingSummary`. Se `forfait_only=true`, il ricavo dovrebbe essere solo il forfait mensile, ignorando le tariffe a consumo.
+
+**4. Tariffe vendita NYBYTE internazionali non mostrate nella tab Vendita**
+
+La tab "Tariffe Vendita" mostra solo un campo generico `international_rate` globale, ma non il listino NYBYTE per paese. L'utente non puo' vedere/confrontare le tariffe di vendita per paese.
 
 ---
 
-### Cosa faremo
+### IMPLEMENTAZIONI SUGGERITE
 
-**1. Aggiornare i default del costo operatore nel database**
+**5. Default tariffe vendita dal listino NYBYTE**
 
-Nuova migrazione per correggere i default:
-- `mobile_cost`: da 0.09 a **0.0159** (costo ALFA reale)
-- `landline_cost`: da 0.01 a **0.0059** (costo ALFA reale)
-- Aggiornare anche i record esistenti ai valori corretti
+Nella tab "Tariffe Vendita", precompilare i campi con i valori NYBYTE:
+- Mobile: 0.09 (default NYBYTE)
+- Fisso: 0.01 (default NYBYTE)
+- Mostrare tabella tariffe NYBYTE internazionali per consultazione
 
-**2. Creare il file tariffe ALFA (costi operatore reali)**
+**6. Confronto margini per paese**
 
-Nuovo file `src/data/alfa-operator-tariffs.ts` con:
-- Tariffe nazionali: fisso 0.0059, mobile 0.0159 (per operatore)
-- Tariffe internazionali dettagliate per paese dal PDF ALFA (con sotto-tariffe per operatore mobile)
+Aggiungere una tabella nella tab "Listino Operatore" che mostra il confronto tra costo ALFA e vendita NYBYTE per ogni paese, con la colonna margine percentuale.
 
-**3. Rinominare correttamente il file tariffe NYBYTE**
+**7. Esportazione report per cliente**
 
-Aggiornare `src/data/nybyte-tariffs.ts`:
-- Cambiare i commenti: da "Tariffe operatore" a "Tariffe di vendita ai clienti"
-- `NYBYTE_NATIONAL_TARIFFS` diventa il default per le tariffe di VENDITA
+Bottone per generare un Excel/PDF con il dettaglio chiamate di un singolo cliente (per fatturazione mensile).
 
-**4. Aggiornare le tariffe internazionali nel number-categorizer**
+**8. Assegnazione numeri in bulk**
 
-Il file `src/utils/number-categorizer.ts` (973 righe) attualmente usa le tariffe NYBYTE come `costPerMinute` per ogni prefisso internazionale. Questi valori devono essere sostituiti con le tariffe ALFA (il costo reale dell'operatore), perche' vengono usati per calcolare il **costo** di ogni chiamata nel CSV.
-
-Esempio: Albania landline attualmente 0.13 (NYBYTE), dovrebbe essere 0.157 (ALFA).
-
-**5. Aggiornare la UI in ClientsManager**
-
-Nella tab "Listino Operatore":
-- Mostrare le tariffe ALFA come "I tuoi costi operatore" (editabili)
-- Mostrare le tariffe NYBYTE nella tab "Tariffe Vendita" come default di vendita ai clienti
-
-**6. Aggiornare la logica di ClientPricingSummary**
-
-- **Costo**: usa tariffe ALFA (dal number-categorizer per internazionali, da `mobile_cost`/`landline_cost` per nazionali)
-- **Ricavo**: usa tariffe NYBYTE come default di vendita, sovrascrivibili per cliente
+Nella tab "Gestione Clienti", permettere di selezionare piu' numeri dalla lista e assegnarli tutti insieme al cliente selezionato.
 
 ---
 
 ### Dettagli tecnici
 
-**Migrazione DB:**
-```sql
--- Correggere i default ai costi ALFA reali
-ALTER TABLE user_global_pricing
-  ALTER COLUMN mobile_cost SET DEFAULT 0.0159,
-  ALTER COLUMN landline_cost SET DEFAULT 0.0059;
-
--- Aggiornare i record esistenti che avevano i valori NYBYTE errati
-UPDATE user_global_pricing
-SET mobile_cost = 0.0159, landline_cost = 0.0059
-WHERE mobile_cost = 0.09 AND landline_cost = 0.01;
-```
-
-**File da creare:**
-- `src/data/alfa-operator-tariffs.ts` -- Tariffe ALFA complete (nazionali + internazionali) come costanti TypeScript
-
 **File da modificare:**
-1. `src/data/nybyte-tariffs.ts` -- Aggiornare commenti/nomi: queste sono tariffe di VENDITA
-2. `src/utils/number-categorizer.ts` -- Aggiornare tutti i `costPerMinute` internazionali con i valori ALFA reali
-3. `src/components/ClientsManager.tsx` -- Aggiornare le label: "Costi Operatore ALFA" vs "Tariffe Vendita NYBYTE"
-4. `src/components/ClientPricingSummary.tsx` -- Usare i default corretti per i calcoli
 
+1. `src/components/ClientPricingSummary.tsx`
+   - Importare `NYBYTE_NATIONAL_TARIFFS` e usarle come fallback per `mobileRate`/`landlineRate` quando non configurate
+   - Aggiungere logica `forfait_only`: se attivo, revenue = solo forfait
+
+2. `src/components/ClientsManager.tsx`
+   - Cambiare `toFixed(2)` a `toFixed(4)` per le tariffe ALFA internazionali
+   - Aggiungere tabella NYBYTE nella tab "Tariffe Vendita" per consultazione
+   - Aggiungere tabella confronto margini (ALFA vs NYBYTE per paese)
+   - Aggiungere selezione multipla numeri per assegnazione bulk
+
+3. `src/hooks/useExcelExport.ts`
+   - Aggiungere funzione per esportare report singolo cliente con dettaglio chiamate, durata, costo, ricavo
+
+### Risultato atteso
+
+- I margini saranno calcolati correttamente anche per clienti senza tariffe specifiche (usando NYBYTE come default)
+- Le tariffe ALFA saranno mostrate con precisione a 4 decimali
+- L'utente potra' confrontare visivamente costi operatore vs tariffe vendita per paese
+- Possibilita' di esportare report per singolo cliente
+- Assegnazione numeri piu' rapida con selezione multipla

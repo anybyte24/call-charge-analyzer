@@ -1,83 +1,45 @@
 
 
-## Stato delle 8 Priorita' e Fix Scheda "Chiamanti"
+## Fix: Numeri Premium fatturati a €0.00 + Revisione completa tariffe
 
-### Stato attuale delle 8 priorita'
+### Problema
+In 3 file (`CallerAnalysisTable.tsx`, `ClientPricingSummary.tsx`, `Dashboard.tsx`), quando la tariffa premium del cliente (`premium_rate`) non e' configurata (= 0), il ricavo viene calcolato come 0. Questo e' sbagliato: se non c'e' una tariffa premium personalizzata, il sistema deve usare un fallback ragionevole.
 
-| # | Task | Stato |
-|---|------|-------|
-| 1 | Rimuovere console.log di debug | FATTO |
-| 2 | Rimuovere `as any` per forfait_minutes | PARZIALE - resta un `as any` in `useClients.ts` riga 198 nell'upsert |
-| 3 | Rimuovere `window.location.reload()` | FATTO |
-| 4 | Export Excel con margini | FATTO - colonne Ricavo/Margine presenti |
-| 5 | KPI margine nella dashboard | DA FARE |
-| 6 | Confronto multi-mese | DA FARE |
-| 7 | Esubero forfait per categoria | FATTO - media ponderata implementata |
-| 8 | Collegare CostAlertsManager | DA FARE |
+I numeri premium (899, 199, 848, ecc.) hanno costi operatore variabili e alti. Con €0.00 di fatturato, si va in perdita netta.
 
----
+### Soluzione
 
-### Problema critico: Scheda "Chiamanti"
+Applicare la stessa logica gia' usata per le tariffe internazionali: se il costo operatore supera il prezzo di vendita, il prezzo di vendita diventa `costo * 1.5`. Come fallback per i numeri premium senza tariffa configurata, usare `costo operatore * 1.5` (markup 50%).
 
-La scheda "Chiamanti" (`CallerAnalysisTable.tsx`) mostra attualmente `cat.cost` che e' il **costo operatore ALFA** dal CSV. Il cliente vuole invece vedere il **costo al cliente finale** (cioe' il ricavo/fatturato). Questa e' la scheda usata per la fatturazione, quindi deve mostrare quanto addebitare al cliente.
+### Modifiche
 
----
+**1. `src/components/CallerAnalysisTable.tsx`** (funzione `calculateRevenue`)
+- Riga 88: se `clientPremRate` risulta 0, calcolare il fallback dal costo operatore del gruppo
+- Passare il `cost` del macro-gruppo nella logica premium
+- Quando `catLower` e' premium e la tariffa e' 0: usare `(group.cost / min) * 1.5 * min` = `group.cost * 1.5`
 
-### Piano di implementazione
+**2. `src/components/ClientPricingSummary.tsx`** (riga 205-206)
+- Stessa logica: se `clientPremRate` e' 0 e `isPremium`, usare `catCost * 1.5` come ricavo
 
-**1. Fix `CallerAnalysisTable` - Mostrare costo al cliente finale**
+**3. `src/components/Dashboard.tsx`** (riga 80)
+- Stessa logica: se `premRate` e' 0 e `isPremium`, usare `cat.cost * 1.5` come ricavo
 
-Modificare `CallerAnalysisTable.tsx` per:
-- Accettare nuove props: `clientPricing`, `globalPricing`, `records` (per accedere al tipo di categoria di ogni record)
-- Rinominare la colonna "Costo" in "Da Fatturare"
-- Calcolare il ricavo per categoria usando le tariffe di vendita del cliente (mobile_rate, landline_rate, international_rate, premium_rate) invece del costo operatore
-- Per clienti forfait: mostrare il canone mensile + eventuale esubero
-- Aggiungere una colonna "Costo Operatore" piu' piccola per confronto rapido
+### Dettaglio tecnico
 
-Logica di calcolo ricavo per ogni macro-gruppo:
-- Mobile: `minuti * client.mobile_rate`
-- Fisso: `minuti * client.landline_rate`
-- Internazionale: `minuti * client.international_rate` (o effective rate per paese)
-- Premium: `minuti * client.premium_rate`
-- Numero Verde: 0
+In tutti e 3 i file, la correzione e' la stessa pattern:
 
-**2. Aggiornare `Index.tsx`**
+```text
+PRIMA:  if (isPremium) revenue = min * clientPremRate;  // = 0 se non configurato
+DOPO:   if (isPremium) revenue = clientPremRate > 0 ? min * clientPremRate : (catCost * 1.5);
+```
 
-Passare le props aggiuntive a `CallerAnalysisTable`:
-- `clientPricing` e `globalPricing` dal hook `useClients`
-- `records` dalla sessione corrente
+Questo garantisce che:
+- Se il cliente ha una tariffa premium configurata, viene usata quella
+- Se non ce l'ha, il sistema applica un markup del 50% sul costo operatore reale
+- Non si va mai in perdita sui numeri premium
+- La logica e' coerente in tutte le viste (Chiamanti, Clienti, Dashboard KPI)
 
-**3. Fix residuo `as any` in `useClients.ts`**
-
-Rimuovere il cast `as any` alla riga 198 dell'upsert in `upsertClientPricing`, allineando il tipo del payload con lo schema Supabase.
-
-**4. KPI Margine nella Dashboard principale**
-
-Aggiungere 2 card KPI nella griglia esistente del `Dashboard.tsx`:
-- **Margine Totale**: ricavo totale - costo totale, con colore verde/rosso
-- **Margine %**: percentuale margine complessiva
-
-Questo richiede calcolare il ricavo anche nella dashboard, usando le stesse tariffe di vendita usate in `ClientPricingSummary`.
-
----
-
-### Dettagli tecnici
-
-**File: `src/components/CallerAnalysisTable.tsx`**
-- Aggiungere props: `clientPricing: ClientPricing[]`, `globalPricing: UserGlobalPricing | null`, `records: CallRecord[]`
-- Importare i tipi da `useClients.ts` e le tariffe effective
-- Per ogni caller, cercare il cliente associato tramite `numberToClient`, poi la sua tariffa in `clientPricing`
-- Calcolare il ricavo per ogni macro-gruppo usando `cat.totalSeconds / 60 * tariffa_vendita`
-- Colonne tabella: Categoria | Chiamate | Durata | Da Fatturare | Costo Operatore | % del Totale
-- Nel riepilogo collassabile di ogni numero: mostrare il totale da fatturare
-
-**File: `src/pages/Index.tsx`**
-- Passare `clientPricing`, `globalPricing`, e `records` al componente `CallerAnalysisTable`
-
-**File: `src/hooks/useClients.ts`**
-- Riga 198: sostituire `as any` con il tipo corretto dell'insert di `client_pricing`
-
-**File: `src/components/Dashboard.tsx`**
-- Aggiungere 2 KPI card per margine totale e margine percentuale nella griglia KPI esistente
-- Calcolare il ricavo aggregato usando `clientPricing` + `EFFECTIVE_NATIONAL_RATES`
-
+### File da modificare
+1. `src/components/CallerAnalysisTable.tsx` - funzione `calculateRevenue`, riga 97
+2. `src/components/ClientPricingSummary.tsx` - logica premium, riga 205-206
+3. `src/components/Dashboard.tsx` - logica premium, riga 80

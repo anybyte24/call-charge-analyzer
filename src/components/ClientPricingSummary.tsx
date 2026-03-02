@@ -203,7 +203,7 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
         } else if (isNumeroVerde) {
           // no charge
         } else if (isPremium || isSpecialService) {
-          agg.revenue += min * clientPremRate;
+          agg.revenue += clientPremRate > 0 ? min * clientPremRate : (catCost * 1.5);
         } else {
           const resolved = resolveCountryFromCategory(catType);
           if (resolved) {

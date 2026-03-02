@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, RotateCcw, Search } from "lucide-react";
 import { NYBYTE_NATIONAL_TARIFFS, NYBYTE_INTERNATIONAL_TARIFFS, tariffsToFlatMap } from "@/data/nybyte-tariffs";
+import { ALFA_NATIONAL_TARIFFS, ALFA_INTERNATIONAL_TARIFFS, alfaTariffsToFlatMap } from "@/data/alfa-operator-tariffs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ClientsManagerProps {
@@ -67,14 +68,14 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
   // Pricing state: global (shared)
   const [globalInternationalRate, setGlobalInternationalRate] = useState<number>(0);
   const [globalPremiumRate, setGlobalPremiumRate] = useState<number>(0);
-  const [globalMobileCost, setGlobalMobileCost] = useState<number>(NYBYTE_NATIONAL_TARIFFS.mobile);
-  const [globalLandlineCost, setGlobalLandlineCost] = useState<number>(NYBYTE_NATIONAL_TARIFFS.landline);
+  const [globalMobileCost, setGlobalMobileCost] = useState<number>(ALFA_NATIONAL_TARIFFS.mobile);
+  const [globalLandlineCost, setGlobalLandlineCost] = useState<number>(ALFA_NATIONAL_TARIFFS.landline);
 
   React.useEffect(() => {
     setGlobalInternationalRate(Number(globalPricing?.international_rate) || 0);
     setGlobalPremiumRate(Number(globalPricing?.premium_rate) || 0);
-    setGlobalMobileCost(Number(globalPricing?.mobile_cost) || NYBYTE_NATIONAL_TARIFFS.mobile);
-    setGlobalLandlineCost(Number(globalPricing?.landline_cost) || NYBYTE_NATIONAL_TARIFFS.landline);
+    setGlobalMobileCost(Number(globalPricing?.mobile_cost) || ALFA_NATIONAL_TARIFFS.mobile);
+    setGlobalLandlineCost(Number(globalPricing?.landline_cost) || ALFA_NATIONAL_TARIFFS.landline);
   }, [globalPricing]);
 
   const handleSaveClientPricing = async () => {
@@ -108,18 +109,18 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
     }
   };
 
-  const handleResetToNybyte = async () => {
+  const handleResetToAlfa = async () => {
     try {
       await upsertGlobalPricing.mutateAsync({
         international_rate: globalInternationalRate,
         premium_rate: globalPremiumRate,
-        mobile_cost: NYBYTE_NATIONAL_TARIFFS.mobile,
-        landline_cost: NYBYTE_NATIONAL_TARIFFS.landline,
-        international_costs: tariffsToFlatMap(),
+        mobile_cost: ALFA_NATIONAL_TARIFFS.mobile,
+        landline_cost: ALFA_NATIONAL_TARIFFS.landline,
+        international_costs: alfaTariffsToFlatMap(),
       });
-      setGlobalMobileCost(NYBYTE_NATIONAL_TARIFFS.mobile);
-      setGlobalLandlineCost(NYBYTE_NATIONAL_TARIFFS.landline);
-      toast({ title: "Tariffe resettate al listino NYBYTE" });
+      setGlobalMobileCost(ALFA_NATIONAL_TARIFFS.mobile);
+      setGlobalLandlineCost(ALFA_NATIONAL_TARIFFS.landline);
+      toast({ title: "Tariffe resettate al listino ALFA" });
     } catch (e: any) {
       toast({ title: "Errore", description: e.message, variant: "destructive" });
     }
@@ -160,9 +161,9 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
   }, [assignments, selectedClientId]);
 
   const filteredTariffs = useMemo(() => {
-    if (!tariffSearch.trim()) return NYBYTE_INTERNATIONAL_TARIFFS;
+    if (!tariffSearch.trim()) return ALFA_INTERNATIONAL_TARIFFS;
     const q = tariffSearch.toLowerCase();
-    return NYBYTE_INTERNATIONAL_TARIFFS.filter(t => t.country.toLowerCase().includes(q));
+    return ALFA_INTERNATIONAL_TARIFFS.filter(t => t.country.toLowerCase().includes(q));
   }, [tariffSearch]);
 
   return (
@@ -283,22 +284,22 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
             <Card className="border-primary/30">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Tariffe Nazionali (costo operatore)</CardTitle>
-                  <Button variant="outline" size="sm" onClick={handleResetToNybyte} disabled={upsertGlobalPricing.isPending}>
-                    <RotateCcw className="h-4 w-4 mr-2" />Reset listino NYBYTE
+                  <CardTitle>Costi Operatore ALFA (nazionali)</CardTitle>
+                  <Button variant="outline" size="sm" onClick={handleResetToAlfa} disabled={upsertGlobalPricing.isPending}>
+                    <RotateCcw className="h-4 w-4 mr-2" />Reset listino ALFA
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium">Mobile €/min</label>
-                  <Input type="number" step="0.001" value={globalMobileCost} onChange={(e) => setGlobalMobileCost(parseFloat(e.target.value) || 0)} />
-                  <p className="text-xs text-muted-foreground mt-1">Default NYBYTE: {NYBYTE_NATIONAL_TARIFFS.mobile} €/min</p>
+                  <Input type="number" step="0.0001" value={globalMobileCost} onChange={(e) => setGlobalMobileCost(parseFloat(e.target.value) || 0)} />
+                  <p className="text-xs text-muted-foreground mt-1">Default ALFA: {ALFA_NATIONAL_TARIFFS.mobile} €/min</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Fisso €/min</label>
-                  <Input type="number" step="0.001" value={globalLandlineCost} onChange={(e) => setGlobalLandlineCost(parseFloat(e.target.value) || 0)} />
-                  <p className="text-xs text-muted-foreground mt-1">Default NYBYTE: {NYBYTE_NATIONAL_TARIFFS.landline} €/min</p>
+                  <Input type="number" step="0.0001" value={globalLandlineCost} onChange={(e) => setGlobalLandlineCost(parseFloat(e.target.value) || 0)} />
+                  <p className="text-xs text-muted-foreground mt-1">Default ALFA: {ALFA_NATIONAL_TARIFFS.landline} €/min</p>
                 </div>
                 <div className="flex items-end">
                   <Button onClick={handleSaveGlobalPricing} disabled={upsertGlobalPricing.isPending}>Salva tariffe operatore</Button>
@@ -309,7 +310,7 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Listino Internazionale NYBYTE</CardTitle>
+                  <CardTitle>Costi Operatore ALFA (internazionali)</CardTitle>
                   <div className="relative w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="Cerca paese..." value={tariffSearch} onChange={(e) => setTariffSearch(e.target.value)} className="pl-9" />
@@ -338,7 +339,7 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                   </Table>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  {NYBYTE_INTERNATIONAL_TARIFFS.length} paesi • Tariffazione al minuto • No tariffa di connessione • h24 7/7
+                  {ALFA_INTERNATIONAL_TARIFFS.length} paesi • Costi operatore ALFA • Tariffazione al secondo • IVA esclusa
                 </p>
               </CardContent>
             </Card>

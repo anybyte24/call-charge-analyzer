@@ -203,6 +203,8 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({
             // Calculate group totals for forfait
             const groupTotalSeconds = callers.reduce((s, c) => s + c.totalDuration, 0);
             const groupTotalMinutes = groupTotalSeconds / 60;
+            // forfaitMinutes = 0 means unlimited
+            const hasOverage = isForfait && forfaitMinutes > 0 && groupTotalMinutes > forfaitMinutes;
 
             return (
               <div key={groupName} className="space-y-2">
@@ -303,13 +305,12 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({
                   <div className="ml-8 p-3 bg-muted/50 rounded-lg text-sm">
                     <span className="font-medium">Totale da fatturare: </span>
                     <span className="font-bold text-primary">
-                      €{(monthlyFee + (groupTotalMinutes > forfaitMinutes
+                      €{(monthlyFee + (hasOverage
                         ? (() => {
                             const overageMin = groupTotalMinutes - forfaitMinutes;
                             const clientMobileRate = Number(cp?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
                             const clientLandlineRate = Number(cp?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
                             const clientIntlRate = Number(cp?.international_rate || 0) || Number(globalPricing?.international_rate || 0);
-                            // Weighted average from records
                             const clientNumbers = callers.map(c => c.callerNumber);
                             const clientRecs = records.filter(r => clientNumbers.includes(r.callerNumber));
                             let mobM = 0, landM = 0, intlM = 0;
@@ -328,7 +329,8 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({
                       )).toFixed(2)}
                     </span>
                     {monthlyFee > 0 && <span className="text-muted-foreground"> (canone €{monthlyFee.toFixed(2)})</span>}
-                    {groupTotalMinutes > forfaitMinutes && (
+                    {forfaitMinutes === 0 && <span className="text-muted-foreground"> (minuti illimitati)</span>}
+                    {hasOverage && (
                       <span className="text-destructive"> + esubero {Math.round(groupTotalMinutes - forfaitMinutes)} min</span>
                     )}
                   </div>

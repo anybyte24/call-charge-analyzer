@@ -303,40 +303,56 @@ const CallerAnalysisTable: React.FC<CallerAnalysisTableProps> = ({
                   );
                 })}
                 {/* Forfait summary for group */}
-                {isForfait && (
-                  <div className="ml-8 p-3 bg-muted/50 rounded-lg text-sm">
-                    <span className="font-medium">Totale da fatturare: </span>
-                    <span className="font-bold text-primary">
-                      €{(monthlyFee + (hasOverage
-                        ? (() => {
-                            const overageMin = groupTotalMinutes - forfaitMinutes;
-                            const clientMobileRate = Number(cp?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
-                            const clientLandlineRate = Number(cp?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
-                            const clientIntlRate = Number(cp?.international_rate || 0) || Number(globalPricing?.international_rate || 0);
-                            const clientNumbers = callers.map(c => c.callerNumber);
-                            const clientRecs = records.filter(r => clientNumbers.includes(r.callerNumber));
-                            let mobM = 0, landM = 0, intlM = 0;
-                            clientRecs.forEach(r => {
-                              const m = r.durationSeconds / 60;
-                              if (r.category.type === 'mobile') mobM += m;
-                              else if (r.category.type === 'international') intlM += m;
-                              else landM += m;
-                            });
-                            const tot = mobM + landM + intlM;
-                            return tot > 0
-                              ? overageMin * ((mobM/tot) * clientMobileRate + (landM/tot) * clientLandlineRate + (intlM/tot) * clientIntlRate)
-                              : overageMin * clientMobileRate;
-                          })()
-                        : 0
-                      )).toFixed(2)}
-                    </span>
-                    {monthlyFee > 0 && <span className="text-muted-foreground"> (canone €{monthlyFee.toFixed(2)})</span>}
-                    {forfaitMinutes === 0 && <span className="text-muted-foreground"> (minuti illimitati)</span>}
-                    {hasOverage && (
-                      <span className="text-destructive"> + esubero {Math.round(groupTotalMinutes - forfaitMinutes)} min</span>
-                    )}
-                  </div>
-                )}
+                {isForfait && (() => {
+                  const groupCost = callers.reduce((s, c) => 
+                    s + c.categories.reduce((cs, cat) => cs + (cat.cost || 0), 0), 0);
+                  const overageRevenue = hasOverage
+                    ? (() => {
+                        const overageMin = groupTotalMinutes - forfaitMinutes;
+                        const clientMobileRate = Number(cp?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
+                        const clientLandlineRate = Number(cp?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
+                        const clientIntlRate = Number(cp?.international_rate || 0) || Number(globalPricing?.international_rate || 0);
+                        const clientNumbers = callers.map(c => c.callerNumber);
+                        const clientRecs = records.filter(r => clientNumbers.includes(r.callerNumber));
+                        let mobM = 0, landM = 0, intlM = 0;
+                        clientRecs.forEach(r => {
+                          const m = r.durationSeconds / 60;
+                          if (r.category.type === 'mobile') mobM += m;
+                          else if (r.category.type === 'international') intlM += m;
+                          else landM += m;
+                        });
+                        const tot = mobM + landM + intlM;
+                        return tot > 0
+                          ? overageMin * ((mobM/tot) * clientMobileRate + (landM/tot) * clientLandlineRate + (intlM/tot) * clientIntlRate)
+                          : overageMin * clientMobileRate;
+                      })()
+                    : 0;
+                  const totalBill = monthlyFee + overageRevenue;
+                  const margin = totalBill - groupCost;
+                  const marginPct = totalBill > 0 ? (margin / totalBill) * 100 : 0;
+
+                  return (
+                    <div className="ml-8 p-4 bg-muted/50 rounded-lg text-sm space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-medium">Da fatturare: </span>
+                          <span className="font-bold text-primary">€{totalBill.toFixed(2)}</span>
+                          {monthlyFee > 0 && <span className="text-muted-foreground"> (canone €{monthlyFee.toFixed(2)})</span>}
+                          {forfaitMinutes === 0 && <span className="text-muted-foreground"> (minuti illimitati)</span>}
+                          {hasOverage && (
+                            <span className="text-destructive"> + esubero {Math.round(groupTotalMinutes - forfaitMinutes)} min (€{overageRevenue.toFixed(2)})</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6 text-xs border-t border-muted pt-2">
+                        <span>Costo operatore: <strong>€{groupCost.toFixed(2)}</strong></span>
+                        <span className={margin >= 0 ? 'text-green-600' : 'text-destructive'}>
+                          Margine: <strong>€{margin.toFixed(2)}</strong> ({marginPct.toFixed(1)}%)
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}

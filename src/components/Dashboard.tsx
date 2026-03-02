@@ -224,84 +224,155 @@ const Dashboard: React.FC<DashboardProps> = ({
     })).sort((a, b) => b.count - a.count);
   }, [summary, categoryRevenue]);
 
-  // Drill-down: compute per-called-number detail for selected macro category
+  // Drill-down: compute per-called-number detail from callerAnalysis (same source as cards)
   const drillDownData = React.useMemo(() => {
     if (!drillDownCategory) return [];
 
-    // Determine which record categories belong to this macro
-    const belongsToMacro = (catDesc: string, catType: string) => {
-      const cl = catDesc.toLowerCase();
-      if (drillDownCategory === 'Mobile') {
-        return catType === 'mobile' || cl === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => cl.includes(op));
-      }
-      if (drillDownCategory === 'Fisso') return cl === 'fisso' && catType === 'landline';
-      if (drillDownCategory === 'Numero Verde') return cl.includes('numero verde');
-      if (drillDownCategory === 'Numero Premium') return cl.includes('numero premium') || cl.includes('numero speciale');
-      // International: match by original summary category name
-      return catDesc === drillDownCategory;
-    };
-
-    // Compute selling rates for revenue calc
     const effRatesMap = new Map<string, { landline: number; mobile: number }>();
     EFFECTIVE_INTERNATIONAL_RATES.forEach(r => effRatesMap.set(r.country, { landline: r.landline, mobile: r.mobile }));
     const globalIntlRate = Number(globalPricing?.international_rate || 0);
     const globalPremRate = Number(globalPricing?.premium_rate || 0);
 
-    const numberMap = new Map<string, { number: string; calls: number; seconds: number; cost: number; revenue: number; category: string }>();
-    records.forEach(r => {
-      if (!belongsToMacro(r.category.description, r.category.type)) return;
+    // Determine which callerAnalysis sub-categories belong to this macro
+    const isMacroMatch = (catName: string) => {
+      const cl = catName.toLowerCase();
+      if (drillDownCategory === 'Mobile') {
+        return cl === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => cl.includes(op));
+      }
+      if (drillDownCategory === 'Fisso') return cl === 'fisso';
+      if (drillDownCategory === 'Numero Verde') return cl.includes('numero verde');
+      if (drillDownCategory === 'Numero Premium') return cl.includes('numero premium') || cl.includes('numero speciale');
+      return catName === drillDownCategory;
+    };
 
-      // Compute per-record revenue
-      const callerClient = numberToClientMap[r.callerNumber];
-      const cp = callerClient?.id ? clientPricing.find(p => p.client_id === callerClient.id) : null;
+    // Aggregate per caller (since we don't have per-called-number from callerAnalysis)
+    // We use records if available, but fall back to callerAnalysis summary
+    if (records.length > 0) {
+      const numberMap = new Map<string, { number: string; callerNumbers: Set<string>; calls: number; seconds: number; cost: number; revenue: number; category: string }>();
+      
+      records.forEach(r => {
+        // Check if this record's category matches the macro
+        const catDesc = r.category.description;
+        const catType = r.category.type;
+        const cl = catDesc.toLowerCase();
+        
+        let matches = false;
+        if (drillDownCategory === 'Mobile') {
+          matches = catType === 'mobile' || cl === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => cl.includes(op));
+        } else if (drillDownCategory === 'Fisso') {
+          matches = catType === 'landline';
+        } else if (drillDownCategory === 'Numero Verde') {
+          matches = cl.includes('numero verde');
+        } else if (drillDownCategory === 'Numero Premium') {
+          matches = cl.includes('numero premium') || cl.includes('numero speciale');
+        } else {
+          // International - check via generateSummary macro logic
+          const resolved = resolveCountryFromCategory(catDesc);
+          if (resolved) matches = catDesc === drillDownCategory || catDesc.startsWith(drillDownCategory);
+          else matches = catDesc === drillDownCategory;
+        }
+        
+        if (!matches) return;
+
+        // Compute revenue for this record
+        const callerClient = numberToClientMap[r.callerNumber];
+        const cp = callerClient?.id ? clientPricing.find(p => p.client_id === callerClient.id) : null;
+        const mobileRate = Number(cp?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
+        const landlineRate = Number(cp?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
+        const intlRate = Number(cp?.international_rate || 0) || globalIntlRate;
+        const premRate = Number(cp?.premium_rate || 0) || globalPremRate;
+
+        const min = r.durationSeconds / 60;
+        let rev = 0;
+        if (catType === 'mobile' || cl === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => cl.includes(op))) {
+          rev = min * mobileRate;
+        } else if (catType === 'landline' && !cl.includes('fisso -') && cl === 'fisso') {
+          rev = min * landlineRate;
+        } else if (cl.includes('numero verde')) {
+          rev = 0;
+        } else if (cl.includes('numero premium') || cl.includes('numero speciale')) {
+          rev = premRate > 0 ? min * premRate : (r.cost || 0);
+        } else {
+          const resolved = resolveCountryFromCategory(catDesc);
+          if (resolved) {
+            const eff = effRatesMap.get(resolved.countryEng);
+            if (eff) rev = min * (resolved.isMobile ? eff.mobile : eff.landline);
+            else rev = min * intlRate;
+          } else {
+            rev = min * intlRate;
+          }
+        }
+
+        const existing = numberMap.get(r.calledNumber);
+        if (existing) {
+          existing.calls++;
+          existing.seconds += r.durationSeconds;
+          existing.cost += r.cost || 0;
+          existing.revenue += rev;
+          existing.callerNumbers.add(r.callerNumber);
+        } else {
+          numberMap.set(r.calledNumber, {
+            number: r.calledNumber,
+            callerNumbers: new Set([r.callerNumber]),
+            calls: 1,
+            seconds: r.durationSeconds,
+            cost: r.cost || 0,
+            revenue: rev,
+            category: r.category.description,
+          });
+        }
+      });
+
+      return Array.from(numberMap.values())
+        .map(r => ({ ...r, callers: r.callerNumbers.size }))
+        .sort((a, b) => (a.revenue - a.cost) - (b.revenue - b.cost));
+    }
+
+    // Fallback: use callerAnalysis when records are not available
+    const result: { number: string; calls: number; seconds: number; cost: number; revenue: number; category: string; callers: number }[] = [];
+    callerAnalysis.forEach(ca => {
+      const clientInfo = numberToClientMap[ca.callerNumber];
+      const clientId = clientInfo?.id;
+      const cp = clientId ? clientPricing.find(p => p.client_id === clientId) : null;
+      if (cp?.forfait_only) return;
+
       const mobileRate = Number(cp?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
       const landlineRate = Number(cp?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
       const intlRate = Number(cp?.international_rate || 0) || globalIntlRate;
       const premRate = Number(cp?.premium_rate || 0) || globalPremRate;
 
-      const min = r.durationSeconds / 60;
-      const cl = r.category.description.toLowerCase();
-      let rev = 0;
-      if (r.category.type === 'mobile' || cl === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => cl.includes(op))) {
-        rev = min * mobileRate;
-      } else if (cl === 'fisso') {
-        rev = min * landlineRate;
-      } else if (cl.includes('numero verde')) {
-        rev = 0;
-      } else if (cl.includes('numero premium') || cl.includes('numero speciale')) {
-        rev = premRate > 0 ? min * premRate : (r.cost || 0);
-      } else {
-        const resolved = resolveCountryFromCategory(r.category.description);
-        if (resolved) {
-          const eff = effRatesMap.get(resolved.countryEng);
-          if (eff) rev = min * (resolved.isMobile ? eff.mobile : eff.landline);
-          else rev = min * intlRate;
-        } else {
-          rev = min * intlRate;
+      ca.categories.forEach(cat => {
+        if (!isMacroMatch(cat.category)) return;
+        const min = cat.totalSeconds / 60;
+        let rev = 0;
+        const cl = cat.category.toLowerCase();
+        if (cl === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => cl.includes(op))) rev = min * mobileRate;
+        else if (cl === 'fisso') rev = min * landlineRate;
+        else if (cl.includes('numero verde')) rev = 0;
+        else if (cl.includes('numero premium') || cl.includes('numero speciale')) rev = premRate > 0 ? min * premRate : (cat.cost || 0);
+        else {
+          const resolved = resolveCountryFromCategory(cat.category);
+          if (resolved) {
+            const eff = effRatesMap.get(resolved.countryEng);
+            if (eff) rev = min * (resolved.isMobile ? eff.mobile : eff.landline);
+            else rev = min * intlRate;
+          } else rev = min * intlRate;
         }
-      }
 
-      const existing = numberMap.get(r.calledNumber);
-      if (existing) {
-        existing.calls++;
-        existing.seconds += r.durationSeconds;
-        existing.cost += r.cost || 0;
-        existing.revenue += rev;
-      } else {
-        numberMap.set(r.calledNumber, {
-          number: r.calledNumber,
-          calls: 1,
-          seconds: r.durationSeconds,
-          cost: r.cost || 0,
+        result.push({
+          number: ca.callerNumber,
+          calls: cat.count,
+          seconds: cat.totalSeconds,
+          cost: cat.cost || 0,
           revenue: rev,
-          category: r.category.description,
+          category: `${cat.category} (chiamante)`,
+          callers: 1,
         });
-      }
+      });
     });
 
-    // Sort by margin (worst first)
-    return Array.from(numberMap.values()).sort((a, b) => (a.revenue - a.cost) - (b.revenue - b.cost));
-  }, [drillDownCategory, records, numberToClientMap, clientPricing, globalPricing]);
+    return result.sort((a, b) => (a.revenue - a.cost) - (b.revenue - b.cost));
+  }, [drillDownCategory, records, callerAnalysis, numberToClientMap, clientPricing, globalPricing]);
 
   const formatDuration = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -590,19 +661,53 @@ const Dashboard: React.FC<DashboardProps> = ({
               Dettaglio: {drillDownCategory}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              {drillDownData.length} numeri chiamati — ordinati per costo operatore decrescente
-            </p>
+          <div className="space-y-3">
+            {/* Summary totals */}
             {(() => {
-              const totalLoss = drillDownData.filter(r => r.revenue - r.cost < -0.001);
-              return totalLoss.length > 0 ? (
-                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive flex items-center gap-2">
-                  <span className="font-semibold">⚠️ {totalLoss.length} numeri in perdita</span>
-                  <span className="text-xs text-destructive/70">— evidenziati in rosso, ordinati dal peggiore</span>
-                </div>
-              ) : null;
+              const totCalls = drillDownData.reduce((s, r) => s + r.calls, 0);
+              const totCost = drillDownData.reduce((s, r) => s + r.cost, 0);
+              const totRev = drillDownData.reduce((s, r) => s + r.revenue, 0);
+              const totMargin = totRev - totCost;
+              const lossCount = drillDownData.filter(r => r.revenue - r.cost < -0.001).length;
+              const cardData = macroSummary.find(c => c.name === drillDownCategory);
+              const callsMismatch = cardData && totCalls !== cardData.count;
+              return (
+                <>
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="rounded-lg bg-muted/50 p-2">
+                      <div className="text-xs text-muted-foreground">Chiamate</div>
+                      <div className="font-bold text-sm">{totCalls.toLocaleString()}</div>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-2">
+                      <div className="text-xs text-muted-foreground">Costo Op.</div>
+                      <div className="font-bold text-sm">€{totCost.toFixed(2)}</div>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-2">
+                      <div className="text-xs text-muted-foreground">Ricavo</div>
+                      <div className="font-bold text-sm text-primary">€{totRev.toFixed(2)}</div>
+                    </div>
+                    <div className={`rounded-lg p-2 ${totMargin >= 0 ? 'bg-kpi-cost/10' : 'bg-destructive/10'}`}>
+                      <div className="text-xs text-muted-foreground">Margine</div>
+                      <div className={`font-bold text-sm ${totMargin >= 0 ? 'text-kpi-cost' : 'text-destructive'}`}>€{totMargin.toFixed(2)}</div>
+                    </div>
+                  </div>
+                  {callsMismatch && (
+                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-xs text-amber-700 flex items-center gap-2">
+                      ⚠️ La card mostra {cardData!.count} chiamate ma i records disponibili ne contengono {totCalls}. Prova a ricaricare il file per dati aggiornati.
+                    </div>
+                  )}
+                  {lossCount > 0 && (
+                    <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-2 text-xs text-destructive flex items-center gap-2">
+                      <span className="font-semibold">⚠️ {lossCount} {records.length > 0 ? 'numeri' : 'chiamanti'} in perdita</span>
+                      <span className="text-destructive/70">— evidenziati in rosso, ordinati dal peggiore</span>
+                    </div>
+                  )}
+                </>
+              );
             })()}
+            <p className="text-xs text-muted-foreground">
+              {drillDownData.length} {records.length > 0 ? 'numeri chiamati' : 'chiamanti'} — ordinati per margine crescente
+            </p>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-xs">
                 <thead>

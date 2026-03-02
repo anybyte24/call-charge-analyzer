@@ -61,6 +61,15 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				kpi: {
+					calls: 'hsl(var(--kpi-calls))',
+					duration: 'hsl(var(--kpi-duration))',
+					cost: 'hsl(var(--kpi-cost))',
+					callers: 'hsl(var(--kpi-callers))',
+					avg: 'hsl(var(--kpi-avg))',
+					margin: 'hsl(var(--kpi-margin))',
+					revenue: 'hsl(var(--kpi-revenue))',
 				}
 			},
 			borderRadius: {

@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity, Filter, Table, RefreshCw, TrendingDown } from 'lucide-react';
+import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity, Filter, Table, RefreshCw, TrendingDown, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
 import { CallSummary, CallerAnalysis, CallRecord } from '@/types/call-analysis';
 import CallAnalyticsCharts from './CallAnalyticsCharts';
 import HourlyDistributionChart from './HourlyDistributionChart';
@@ -11,7 +10,6 @@ import TopNumbersAnalysis from './TopNumbersAnalysis';
 import AdvancedFilters from './AdvancedFilters';
 import VirtualizedTable from './VirtualizedTable';
 import TooltipInfo, { KPITooltips } from './TooltipInfo';
-import { ResponsiveKPIGrid, ResponsiveContainer } from './ResponsiveLayout';
 import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 import ClientPricingSummary from './ClientPricingSummary';
 import { useClients } from '@/hooks/useClients';
@@ -108,30 +106,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'mobile': return 'from-blue-500 to-blue-600';
-      case 'fisso': return 'from-green-500 to-green-600';
-      case 'numero speciale': 
-      case 'numero verde':
-      case 'numero premium': return 'from-red-500 to-red-600';
-      case 'usa/canada':
-      case 'regno unito':
-      case 'francia':
-      case 'germania':
-      case 'spagna':
-      case 'svizzera':
-      case 'austria':
-      case 'cina':
-      case 'giappone':
-      case 'india':
-      case 'brasile':
-      case 'russia':
-      case 'internazionale sconosciuto': return 'from-purple-500 to-purple-600';
-      default: return 'from-gray-500 to-gray-600';
-    }
-  };
-
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'mobile': return '📱';
@@ -156,207 +130,337 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
+  // Calculate per-category revenue for the summary cards
+  const categoryRevenue = React.useMemo(() => {
+    const revMap = new Map<string, number>();
+    
+    callerAnalysis.forEach(ca => {
+      const clientInfo = numberToClientMap[ca.callerNumber];
+      const clientId = clientInfo?.id;
+      const cp = clientId ? clientPricing.find(p => p.client_id === clientId) : null;
+      if (cp?.forfait_only) return; // skip forfait for per-category rev
+      
+      const effRatesMap = new Map<string, { landline: number; mobile: number }>();
+      EFFECTIVE_INTERNATIONAL_RATES.forEach(r => effRatesMap.set(r.country, { landline: r.landline, mobile: r.mobile }));
+      const globalIntlRate = Number(globalPricing?.international_rate || 0);
+      const globalPremRate = Number(globalPricing?.premium_rate || 0);
+      const mobileRate = Number(cp?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
+      const landlineRate = Number(cp?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
+      const intlRate = Number(cp?.international_rate || 0) || globalIntlRate;
+      const premRate = Number(cp?.premium_rate || 0) || globalPremRate;
+
+      ca.categories.forEach(cat => {
+        const min = cat.totalSeconds / 60;
+        const catLower = cat.category.toLowerCase();
+        let rev = 0;
+
+        // Determine macro category name
+        let macroName = cat.category;
+        if (catLower === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => catLower.includes(op))) {
+          macroName = 'Mobile';
+          rev = min * mobileRate;
+        } else if (catLower === 'fisso') {
+          macroName = 'Fisso';
+          rev = min * landlineRate;
+        } else if (catLower.includes('numero verde')) {
+          macroName = 'Numero Verde';
+          rev = 0;
+        } else if (catLower.includes('numero premium') || catLower.includes('numero speciale')) {
+          macroName = 'Numero Premium';
+          rev = premRate > 0 ? min * premRate : (cat.cost || 0);
+        } else {
+          const resolved = resolveCountryFromCategory(cat.category);
+          if (resolved) {
+            const eff = effRatesMap.get(resolved.countryEng);
+            if (eff) rev = min * (resolved.isMobile ? eff.mobile : eff.landline);
+            else rev = min * intlRate;
+          } else {
+            rev = min * landlineRate;
+          }
+        }
+
+        revMap.set(macroName, (revMap.get(macroName) || 0) + rev);
+      });
+    });
+
+    return revMap;
+  }, [callerAnalysis, numberToClientMap, clientPricing, globalPricing]);
+
+  // Group summary into macro categories for display
+  const macroSummary = React.useMemo(() => {
+    const map = new Map<string, { count: number; totalSeconds: number; cost: number }>();
+    
+    summary.forEach(cat => {
+      const catLower = cat.category.toLowerCase();
+      let macro = cat.category;
+      
+      if (catLower === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => catLower.includes(op))) {
+        macro = 'Mobile';
+      } else if (catLower === 'fisso' || (!catLower.includes('numero') && !catLower.includes('speciale') && !resolveCountryFromCategory(cat.category))) {
+        macro = 'Fisso';
+      } else if (catLower.includes('numero verde')) {
+        macro = 'Numero Verde';
+      } else if (catLower.includes('numero premium') || catLower.includes('numero speciale')) {
+        macro = 'Numero Premium';
+      }
+      // else keep original name (international countries)
+
+      const existing = map.get(macro) || { count: 0, totalSeconds: 0, cost: 0 };
+      existing.count += cat.count;
+      existing.totalSeconds += cat.totalSeconds;
+      existing.cost += cat.cost || 0;
+      map.set(macro, existing);
+    });
+
+    return Array.from(map.entries()).map(([name, data]) => ({
+      name,
+      ...data,
+      revenue: categoryRevenue.get(name) || 0,
+      icon: getCategoryIcon(name),
+    })).sort((a, b) => b.count - a.count);
+  }, [summary, categoryRevenue]);
+
+  const formatDuration = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const getCategoryBarColor = (name: string) => {
+    const n = name.toLowerCase();
+    if (n === 'mobile') return 'bg-kpi-calls';
+    if (n === 'fisso') return 'bg-kpi-cost';
+    if (n.includes('premium') || n.includes('speciale')) return 'bg-destructive';
+    if (n.includes('verde')) return 'bg-kpi-margin';
+    return 'bg-kpi-callers';
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white p-8 rounded-2xl shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-white/20 rounded-xl">
+      <div className="relative overflow-hidden rounded-2xl p-8 text-primary-foreground"
+        style={{ background: 'linear-gradient(135deg, hsl(var(--gradient-hero-from)), hsl(var(--gradient-hero-to)))' }}>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3QgZmlsbD0idXJsKCNhKSIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIvPjwvc3ZnPg==')] opacity-50"></div>
+        <div className="relative flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-white/15 rounded-xl backdrop-blur-sm">
               <BarChart3 className="h-6 w-6" />
             </div>
-            <h1 className="text-2xl font-bold">Analisi Chiamate Telefoniche</h1>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Analisi Chiamate Telefoniche</h1>
+              <p className="text-white/70 text-sm mt-0.5">File: {fileName}</p>
+            </div>
           </div>
           <Button
             onClick={handleRecalculateCosts}
             disabled={recalculateLoading}
-            className="bg-white/20 hover:bg-white/30 text-white border border-white/20 backdrop-blur-sm"
+            variant="secondary"
+            className="bg-white/15 hover:bg-white/25 text-white border-white/20 backdrop-blur-sm"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${recalculateLoading ? 'animate-spin' : ''}`} />
             {recalculateLoading ? 'Ricalcolando...' : 'Ricalcola Costi'}
           </Button>
         </div>
-        <p className="text-blue-100 text-lg">File: {fileName}</p>
-        <div className="mt-4 flex items-center space-x-6 text-sm">
-          <div className="flex items-center space-x-2">
+        <div className="relative flex items-center gap-6 text-sm text-white/80">
+          <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-white rounded-full"></div>
-            <span>Record processati: {totalRecords}</span>
+            <span>Record: <strong className="text-white">{totalRecords.toLocaleString()}</strong></span>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
-            <span>Chiamanti unici: {callerAnalysis.length}</span>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-white/60 rounded-full"></div>
+            <span>Chiamanti: <strong className="text-white">{callerAnalysis.length}</strong></span>
           </div>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <ResponsiveContainer>
-        <ResponsiveKPIGrid>
-          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center space-x-1">
-                <span>Totale Chiamate</span>
-                <TooltipInfo content={KPITooltips.totalCalls} />
-              </CardTitle>
-              <Phone className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{totalCalls.toLocaleString()}</div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                <div className="bg-blue-600 h-1.5 rounded-full" style={{width: '100%'}}></div>
+      {/* KPI Cards - Row 1: Operativo */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {/* Totale Chiamate */}
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Chiamate</span>
+              <div className="p-1.5 rounded-lg bg-kpi-calls/10">
+                <Phone className="h-3.5 w-3.5 text-kpi-calls" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="text-2xl font-bold text-foreground">{totalCalls.toLocaleString()}</div>
+            <div className="mt-2 h-1 rounded-full bg-muted overflow-hidden">
+              <div className="h-full rounded-full bg-kpi-calls" style={{ width: '100%' }} />
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center space-x-1">
-                <span>Durata Totale</span>
-                <TooltipInfo content={KPITooltips.totalDuration} />
-              </CardTitle>
-              <Clock className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{totalHours}h {totalMinutes}m</div>
-              <p className="text-xs text-gray-500 mt-1">
-                {Math.floor(totalDuration / 60)} minuti totali
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center space-x-1">
-                <span>Costo Totale</span>
-                <TooltipInfo content={KPITooltips.totalCost} />
-              </CardTitle>
-              <Euro className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">€{totalCost.toFixed(2)}</div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                <div className="bg-green-600 h-1.5 rounded-full" style={{width: '85%'}}></div>
+        {/* Durata Totale */}
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Durata</span>
+              <div className="p-1.5 rounded-lg bg-kpi-duration/10">
+                <Clock className="h-3.5 w-3.5 text-kpi-duration" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="text-2xl font-bold text-foreground">{totalHours}h {totalMinutes}m</div>
+            <p className="text-xs text-muted-foreground mt-1">{Math.floor(totalDuration / 60).toLocaleString()} min</p>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center space-x-1">
-                <span>Numeri Chiamanti</span>
-                <TooltipInfo content={KPITooltips.uniqueCallers} />
-              </CardTitle>
-              <Users className="h-4 w-4 text-indigo-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-indigo-600">{callerAnalysis.length}</div>
-              <p className="text-xs text-gray-500 mt-1">Numeri unici</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center space-x-1">
-                <span>Costo Medio</span>
-                <TooltipInfo content={KPITooltips.averageCost} />
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                €{totalCalls > 0 ? (totalCost / totalCalls).toFixed(3) : '0.000'}
+        {/* Costo Operatore */}
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Costo Op.</span>
+              <div className="p-1.5 rounded-lg bg-kpi-cost/10">
+                <Euro className="h-3.5 w-3.5 text-kpi-cost" />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Per chiamata</p>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="text-2xl font-bold text-foreground">€{totalCost.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">€{totalCalls > 0 ? (totalCost / totalCalls).toFixed(3) : '0.000'}/chiamata</p>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center space-x-1">
-                <span>Margine Totale</span>
-              </CardTitle>
-              <TrendingDown className={`h-4 w-4 ${totalMargin >= 0 ? 'text-green-600' : 'text-red-600'}`} />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${totalMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                €{totalMargin.toFixed(2)}
+        {/* Ricavo */}
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Ricavo</span>
+              <div className="p-1.5 rounded-lg bg-kpi-revenue/10">
+                <Wallet className="h-3.5 w-3.5 text-kpi-revenue" />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Ricavo €{totalRevenue.toFixed(2)}</p>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="text-2xl font-bold text-foreground">€{totalRevenue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Da fatturare</p>
+          </CardContent>
+        </Card>
 
-          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium flex items-center space-x-1">
-                <span>Margine %</span>
-              </CardTitle>
-              <Activity className="h-4 w-4 text-indigo-600" />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${marginPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {marginPct.toFixed(1)}%
+        {/* Chiamanti */}
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Chiamanti</span>
+              <div className="p-1.5 rounded-lg bg-kpi-callers/10">
+                <Users className="h-3.5 w-3.5 text-kpi-callers" />
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                <div className={`${marginPct >= 0 ? 'bg-green-600' : 'bg-red-600'} h-1.5 rounded-full`} style={{width: `${Math.min(Math.abs(marginPct), 100)}%`}}></div>
-              </div>
-            </CardContent>
-          </Card>
-        </ResponsiveKPIGrid>
-      </ResponsiveContainer>
+            </div>
+            <div className="text-2xl font-bold text-foreground">{callerAnalysis.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Numeri unici</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Tabs for different views */}
+      {/* KPI Cards - Row 2: Finanziario */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Margine Totale */}
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-xl ${totalMargin >= 0 ? 'bg-kpi-cost/10' : 'bg-destructive/10'}`}>
+                {totalMargin >= 0
+                  ? <ArrowUpRight className="h-5 w-5 text-kpi-cost" />
+                  : <ArrowDownRight className="h-5 w-5 text-destructive" />}
+              </div>
+              <div className="flex-1">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Margine Totale</span>
+                <div className={`text-2xl font-bold ${totalMargin >= 0 ? 'text-kpi-cost' : 'text-destructive'}`}>
+                  €{totalMargin.toFixed(2)}
+                </div>
+              </div>
+              <div className="text-right text-sm text-muted-foreground">
+                <div>Ricavo <strong className="text-foreground">€{totalRevenue.toFixed(2)}</strong></div>
+                <div>Costo <strong className="text-foreground">€{totalCost.toFixed(2)}</strong></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Margine % */}
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-xl ${marginPct >= 0 ? 'bg-kpi-cost/10' : 'bg-destructive/10'}`}>
+                <Activity className={`h-5 w-5 ${marginPct >= 0 ? 'text-kpi-cost' : 'text-destructive'}`} />
+              </div>
+              <div className="flex-1">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Margine %</span>
+                <div className={`text-2xl font-bold ${marginPct >= 0 ? 'text-kpi-cost' : 'text-destructive'}`}>
+                  {marginPct.toFixed(1)}%
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${marginPct >= 0 ? 'bg-kpi-cost' : 'bg-destructive'}`}
+                    style={{ width: `${Math.min(Math.abs(marginPct), 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs */}
       <Tabs defaultValue="summary" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7 bg-white/70 backdrop-blur-sm border shadow-lg">
-          <TabsTrigger value="summary">Riepilogo</TabsTrigger>
-          <TabsTrigger value="charts">Grafici</TabsTrigger>
-          <TabsTrigger value="hourly">Distribuzione</TabsTrigger>
-          <TabsTrigger value="numbers">Numeri</TabsTrigger>
-          <TabsTrigger value="clients">Clienti</TabsTrigger>
-          <TabsTrigger value="filters">Filtri</TabsTrigger>
-          <TabsTrigger value="table">Tabella</TabsTrigger>
+        <TabsList className="bg-card border shadow-sm h-11 p-1 gap-0.5">
+          <TabsTrigger value="summary" className="text-xs sm:text-sm">Riepilogo</TabsTrigger>
+          <TabsTrigger value="charts" className="text-xs sm:text-sm">Grafici</TabsTrigger>
+          <TabsTrigger value="hourly" className="text-xs sm:text-sm">Distribuzione</TabsTrigger>
+          <TabsTrigger value="numbers" className="text-xs sm:text-sm">Numeri</TabsTrigger>
+          <TabsTrigger value="clients" className="text-xs sm:text-sm">Clienti</TabsTrigger>
+          <TabsTrigger value="filters" className="text-xs sm:text-sm">Filtri</TabsTrigger>
+          <TabsTrigger value="table" className="text-xs sm:text-sm">Tabella</TabsTrigger>
         </TabsList>
 
         <TabsContent value="summary" className="space-y-4">
-          {/* Category Summary */}
-          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="h-5 w-5" />
-                <span>Riepilogo per Categoria</span>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Riepilogo per Categoria
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {summary.map((category, index) => (
-                  <div key={index} className="group relative overflow-hidden rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300">
-                    <div className={`absolute inset-0 bg-gradient-to-br ${getCategoryColor(category.category)} opacity-5 group-hover:opacity-10 transition-opacity`}></div>
-                    <div className="relative">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {macroSummary.map((cat, index) => {
+                  const margin = cat.revenue - cat.cost;
+                  const pct = cat.count / totalCalls * 100;
+                  return (
+                    <div key={index} className="group rounded-xl border bg-card p-5 hover:shadow-md transition-all">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-2xl">{getCategoryIcon(category.category)}</span>
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xl">{cat.icon}</span>
                           <div>
-                            <h3 className="font-semibold text-gray-900">{category.category}</h3>
-                            <p className="text-sm text-gray-500">{category.count} chiamate</p>
+                            <h3 className="font-semibold text-sm text-card-foreground">{cat.name}</h3>
+                            <p className="text-xs text-muted-foreground">{cat.count.toLocaleString()} chiamate · {pct.toFixed(1)}%</p>
                           </div>
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <div className={`w-full bg-gray-200 rounded-full h-2`}>
-                          <div 
-                            className={`bg-gradient-to-r ${getCategoryColor(category.category)} h-2 rounded-full transition-all duration-500`}
-                            style={{width: `${Math.min((category.count / totalCalls) * 100, 100)}%`}}
-                          ></div>
+                      <div className="h-1.5 rounded-full bg-muted mb-3 overflow-hidden">
+                        <div className={`h-full rounded-full ${getCategoryBarColor(cat.name)} transition-all`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Durata</span>
+                          <p className="font-semibold text-card-foreground mt-0.5">{formatDuration(cat.totalSeconds)}</p>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <p className="text-sm font-medium text-gray-700">{category.formattedDuration}</p>
-                          <p className="text-lg font-bold text-green-600">
-                            €{category.cost?.toFixed(2) || '0.00'}
-                          </p>
+                        <div>
+                          <span className="text-muted-foreground">Costo Op.</span>
+                          <p className="font-semibold text-card-foreground mt-0.5">€{cat.cost.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Ricavo</span>
+                          <p className="font-semibold text-primary mt-0.5">€{cat.revenue.toFixed(2)}</p>
                         </div>
                       </div>
+                      {cat.revenue > 0 && (
+                        <div className={`mt-2 pt-2 border-t text-xs ${margin >= 0 ? 'text-kpi-cost' : 'text-destructive'}`}>
+                          Margine: €{margin.toFixed(2)} ({cat.revenue > 0 ? ((margin / cat.revenue) * 100).toFixed(0) : 0}%)
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

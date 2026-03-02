@@ -25,7 +25,7 @@ const Index = () => {
   const [unknownNumbers, setUnknownNumbers] = useState<string[]>([]);
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const availableCallerNumbers = useMemo(() => currentSession ? Array.from(new Set(currentSession.callerAnalysis.map(c => c.callerNumber))) : [], [currentSession]);
-  const { numberToClientMap } = useClients();
+  const { numberToClientMap, clientPricing, globalPricing } = useClients();
 
   // Load sessions from Supabase on mount
   useEffect(() => {
@@ -295,7 +295,13 @@ const Index = () => {
 
               <TabsContent value="callers" className="mt-0">
                 {currentSession ? (
-                  <CallerAnalysisTable callerAnalysis={currentSession.callerAnalysis} numberToClient={numberToClientMap} />
+                  <CallerAnalysisTable
+                    callerAnalysis={currentSession.callerAnalysis}
+                    numberToClient={numberToClientMap}
+                    clientPricing={clientPricing}
+                    globalPricing={globalPricing}
+                    records={currentRecords}
+                  />
                 ) : (
                   <div className="text-center py-12 bg-white/50 backdrop-blur-sm rounded-2xl border shadow-sm">
                     <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />

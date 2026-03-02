@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity, Filter, Table, RefreshCw } from 'lucide-react';
+import { Phone, Clock, TrendingUp, Users, Euro, BarChart3, PieChart, Activity, Filter, Table, RefreshCw, TrendingDown } from 'lucide-react';
 import { CallSummary, CallerAnalysis, CallRecord } from '@/types/call-analysis';
 import CallAnalyticsCharts from './CallAnalyticsCharts';
 import HourlyDistributionChart from './HourlyDistributionChart';
@@ -14,6 +14,9 @@ import TooltipInfo, { KPITooltips } from './TooltipInfo';
 import { ResponsiveKPIGrid, ResponsiveContainer } from './ResponsiveLayout';
 import { useAnalysisStorage } from '@/hooks/useAnalysisStorage';
 import ClientPricingSummary from './ClientPricingSummary';
+import { useClients } from '@/hooks/useClients';
+import { EFFECTIVE_NATIONAL_RATES, EFFECTIVE_INTERNATIONAL_RATES } from '@/utils/effective-selling-rates';
+import { resolveCountryFromCategory } from '@/utils/country-name-mapping';
 
 
 interface DashboardProps {
@@ -31,6 +34,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   fileName,
   records
 }) => {
+  const { numberToClientMap, clientPricing, globalPricing } = useClients();
   const [filteredRecords, setFilteredRecords] = React.useState<CallRecord[]>(records);
   const { recalculateCosts, loading: recalculateLoading } = useAnalysisStorage();
   const totalCalls = summary.reduce((sum, cat) => sum + cat.count, 0);
@@ -38,6 +42,62 @@ const Dashboard: React.FC<DashboardProps> = ({
   const totalCost = summary.reduce((sum, cat) => sum + (cat.cost || 0), 0);
   const totalHours = Math.floor(totalDuration / 3600);
   const totalMinutes = Math.floor((totalDuration % 3600) / 60);
+
+  // Calculate total revenue from client pricing
+  const { totalRevenue, totalMargin, marginPct } = React.useMemo(() => {
+    const effRatesMap = new Map<string, { landline: number; mobile: number }>();
+    EFFECTIVE_INTERNATIONAL_RATES.forEach(r => effRatesMap.set(r.country, { landline: r.landline, mobile: r.mobile }));
+    const globalIntlRate = Number(globalPricing?.international_rate || 0);
+    const globalPremRate = Number(globalPricing?.premium_rate || 0);
+
+    let rev = 0;
+    callerAnalysis.forEach(ca => {
+      const clientInfo = numberToClientMap[ca.callerNumber];
+      const clientId = clientInfo?.id;
+      const cp = clientId ? clientPricing.find(p => p.client_id === clientId) : null;
+      const mobileRate = Number(cp?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
+      const landlineRate = Number(cp?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
+      const intlRate = Number(cp?.international_rate || 0) || globalIntlRate;
+      const premRate = Number(cp?.premium_rate || 0) || globalPremRate;
+      const forfaitOnly = cp?.forfait_only === true;
+
+      if (forfaitOnly) {
+        rev += Number(cp?.monthly_flat_fee || 0);
+        return;
+      }
+
+      ca.categories.forEach(cat => {
+        const min = cat.totalSeconds / 60;
+        const catLower = cat.category.toLowerCase();
+        const isMobile = catLower === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => catLower.includes(op));
+        const isLandline = catLower === 'fisso';
+        const isVerde = catLower.includes('numero verde');
+        const isPremium = catLower.includes('numero premium') || catLower.includes('numero speciale');
+
+        if (isMobile) rev += min * mobileRate;
+        else if (isLandline) rev += min * landlineRate;
+        else if (isVerde) { /* no charge */ }
+        else if (isPremium) rev += min * premRate;
+        else {
+          const resolved = resolveCountryFromCategory(cat.category);
+          if (resolved) {
+            const eff = effRatesMap.get(resolved.countryEng);
+            if (eff) rev += min * (resolved.isMobile ? eff.mobile : eff.landline);
+            else rev += min * intlRate;
+          } else {
+            rev += min * landlineRate;
+          }
+        }
+      });
+
+      // Add flat fee if any (non-forfait)
+      if (Number(cp?.monthly_flat_fee || 0) > 0) rev += Number(cp!.monthly_flat_fee);
+    });
+
+    const margin = rev - totalCost;
+    const pct = rev > 0 ? (margin / rev) * 100 : 0;
+    return { totalRevenue: rev, totalMargin: margin, marginPct: pct };
+  }, [callerAnalysis, numberToClientMap, clientPricing, globalPricing, totalCost]);
   
 
   const handleRecalculateCosts = async () => {
@@ -207,6 +267,38 @@ const Dashboard: React.FC<DashboardProps> = ({
                 €{totalCalls > 0 ? (totalCost / totalCalls).toFixed(3) : '0.000'}
               </div>
               <p className="text-xs text-gray-500 mt-1">Per chiamata</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium flex items-center space-x-1">
+                <span>Margine Totale</span>
+              </CardTitle>
+              <TrendingDown className={`h-4 w-4 ${totalMargin >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${totalMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                €{totalMargin.toFixed(2)}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Ricavo €{totalRevenue.toFixed(2)}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-sm border shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium flex items-center space-x-1">
+                <span>Margine %</span>
+              </CardTitle>
+              <Activity className="h-4 w-4 text-indigo-600" />
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${marginPct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {marginPct.toFixed(1)}%
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                <div className={`${marginPct >= 0 ? 'bg-green-600' : 'bg-red-600'} h-1.5 rounded-full`} style={{width: `${Math.min(Math.abs(marginPct), 100)}%`}}></div>
+              </div>
             </CardContent>
           </Card>
         </ResponsiveKPIGrid>

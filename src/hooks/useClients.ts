@@ -195,7 +195,7 @@ export const useClients = () => {
           premium_rate: premium_rate ?? 0,
           forfait_minutes: forfait_minutes ?? 0,
           forfait_only: forfait_only ?? false,
-        } as any, { onConflict: "user_id,client_id" });
+        }, { onConflict: "user_id,client_id" });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["client_pricing"] }),

@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useClients } from '@/hooks/useClients';
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { CallerAnalysis } from '@/types/call-analysis';
-import { NYBYTE_NATIONAL_TARIFFS } from '@/data/nybyte-tariffs';
+import { ALFA_NATIONAL_TARIFFS } from '@/data/alfa-operator-tariffs';
 
 interface ClientPricingSummaryProps {
   callerAnalysis: CallerAnalysis[];
@@ -37,9 +37,9 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
     const globalIntlSellingRate = Number(globalPricing?.international_rate || 0);
     const globalPremiumSellingRate = Number(globalPricing?.premium_rate || 0);
     
-    // Tariffe COSTO OPERATORE (dal listino NYBYTE o personalizzate)
-    const operatorMobileCost = Number(globalPricing?.mobile_cost || NYBYTE_NATIONAL_TARIFFS.mobile);
-    const operatorLandlineCost = Number(globalPricing?.landline_cost || NYBYTE_NATIONAL_TARIFFS.landline);
+    // Tariffe COSTO OPERATORE ALFA (reali)
+    const operatorMobileCost = Number(globalPricing?.mobile_cost || ALFA_NATIONAL_TARIFFS.mobile);
+    const operatorLandlineCost = Number(globalPricing?.landline_cost || ALFA_NATIONAL_TARIFFS.landline);
 
     callerAnalysis.forEach((ca) => {
       const clientInfo = numberToClientMap[ca.callerNumber];

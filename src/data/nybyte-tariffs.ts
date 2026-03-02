@@ -1,5 +1,7 @@
 /**
- * Listino NYBYTE - Tariffe operatore per paese
+ * Listino NYBYTE - Tariffe di VENDITA ai clienti
+ * Questi sono i prezzi che addebiti ai tuoi clienti, NON i tuoi costi operatore.
+ * Per i costi operatore reali, vedi alfa-operator-tariffs.ts
  * Valuta: EUR / MIN
  * No tariffa di connessione, tariffazione al minuto, h24 7/7
  */

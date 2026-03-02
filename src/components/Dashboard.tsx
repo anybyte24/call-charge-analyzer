@@ -132,20 +132,22 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  // Calculate per-category revenue for the summary cards
-  const categoryRevenue = React.useMemo(() => {
+  // Calculate per-category revenue AND forfait cost exclusion for the summary cards
+  const { categoryRevenueMap, forfaitCostMap } = React.useMemo(() => {
     const revMap = new Map<string, number>();
+    const fCostMap = new Map<string, number>(); // cost of forfait callers per macro category
     
+    const effRatesMap = new Map<string, { landline: number; mobile: number }>();
+    EFFECTIVE_INTERNATIONAL_RATES.forEach(r => effRatesMap.set(r.country, { landline: r.landline, mobile: r.mobile }));
+    const globalIntlRate = Number(globalPricing?.international_rate || 0);
+    const globalPremRate = Number(globalPricing?.premium_rate || 0);
+
     callerAnalysis.forEach(ca => {
       const clientInfo = numberToClientMap[ca.callerNumber];
       const clientId = clientInfo?.id;
       const cp = clientId ? clientPricing.find(p => p.client_id === clientId) : null;
-      if (cp?.forfait_only) return; // skip forfait for per-category rev
+      const isForfait = cp?.forfait_only === true;
       
-      const effRatesMap = new Map<string, { landline: number; mobile: number }>();
-      EFFECTIVE_INTERNATIONAL_RATES.forEach(r => effRatesMap.set(r.country, { landline: r.landline, mobile: r.mobile }));
-      const globalIntlRate = Number(globalPricing?.international_rate || 0);
-      const globalPremRate = Number(globalPricing?.premium_rate || 0);
       const mobileRate = Number(cp?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
       const landlineRate = Number(cp?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
       const intlRate = Number(cp?.international_rate || 0) || globalIntlRate;
@@ -156,7 +158,6 @@ const Dashboard: React.FC<DashboardProps> = ({
         const catLower = cat.category.toLowerCase();
         let rev = 0;
 
-        // Determine macro category name
         let macroName = cat.category;
         if (catLower === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => catLower.includes(op))) {
           macroName = 'Mobile';
@@ -171,24 +172,30 @@ const Dashboard: React.FC<DashboardProps> = ({
           macroName = 'Numero Premium';
           rev = premRate > 0 ? min * premRate : (cat.cost || 0);
         } else {
-          // International or unrecognized
           const resolved = resolveCountryFromCategory(cat.category);
           if (resolved) {
             const eff = effRatesMap.get(resolved.countryEng);
             if (eff) rev = min * (resolved.isMobile ? eff.mobile : eff.landline);
             else rev = min * intlRate;
           } else {
-            // NOT Fisso — keep as its own category (unrecognized international)
             rev = min * intlRate;
           }
         }
 
-        revMap.set(macroName, (revMap.get(macroName) || 0) + rev);
+        if (isForfait) {
+          // Track forfait cost to exclude from margin calc
+          fCostMap.set(macroName, (fCostMap.get(macroName) || 0) + (cat.cost || 0));
+        } else {
+          revMap.set(macroName, (revMap.get(macroName) || 0) + rev);
+        }
       });
     });
 
-    return revMap;
+    return { categoryRevenueMap: revMap, forfaitCostMap: fCostMap };
   }, [callerAnalysis, numberToClientMap, clientPricing, globalPricing]);
+
+  // Alias for backward compat
+  const categoryRevenue = categoryRevenueMap;
 
   // Group summary into macro categories for display
   const macroSummary = React.useMemo(() => {
@@ -216,12 +223,17 @@ const Dashboard: React.FC<DashboardProps> = ({
       map.set(macro, existing);
     });
 
-    return Array.from(map.entries()).map(([name, data]) => ({
-      name,
-      ...data,
-      revenue: categoryRevenue.get(name) || 0,
-      icon: getCategoryIcon(name),
-    })).sort((a, b) => b.count - a.count);
+    return Array.from(map.entries()).map(([name, data]) => {
+      const forfaitCost = forfaitCostMap.get(name) || 0;
+      return {
+        name,
+        ...data,
+        costExForfait: data.cost - forfaitCost, // cost excluding forfait callers
+        forfaitCost,
+        revenue: categoryRevenue.get(name) || 0,
+        icon: getCategoryIcon(name),
+      };
+    }).sort((a, b) => b.count - a.count);
   }, [summary, categoryRevenue]);
 
   // Drill-down: compute per-called-number detail from callerAnalysis (same source as cards)
@@ -248,7 +260,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     // Aggregate per caller (since we don't have per-called-number from callerAnalysis)
     // We use records if available, but fall back to callerAnalysis summary
     if (records.length > 0) {
-      const numberMap = new Map<string, { number: string; callerNumbers: Set<string>; calls: number; seconds: number; cost: number; revenue: number; category: string; rateUsed: number; clientName: string }>();
+      const numberMap = new Map<string, { number: string; callerNumbers: Set<string>; calls: number; seconds: number; cost: number; revenue: number; category: string; rateUsed: number; clientName: string; isForfait: boolean }>();
       
       records.forEach(r => {
         const catDesc = r.category.description;
@@ -275,6 +287,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         // Compute revenue for this record
         const callerClient = numberToClientMap[r.callerNumber];
         const cp = callerClient?.id ? clientPricing.find(p => p.client_id === callerClient.id) : null;
+        const isForfait = cp?.forfait_only === true;
         const mobileRate = Number(cp?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
         const landlineRate = Number(cp?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
         const intlRate = Number(cp?.international_rate || 0) || globalIntlRate;
@@ -283,8 +296,12 @@ const Dashboard: React.FC<DashboardProps> = ({
         const min = r.durationSeconds / 60;
         let rev = 0;
         let rateUsed = 0;
-        
-        if (catType === 'mobile' || cl === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => cl.includes(op))) {
+
+        if (isForfait) {
+          // Forfait: no per-minute revenue, mark as forfait
+          rateUsed = -1; // sentinel
+          rev = 0;
+        } else if (catType === 'mobile' || cl === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => cl.includes(op))) {
           rateUsed = mobileRate;
           rev = min * mobileRate;
         } else if (catType === 'landline') {
@@ -326,6 +343,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           if (clientLabel && !existing.clientName.includes(clientLabel)) {
             existing.clientName = existing.clientName ? `${existing.clientName}, ${clientLabel}` : clientLabel;
           }
+          if (isForfait) existing.isForfait = true;
         } else {
           numberMap.set(r.calledNumber, {
             number: r.calledNumber,
@@ -337,6 +355,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             category: r.category.description,
             rateUsed,
             clientName: clientLabel,
+            isForfait,
           });
         }
       });
@@ -595,8 +614,9 @@ const Dashboard: React.FC<DashboardProps> = ({
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {macroSummary.map((cat, index) => {
-                  const margin = cat.revenue - cat.cost;
+                  const margin = cat.revenue - cat.costExForfait;
                   const pct = cat.count / totalCalls * 100;
+                  const hasForfait = cat.forfaitCost > 0.001;
                   return (
                     <div key={index} className="group rounded-xl border bg-card p-5 hover:shadow-md transition-all cursor-pointer" onClick={() => setDrillDownCategory(cat.name)}>
                       <div className="flex items-center justify-between mb-3">
@@ -619,16 +639,20 @@ const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                         <div>
                           <span className="text-muted-foreground">Costo Op.</span>
-                          <p className="font-semibold text-card-foreground mt-0.5">€{cat.cost.toFixed(2)}</p>
+                          <p className="font-semibold text-card-foreground mt-0.5">€{cat.costExForfait.toFixed(2)}</p>
+                          {hasForfait && (
+                            <p className="text-[10px] text-muted-foreground">+€{cat.forfaitCost.toFixed(2)} forfait</p>
+                          )}
                         </div>
                         <div>
                           <span className="text-muted-foreground">Ricavo</span>
                           <p className="font-semibold text-primary mt-0.5">€{cat.revenue.toFixed(2)}</p>
                         </div>
                       </div>
-                      {cat.revenue > 0 && (
+                      {(cat.revenue > 0 || cat.costExForfait > 0) && (
                         <div className={`mt-2 pt-2 border-t text-xs ${margin >= 0 ? 'text-kpi-cost' : 'text-destructive'}`}>
                           Margine: €{margin.toFixed(2)} ({cat.revenue > 0 ? ((margin / cat.revenue) * 100).toFixed(0) : 0}%)
+                          {hasForfait && <span className="text-muted-foreground ml-1">(escluso forfait)</span>}
                         </div>
                       )}
                     </div>
@@ -683,10 +707,13 @@ const Dashboard: React.FC<DashboardProps> = ({
             {/* Summary totals */}
             {(() => {
               const totCalls = drillDownData.reduce((s, r) => s + r.calls, 0);
-              const totCost = drillDownData.reduce((s, r) => s + r.cost, 0);
-              const totRev = drillDownData.reduce((s, r) => s + r.revenue, 0);
-              const totMargin = totRev - totCost;
-              const lossCount = drillDownData.filter(r => r.revenue - r.cost < -0.001).length;
+              const nonForfait = drillDownData.filter(r => !(r as any).isForfait);
+              const forfaitEntries = drillDownData.filter(r => (r as any).isForfait);
+              const totCostNonForfait = nonForfait.reduce((s, r) => s + r.cost, 0);
+              const totForfaitCost = forfaitEntries.reduce((s, r) => s + r.cost, 0);
+              const totRev = nonForfait.reduce((s, r) => s + r.revenue, 0);
+              const totMargin = totRev - totCostNonForfait;
+              const lossCount = nonForfait.filter(r => r.revenue - r.cost < -0.001).length;
               const cardData = macroSummary.find(c => c.name === drillDownCategory);
               const callsMismatch = cardData && totCalls !== cardData.count;
               return (
@@ -697,8 +724,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <div className="font-bold text-sm">{totCalls.toLocaleString()}</div>
                     </div>
                     <div className="rounded-lg bg-muted/50 p-2">
-                      <div className="text-xs text-muted-foreground">Costo Op.</div>
-                      <div className="font-bold text-sm">€{totCost.toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">Costo Op. (no forfait)</div>
+                      <div className="font-bold text-sm">€{totCostNonForfait.toFixed(2)}</div>
                     </div>
                     <div className="rounded-lg bg-muted/50 p-2">
                       <div className="text-xs text-muted-foreground">Ricavo</div>
@@ -709,6 +736,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <div className={`font-bold text-sm ${totMargin >= 0 ? 'text-kpi-cost' : 'text-destructive'}`}>€{totMargin.toFixed(2)}</div>
                     </div>
                   </div>
+                  {forfaitEntries.length > 0 && (
+                    <div className="rounded-lg bg-accent/30 border border-accent/50 p-2 text-xs text-foreground flex items-center gap-2">
+                      📋 <strong>{forfaitEntries.reduce((s, r) => s + r.calls, 0)}</strong> chiamate da clienti forfait (costo op. €{totForfaitCost.toFixed(2)}) — escluse dal calcolo margine
+                    </div>
+                  )}
                   {callsMismatch && (
                     <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-xs text-amber-700 flex items-center gap-2">
                       ⚠️ La card mostra {cardData!.count} chiamate ma i records disponibili ne contengono {totCalls}. Prova a ricaricare il file per dati aggiornati.
@@ -743,20 +775,29 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </thead>
                 <tbody>
                   {drillDownData.slice(0, 100).map((row, i) => {
-                    const margin = row.revenue - row.cost;
-                    const isLoss = margin < -0.001;
+                    const rowData = row as any;
+                    const isForfait = rowData.isForfait === true;
+                    const margin = isForfait ? 0 : row.revenue - row.cost;
+                    const isLoss = !isForfait && margin < -0.001;
                     return (
-                      <tr key={i} className={`border-t ${isLoss ? 'bg-destructive/5' : 'hover:bg-muted/30'}`}>
+                      <tr key={i} className={`border-t ${isForfait ? 'bg-accent/30' : isLoss ? 'bg-destructive/5' : 'hover:bg-muted/30'}`}>
                         <td className="p-2 font-mono text-[11px]">{row.number}</td>
                         <td className="p-2 text-muted-foreground">{row.category}</td>
-                        <td className="p-2 text-muted-foreground truncate max-w-[100px]" title={'clientName' in row ? (row as any).clientName : ''}>{('clientName' in row ? (row as any).clientName : '') || '—'}</td>
+                        <td className="p-2 text-muted-foreground truncate max-w-[100px]" title={rowData.clientName || ''}>
+                          {rowData.clientName || '—'}
+                          {isForfait && <span className="ml-1 inline-block px-1 py-0.5 rounded text-[9px] font-medium bg-accent text-accent-foreground">FORFAIT</span>}
+                        </td>
                         <td className="p-2 text-right">{row.calls}</td>
                         <td className="p-2 text-right">{formatDuration(row.seconds)}</td>
-                        <td className="p-2 text-right font-mono text-muted-foreground">{'rateUsed' in row ? `€${((row as any).rateUsed as number).toFixed(4)}` : '—'}</td>
+                        <td className="p-2 text-right font-mono text-muted-foreground">
+                          {isForfait ? <span className="text-accent-foreground">forfait</span> : rowData.rateUsed != null ? `€${(rowData.rateUsed as number).toFixed(4)}` : '—'}
+                        </td>
                         <td className="p-2 text-right">€{row.cost.toFixed(2)}</td>
-                        <td className="p-2 text-right text-primary font-medium">€{row.revenue.toFixed(2)}</td>
-                        <td className={`p-2 text-right font-semibold ${isLoss ? 'text-destructive' : 'text-kpi-cost'}`}>
-                          €{margin.toFixed(2)}
+                        <td className="p-2 text-right text-primary font-medium">
+                          {isForfait ? <span className="text-muted-foreground">—</span> : `€${row.revenue.toFixed(2)}`}
+                        </td>
+                        <td className={`p-2 text-right font-semibold ${isForfait ? 'text-muted-foreground' : isLoss ? 'text-destructive' : 'text-kpi-cost'}`}>
+                          {isForfait ? 'incluso' : `€${margin.toFixed(2)}`}
                         </td>
                       </tr>
                     );

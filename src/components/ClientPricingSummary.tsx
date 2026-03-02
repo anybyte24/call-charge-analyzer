@@ -6,9 +6,8 @@ import { useClients } from '@/hooks/useClients';
 import { useExcelExport } from '@/hooks/useExcelExport';
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { CallerAnalysis, CallRecord } from '@/types/call-analysis';
-import { ALFA_NATIONAL_TARIFFS } from '@/data/alfa-operator-tariffs';
-import { NYBYTE_NATIONAL_TARIFFS } from '@/data/nybyte-tariffs';
 import { EFFECTIVE_NATIONAL_RATES, EFFECTIVE_INTERNATIONAL_RATES } from '@/utils/effective-selling-rates';
+import { resolveCountryFromCategory } from '@/utils/country-name-mapping';
 import { FileDown } from 'lucide-react';
 
 interface ClientPricingSummaryProps {
@@ -38,24 +37,21 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
     revenue: number;
   };
 
+  // Build a lookup: ALFA country name (uppercase) → { landline, mobile } effective selling rate
+  const effectiveRatesByCountry = React.useMemo(() => {
+    const map = new Map<string, { landline: number; mobile: number }>();
+    EFFECTIVE_INTERNATIONAL_RATES.forEach(r => {
+      map.set(r.country, { landline: r.landline, mobile: r.mobile });
+    });
+    return map;
+  }, []);
+
   const rows = React.useMemo(() => {
     const map = new Map<string, Agg>();
 
-    // Tariffe di VENDITA globali (ricavo)
+    // Tariffe di VENDITA globali (ricavo) per fallback
     const globalIntlSellingRate = Number(globalPricing?.international_rate || 0);
     const globalPremiumSellingRate = Number(globalPricing?.premium_rate || 0);
-    
-    // Tariffe COSTO OPERATORE ALFA (reali)
-    const operatorMobileCost = Number(globalPricing?.mobile_cost || ALFA_NATIONAL_TARIFFS.mobile);
-    const operatorLandlineCost = Number(globalPricing?.landline_cost || ALFA_NATIONAL_TARIFFS.landline);
-
-    // Build a lookup for effective international selling rates by category description
-    const effectiveIntlMap = new Map<string, number>();
-    EFFECTIVE_INTERNATIONAL_RATES.forEach(r => {
-      // Map country names to their effective rates (both landline and mobile)
-      effectiveIntlMap.set(r.country.toLowerCase(), r.landline);
-      effectiveIntlMap.set(`${r.country.toLowerCase()} mobile`, r.mobile);
-    });
 
     callerAnalysis.forEach((ca) => {
       const clientInfo = numberToClientMap[ca.callerNumber];
@@ -70,79 +66,65 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
       agg.totalCalls += ca.totalCalls;
       agg.totalSeconds += ca.totalDuration;
 
-      let mobileSec = 0, landlineSec = 0, intlSec = 0, premiumSec = 0;
-      let intlCostFromCSV = 0;
-      let intlRevenueFromCategories = 0;
-      
-      ca.categories.forEach((cat) => {
-        const sec = cat.totalSeconds || 0;
-        const catLower = cat.category.toLowerCase();
-        switch (catLower) {
-          case 'mobile':
-            mobileSec += sec;
-            break;
-          case 'landline':
-          case 'fisso':
-            landlineSec += sec;
-            break;
-          case 'international':
-          case 'internazionale':
-            intlSec += sec;
-            intlCostFromCSV += cat.cost || 0;
-            break;
-          case 'special':
-          case 'numero speciale':
-          case 'numero premium':
-            premiumSec += sec;
-            break;
-          default:
-            // International sub-categories (country names like "Albania Mobile", "Francia")
-            if (catLower.includes('mobile') || catLower.includes('fisso')) {
-              intlSec += sec;
-              intlCostFromCSV += cat.cost || 0;
-              // Calculate revenue using effective per-country selling rate
-              const isMobile = catLower.includes('mobile');
-              const countryName = catLower.replace(/\s*(mobile|fisso|mob).*$/i, '').trim();
-              const lookupKey = isMobile ? `${countryName} mobile` : countryName;
-              const effectiveRate = effectiveIntlMap.get(lookupKey) || effectiveIntlMap.get(countryName);
-              if (effectiveRate) {
-                intlRevenueFromCategories += (sec / 60) * effectiveRate;
-              }
-            }
-            break;
-        }
-      });
-
-      // COSTO OPERATORE
-      agg.myCost += (mobileSec / 60) * operatorMobileCost;
-      agg.myCost += (landlineSec / 60) * operatorLandlineCost;
-      agg.myCost += intlCostFromCSV;
-      const operatorPremiumCost = Number(globalPricing?.premium_rate || 0.90);
-      agg.myCost += (premiumSec / 60) * operatorPremiumCost;
-
-      // RICAVO: tariffe di vendita al cliente
+      // Client-specific pricing
       const clientRate = clientPricing.find((p) => p.client_id === key);
       const forfaitOnly = clientRate?.forfait_only === true;
-      // Use effective rates (which already account for ALFA markup) as fallback
-      const mobileRate = Number(clientRate?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
-      const landlineRate = Number(clientRate?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
+      const clientMobileRate = Number(clientRate?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
+      const clientLandlineRate = Number(clientRate?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
       const clientIntlRate = Number(clientRate?.international_rate || 0) || globalIntlSellingRate;
       const clientPremRate = Number(clientRate?.premium_rate || 0) || globalPremiumSellingRate;
 
-      if (!forfaitOnly) {
-        agg.revenue += (mobileSec / 60) * mobileRate;
-        agg.revenue += (landlineSec / 60) * landlineRate;
-        // For international: use per-country effective rates when available, otherwise flat rate
-        if (intlRevenueFromCategories > 0) {
-          agg.revenue += intlRevenueFromCategories;
-        } else if (intlSec > 0 && clientIntlRate > 0) {
-          agg.revenue += (intlSec / 60) * clientIntlRate;
+      ca.categories.forEach((cat) => {
+        const sec = cat.totalSeconds || 0;
+        const min = sec / 60;
+        const catCost = cat.cost || 0; // Costo operatore ALFA (già calcolato nel CSV)
+        const catType = cat.category; // Description from number-categorizer
+
+        // Determine category type
+        const catLower = catType.toLowerCase();
+        const isNationalMobile = catLower === 'mobile' || 
+          ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => catLower.includes(op));
+        const isNationalLandline = catLower === 'fisso' || cat.category === 'Fisso';
+        const isNumeroVerde = catLower.includes('numero verde');
+        const isPremium = catLower.includes('numero premium') || catLower.includes('numero speciale') ||
+          catLower.includes('899') || catLower.includes('199');
+        const isSpecialService = catLower.includes('servizi speciali') || catLower.includes('servizi satellitari');
+
+        // COSTO OPERATORE: usa cat.cost dal CSV (già calcolato con tariffe ALFA)
+        agg.myCost += catCost;
+
+        // RICAVO: tariffe di vendita al cliente
+        if (forfaitOnly) return; // Solo forfait, niente tariffe a consumo
+
+        if (isNationalMobile) {
+          agg.revenue += min * clientMobileRate;
+        } else if (isNationalLandline) {
+          agg.revenue += min * clientLandlineRate;
+        } else if (isNumeroVerde) {
+          // Numero verde: nessun costo/ricavo
+        } else if (isPremium || isSpecialService) {
+          agg.revenue += min * clientPremRate;
+        } else {
+          // International: resolve country name ITA→ENG
+          const resolved = resolveCountryFromCategory(catType);
+          if (resolved) {
+            const effRate = effectiveRatesByCountry.get(resolved.countryEng);
+            if (effRate) {
+              const rate = resolved.isMobile ? effRate.mobile : effRate.landline;
+              agg.revenue += min * rate;
+            } else if (clientIntlRate > 0) {
+              // Fallback: use flat international rate
+              agg.revenue += min * clientIntlRate;
+            }
+          } else if (clientIntlRate > 0) {
+            // Unknown category, try flat international rate
+            agg.revenue += min * clientIntlRate;
+          }
         }
-        agg.revenue += (premiumSec / 60) * clientPremRate;
-      }
+      });
     });
 
-    // Forfait
+    // Add forfait (monthly flat fee) to revenue
     for (const [key, agg] of map) {
       const clientRate = clientPricing.find((p) => p.client_id === key);
       const flat = Number(clientRate?.monthly_flat_fee || 0);
@@ -150,7 +132,7 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
     }
 
     return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue);
-  }, [callerAnalysis, numberToClientMap, clientPricing, globalPricing]);
+  }, [callerAnalysis, numberToClientMap, clientPricing, globalPricing, effectiveRatesByCountry]);
 
   const totals = React.useMemo(() => {
     const totalCost = rows.reduce((s, r) => s + r.myCost, 0);
@@ -171,10 +153,15 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
     const m = new Map<string, Record<string, number>>();
     const norm = (c: string) => {
       const k = c.toLowerCase();
-      if (k.includes('mobile')) return 'mobile';
-      if (k.includes('landline') || k.includes('fisso')) return 'landline';
-      if (k.includes('international') || k.includes('internazionale')) return 'international';
-      if (k.includes('special') || k.includes('premium') || k.includes('numero')) return 'special';
+      // National categories
+      if (k === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => k.includes(op))) return 'mobile';
+      if (k === 'fisso') return 'landline';
+      if (k.includes('numero verde') || k.includes('numero premium') || k.includes('numero speciale') ||
+          k.includes('servizi speciali') || k.includes('servizi satellitari')) return 'special';
+      // Check if it's an international category
+      const resolved = resolveCountryFromCategory(c);
+      if (resolved) return 'international';
+      // Italian city landlines (Roma, Milano, etc.) have type 'landline' but description is city name
       return 'other';
     };
     callerAnalysis.forEach(ca => {

@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useClients } from "@/hooks/useClients";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, RotateCcw, Search } from "lucide-react";
+import { Trash2, RotateCcw, Search, AlertTriangle } from "lucide-react";
 import { NYBYTE_NATIONAL_TARIFFS, NYBYTE_INTERNATIONAL_TARIFFS, tariffsToFlatMap } from "@/data/nybyte-tariffs";
 import { ALFA_NATIONAL_TARIFFS, ALFA_INTERNATIONAL_TARIFFS, alfaTariffsToFlatMap } from "@/data/alfa-operator-tariffs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +39,8 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [newClient, setNewClient] = useState({ name: "", color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'), notes: "" });
   const [assignNumberValue, setAssignNumberValue] = useState("");
+  const [selectedBulkNumbers, setSelectedBulkNumbers] = useState<Set<string>>(new Set());
+  const [bulkAssigning, setBulkAssigning] = useState(false);
   const [tariffSearch, setTariffSearch] = useState("");
 
   const selectedClient = useMemo(() => clients.find((c) => c.id === selectedClientId) || null, [clients, selectedClientId]);
@@ -81,6 +84,19 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
 
   const handleSaveClientPricing = async () => {
     if (!selectedClientId) return;
+    // Validation: no negative rates
+    const rates = [clientMobileRate, clientLandlineRate, clientFlatFee, clientIntlRate, clientPremiumRate];
+    if (rates.some(r => r < 0)) {
+      toast({ title: "Errore", description: "Le tariffe non possono essere negative.", variant: "destructive" });
+      return;
+    }
+    // Warning: selling below cost
+    if (clientMobileRate > 0 && clientMobileRate < ALFA_NATIONAL_TARIFFS.mobile) {
+      toast({ title: "⚠️ Attenzione", description: `Tariffa mobile (${clientMobileRate}) inferiore al costo ALFA (${ALFA_NATIONAL_TARIFFS.mobile}). Stai vendendo in perdita!`, variant: "destructive" });
+    }
+    if (clientLandlineRate > 0 && clientLandlineRate < ALFA_NATIONAL_TARIFFS.landline) {
+      toast({ title: "⚠️ Attenzione", description: `Tariffa fisso (${clientLandlineRate}) inferiore al costo ALFA (${ALFA_NATIONAL_TARIFFS.landline}). Stai vendendo in perdita!`, variant: "destructive" });
+    }
     try {
       await upsertClientPricing.mutateAsync({
         clientId: selectedClientId,
@@ -97,6 +113,11 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
   };
 
   const handleSaveGlobalPricing = async () => {
+    const rates = [globalInternationalRate, globalPremiumRate, globalMobileCost, globalLandlineCost];
+    if (rates.some(r => r < 0)) {
+      toast({ title: "Errore", description: "Le tariffe non possono essere negative.", variant: "destructive" });
+      return;
+    }
     try {
       await upsertGlobalPricing.mutateAsync({
         international_rate: globalInternationalRate,
@@ -151,6 +172,32 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
     } catch (e: any) {
       toast({ title: "Errore", description: e.message, variant: "destructive" });
     }
+  };
+
+  const handleBulkAssign = async () => {
+    if (!selectedClientId || selectedBulkNumbers.size === 0) return;
+    setBulkAssigning(true);
+    try {
+      const nums = Array.from(selectedBulkNumbers);
+      for (const num of nums) {
+        await assignNumber.mutateAsync({ clientId: selectedClientId, callerNumber: num });
+      }
+      toast({ title: `${nums.length} numeri assegnati`, description: `Assegnati a ${selectedClient?.name}` });
+      setSelectedBulkNumbers(new Set());
+    } catch (e: any) {
+      toast({ title: "Errore", description: e.message, variant: "destructive" });
+    } finally {
+      setBulkAssigning(false);
+    }
+  };
+
+  const toggleBulkNumber = (num: string) => {
+    setSelectedBulkNumbers(prev => {
+      const next = new Set(prev);
+      if (next.has(num)) next.delete(num);
+      else next.add(num);
+      return next;
+    });
   };
 
   const assignedNumbers = useMemo(() => {
@@ -253,6 +300,51 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                         <Button onClick={handleAssign} disabled={!selectedClientId || !assignNumberValue || assignNumber.isPending}>Assegna a cliente</Button>
                       </div>
                     </div>
+
+                    {/* Bulk assignment */}
+                    {selectedClientId && availableCallerNumbers.length > 0 && (
+                      <div className="border-t pt-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium">Selezione multipla</label>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedBulkNumbers(new Set(availableCallerNumbers))}
+                            >
+                              Seleziona tutti
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedBulkNumbers(new Set())}
+                            >
+                              Deseleziona
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="max-h-48 overflow-auto border rounded-md p-2 space-y-1">
+                          {availableCallerNumbers.map((num) => (
+                            <label key={num} className="flex items-center gap-2 py-1 px-2 hover:bg-muted/50 rounded cursor-pointer text-sm">
+                              <Checkbox
+                                checked={selectedBulkNumbers.has(num)}
+                                onCheckedChange={() => toggleBulkNumber(num)}
+                              />
+                              <span className="font-mono">{num}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {selectedBulkNumbers.size > 0 && (
+                          <Button
+                            onClick={handleBulkAssign}
+                            disabled={bulkAssigning}
+                            className="w-full"
+                          >
+                            {bulkAssigning ? 'Assegnando...' : `Assegna ${selectedBulkNumbers.size} numeri a ${selectedClient?.name}`}
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -472,32 +564,46 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                 </CardTitle>
               </CardHeader>
               {selectedClient && (
-                <CardContent className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                  <div>
-                    <label className="text-sm font-medium">Mobile €/min</label>
-                    <Input type="number" step="0.001" value={clientMobileRate} onChange={(e) => setClientMobileRate(parseFloat(e.target.value) || 0)} />
-                    <p className="text-xs text-muted-foreground mt-1">Default: {NYBYTE_NATIONAL_TARIFFS.mobile}</p>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div>
+                      <label className="text-sm font-medium">Mobile €/min</label>
+                      <Input type="number" step="0.001" min="0" value={clientMobileRate} onChange={(e) => setClientMobileRate(parseFloat(e.target.value) || 0)} />
+                      <p className="text-xs text-muted-foreground mt-1">Default: {NYBYTE_NATIONAL_TARIFFS.mobile}</p>
+                      {clientMobileRate > 0 && clientMobileRate < ALFA_NATIONAL_TARIFFS.mobile && (
+                        <p className="text-xs text-orange-600 flex items-center gap-1 mt-1"><AlertTriangle className="h-3 w-3" />Sotto costo ALFA!</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Fisso €/min</label>
+                      <Input type="number" step="0.001" min="0" value={clientLandlineRate} onChange={(e) => setClientLandlineRate(parseFloat(e.target.value) || 0)} />
+                      <p className="text-xs text-muted-foreground mt-1">Default: {NYBYTE_NATIONAL_TARIFFS.landline}</p>
+                      {clientLandlineRate > 0 && clientLandlineRate < ALFA_NATIONAL_TARIFFS.landline && (
+                        <p className="text-xs text-orange-600 flex items-center gap-1 mt-1"><AlertTriangle className="h-3 w-3" />Sotto costo ALFA!</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Internaz. €/min</label>
+                      <Input type="number" step="0.001" min="0" value={clientIntlRate} onChange={(e) => setClientIntlRate(parseFloat(e.target.value) || 0)} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Premium €/min</label>
+                      <Input type="number" step="0.001" min="0" value={clientPremiumRate} onChange={(e) => setClientPremiumRate(parseFloat(e.target.value) || 0)} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Forfait €</label>
+                      <Input type="number" step="0.01" min="0" value={clientFlatFee} onChange={(e) => setClientFlatFee(parseFloat(e.target.value) || 0)} />
+                    </div>
+                    <div className="flex items-end">
+                      <Button onClick={handleSaveClientPricing} disabled={upsertClientPricing.isPending || !selectedClientId}>Salva</Button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Fisso €/min</label>
-                    <Input type="number" step="0.001" value={clientLandlineRate} onChange={(e) => setClientLandlineRate(parseFloat(e.target.value) || 0)} />
-                    <p className="text-xs text-muted-foreground mt-1">Default: {NYBYTE_NATIONAL_TARIFFS.landline}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Internaz. €/min</label>
-                    <Input type="number" step="0.001" value={clientIntlRate} onChange={(e) => setClientIntlRate(parseFloat(e.target.value) || 0)} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Premium €/min</label>
-                    <Input type="number" step="0.001" value={clientPremiumRate} onChange={(e) => setClientPremiumRate(parseFloat(e.target.value) || 0)} />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Forfait €</label>
-                    <Input type="number" step="0.01" value={clientFlatFee} onChange={(e) => setClientFlatFee(parseFloat(e.target.value) || 0)} />
-                  </div>
-                  <div className="flex items-end">
-                    <Button onClick={handleSaveClientPricing} disabled={upsertClientPricing.isPending || !selectedClientId}>Salva</Button>
-                  </div>
+                  {(clientMobileRate < 0 || clientLandlineRate < 0 || clientIntlRate < 0 || clientPremiumRate < 0 || clientFlatFee < 0) && (
+                    <div className="flex items-center gap-2 text-destructive text-sm font-medium">
+                      <AlertTriangle className="h-4 w-4" />
+                      Le tariffe negative non sono permesse e non verranno salvate.
+                    </div>
+                  )}
                 </CardContent>
               )}
             </Card>

@@ -1,15 +1,20 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { useClients } from '@/hooks/useClients';
+import { useExcelExport } from '@/hooks/useExcelExport';
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
-import { CallerAnalysis } from '@/types/call-analysis';
+import { CallerAnalysis, CallRecord } from '@/types/call-analysis';
 import { ALFA_NATIONAL_TARIFFS } from '@/data/alfa-operator-tariffs';
 import { NYBYTE_NATIONAL_TARIFFS } from '@/data/nybyte-tariffs';
 import { EFFECTIVE_NATIONAL_RATES, EFFECTIVE_INTERNATIONAL_RATES } from '@/utils/effective-selling-rates';
+import { FileDown } from 'lucide-react';
 
 interface ClientPricingSummaryProps {
   callerAnalysis: CallerAnalysis[];
+  records: CallRecord[];
+  fileName: string;
 }
 
 function formatDuration(seconds: number): string {
@@ -19,8 +24,9 @@ function formatDuration(seconds: number): string {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnalysis }) => {
-  const { numberToClientMap, clientPricing, globalPricing } = useClients();
+const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnalysis, records, fileName }) => {
+  const { numberToClientMap, clientPricing, globalPricing, assignments } = useClients();
+  const { exportClientReport } = useExcelExport();
 
   type Agg = {
     id: string;
@@ -111,7 +117,8 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
       agg.myCost += (mobileSec / 60) * operatorMobileCost;
       agg.myCost += (landlineSec / 60) * operatorLandlineCost;
       agg.myCost += intlCostFromCSV;
-      agg.myCost += (premiumSec / 60) * 0.90;
+      const operatorPremiumCost = Number(globalPricing?.premium_rate || 0.90);
+      agg.myCost += (premiumSec / 60) * operatorPremiumCost;
 
       // RICAVO: tariffe di vendita al cliente
       const clientRate = clientPricing.find((p) => p.client_id === key);
@@ -282,6 +289,7 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
                   <TableHead>Ricavo</TableHead>
                   <TableHead>Margine</TableHead>
                   <TableHead>%</TableHead>
+                  <TableHead>Azioni</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -298,6 +306,23 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
                       <TableCell className="font-semibold text-primary">€{r.revenue.toFixed(2)}</TableCell>
                       <TableCell className={`font-semibold ${margin >= 0 ? 'text-green-600' : 'text-destructive'}`}>€{margin.toFixed(2)}</TableCell>
                       <TableCell>{marginPct.toFixed(1)}%</TableCell>
+                      <TableCell>
+                        {r.id !== 'no-client' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const clientNumbers = (assignments || [])
+                                .filter(a => a.client_id === r.id)
+                                .map(a => a.caller_number);
+                              exportClientReport(records, r.name, clientNumbers, fileName);
+                            }}
+                          >
+                            <FileDown className="h-4 w-4 mr-1" />
+                            Excel
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   );
                 })}

@@ -77,7 +77,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         if (isMobile) rev += min * mobileRate;
         else if (isLandline) rev += min * landlineRate;
         else if (isVerde) { /* no charge */ }
-        else if (isPremium) rev += premRate > 0 ? min * premRate : ((cat.cost || 0) * 1.5);
+        else if (isPremium) rev += premRate > 0 ? min * premRate : (cat.cost || 0);
         else {
           const resolved = resolveCountryFromCategory(cat.category);
           if (resolved) {

@@ -37,6 +37,8 @@ export interface UserGlobalPricing {
   user_id: string;
   international_rate: number;
   premium_rate: number;
+  mobile_cost: number;
+  landline_cost: number;
   currency?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -191,7 +193,7 @@ export const useClients = () => {
   });
 
   const upsertGlobalPricing = useMutation({
-    mutationFn: async ({ international_rate, premium_rate }: { international_rate: number; premium_rate: number; }) => {
+    mutationFn: async ({ international_rate, premium_rate, mobile_cost, landline_cost }: { international_rate: number; premium_rate: number; mobile_cost: number; landline_cost: number; }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Devi effettuare l'accesso");
       const { error } = await supabase
@@ -200,6 +202,8 @@ export const useClients = () => {
           user_id: user.id,
           international_rate,
           premium_rate,
+          mobile_cost,
+          landline_cost,
         }, { onConflict: "user_id" });
       if (error) throw error;
     },

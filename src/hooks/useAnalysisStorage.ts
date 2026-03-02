@@ -38,12 +38,18 @@ export const useAnalysisStorage = () => {
       const { data, error } = await supabase
         .from('analysis_sessions')
         .insert({
-          file_name: session.fileName,
-          total_records: session.totalRecords,
-          summary_data: session.summary as any,
-          caller_analysis_data: session.callerAnalysis as any,
-          records_data: records.slice(0, 1000) as any, // Limit records for storage efficiency
-          prefix_config: session.prefixConfig as any,
+          user_id: user.id,
+          session_name: session.fileName,
+          file_data: {
+            fileName: session.fileName,
+            totalRecords: session.totalRecords,
+            prefixConfig: session.prefixConfig,
+            records: records.slice(0, 1000),
+          } as any,
+          analysis_results: {
+            summary: session.summary,
+            callerAnalysis: session.callerAnalysis,
+          } as any,
           last_accessed: new Date().toISOString()
         })
         .select()
@@ -98,16 +104,20 @@ export const useAnalysisStorage = () => {
 
       if (error) throw error;
 
-      return data.map(session => ({
-        id: session.id,
-        fileName: session.file_name,
-        uploadDate: session.upload_date,
-        totalRecords: session.total_records,
-        summary: session.summary_data as unknown as CallSummary[],
-        callerAnalysis: session.caller_analysis_data as unknown as CallerAnalysis[],
-        prefixConfig: session.prefix_config as unknown as PrefixConfig[],
-        records: session.records_data as unknown as CallRecord[] // Include anche i records dal database
-      }));
+      return data.map(session => {
+        const fileData = session.file_data as any || {};
+        const analysisResults = session.analysis_results as any || {};
+        return {
+          id: session.id,
+          fileName: session.session_name || fileData.fileName,
+          uploadDate: session.created_at,
+          totalRecords: fileData.totalRecords,
+          summary: analysisResults.summary as CallSummary[],
+          callerAnalysis: analysisResults.callerAnalysis as CallerAnalysis[],
+          prefixConfig: fileData.prefixConfig as PrefixConfig[],
+          records: fileData.records as CallRecord[],
+        };
+      });
     } catch (error) {
       console.error('Error loading sessions:', error);
       return [];
@@ -245,17 +255,19 @@ export const useAnalysisStorage = () => {
       let updatedCount = 0;
 
       for (const session of sessions) {
-        if (!session.records_data || !Array.isArray(session.records_data)) continue;
+        const fileData = session.file_data as any || {};
+        const records = fileData.records;
+        if (!records || !Array.isArray(records)) continue;
 
-        console.log(`💫 Recalculating session: ${session.file_name}`);
+        console.log(`💫 Recalculating session: ${session.session_name}`);
         
         // Usa il NUOVO sistema di ricalcolo
-        console.log(`🔄 Using NEW cost recalculation system for ${session.file_name}`);
-        const recalculatedRecords = CostRecalculator.recalculateAllCosts(session.records_data as unknown as CallRecord[]);
+        console.log(`🔄 Using NEW cost recalculation system for ${session.session_name}`);
+        const recalculatedRecords = CostRecalculator.recalculateAllCosts(records as CallRecord[]);
         
         // Verifica l'integrità
         const isValid = CostRecalculator.verifyCosts(recalculatedRecords);
-        console.log(`✅ Cost integrity check for ${session.file_name}:`, isValid);
+        console.log(`✅ Cost integrity check for ${session.session_name}:`, isValid);
 
         // Rigenera summary e caller analysis
         const newSummary = CallAnalyzer.generateSummary(recalculatedRecords);
@@ -265,9 +277,8 @@ export const useAnalysisStorage = () => {
         const { error: updateError } = await supabase
           .from('analysis_sessions')
           .update({
-            summary_data: newSummary as any,
-            caller_analysis_data: newCallerAnalysis as any,
-            records_data: recalculatedRecords as any,
+            file_data: { ...fileData, records: recalculatedRecords } as any,
+            analysis_results: { summary: newSummary, callerAnalysis: newCallerAnalysis } as any,
             last_accessed: new Date().toISOString()
           })
           .eq('id', session.id);

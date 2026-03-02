@@ -30,6 +30,7 @@ export interface ClientPricing {
   international_rate: number;
   premium_rate: number;
   forfait_only: boolean;
+  forfait_minutes: number;
   currency?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -179,7 +180,7 @@ export const useClients = () => {
   });
 
   const upsertClientPricing = useMutation({
-    mutationFn: async ({ clientId, mobile_rate, landline_rate, monthly_flat_fee, international_rate, premium_rate }: { clientId: string; mobile_rate: number; landline_rate: number; monthly_flat_fee: number; international_rate?: number; premium_rate?: number; }) => {
+    mutationFn: async ({ clientId, mobile_rate, landline_rate, monthly_flat_fee, international_rate, premium_rate, forfait_minutes, forfait_only }: { clientId: string; mobile_rate: number; landline_rate: number; monthly_flat_fee: number; international_rate?: number; premium_rate?: number; forfait_minutes?: number; forfait_only?: boolean; }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Devi effettuare l'accesso");
       const { error } = await supabase
@@ -192,6 +193,8 @@ export const useClients = () => {
           monthly_flat_fee,
           international_rate: international_rate ?? 0,
           premium_rate: premium_rate ?? 0,
+          forfait_minutes: forfait_minutes ?? 0,
+          forfait_only: forfait_only ?? false,
         } as any, { onConflict: "user_id,client_id" });
       if (error) throw error;
     },

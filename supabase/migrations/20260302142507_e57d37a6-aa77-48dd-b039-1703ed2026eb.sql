@@ -1,0 +1,1 @@
+ALTER TABLE client_pricing ADD COLUMN IF NOT EXISTS forfait_minutes integer NOT NULL DEFAULT 0;

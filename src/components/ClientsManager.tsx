@@ -52,6 +52,8 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
   const [clientFlatFee, setClientFlatFee] = useState<number>(0);
   const [clientIntlRate, setClientIntlRate] = useState<number>(0);
   const [clientPremiumRate, setClientPremiumRate] = useState<number>(0);
+  const [clientForfaitMinutes, setClientForfaitMinutes] = useState<number>(0);
+  const [clientForfaitOnly, setClientForfaitOnly] = useState<boolean>(false);
 
   React.useEffect(() => {
     if (selectedClientPricing) {
@@ -60,12 +62,16 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
       setClientFlatFee(Number(selectedClientPricing.monthly_flat_fee) || 0);
       setClientIntlRate(Number(selectedClientPricing.international_rate) || 0);
       setClientPremiumRate(Number(selectedClientPricing.premium_rate) || 0);
+      setClientForfaitMinutes(Number((selectedClientPricing as any).forfait_minutes) || 0);
+      setClientForfaitOnly(Boolean(selectedClientPricing.forfait_only));
     } else {
       setClientMobileRate(0);
       setClientLandlineRate(0);
       setClientFlatFee(0);
       setClientIntlRate(0);
       setClientPremiumRate(0);
+      setClientForfaitMinutes(0);
+      setClientForfaitOnly(false);
     }
   }, [selectedClientPricing]);
 
@@ -105,6 +111,8 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
         monthly_flat_fee: clientFlatFee,
         international_rate: clientIntlRate,
         premium_rate: clientPremiumRate,
+        forfait_minutes: clientForfaitMinutes,
+        forfait_only: clientForfaitOnly,
       });
       toast({ title: "Tariffe cliente salvate" });
     } catch (e: any) {
@@ -591,12 +599,28 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                       <Input type="number" step="0.001" min="0" value={clientPremiumRate} onChange={(e) => setClientPremiumRate(parseFloat(e.target.value) || 0)} />
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Forfait €</label>
+                      <label className="text-sm font-medium">Forfait €/mese</label>
                       <Input type="number" step="0.01" min="0" value={clientFlatFee} onChange={(e) => setClientFlatFee(parseFloat(e.target.value) || 0)} />
                     </div>
-                    <div className="flex items-end">
-                      <Button onClick={handleSaveClientPricing} disabled={upsertClientPricing.isPending || !selectedClientId}>Salva</Button>
+                    <div className="flex items-center gap-2 pt-6">
+                      <Checkbox
+                        checked={clientForfaitOnly}
+                        onCheckedChange={(v) => setClientForfaitOnly(Boolean(v))}
+                      />
+                      <label className="text-sm font-medium">Solo forfait</label>
                     </div>
+                  </div>
+                  {clientForfaitOnly && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                      <div>
+                        <label className="text-sm font-medium">Minuti inclusi nel forfait</label>
+                        <Input type="number" step="1" min="0" value={clientForfaitMinutes} onChange={(e) => setClientForfaitMinutes(parseInt(e.target.value) || 0)} />
+                        <p className="text-xs text-muted-foreground mt-1">0 = illimitati. Se superati, l'esubero è a tariffe di vendita.</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-end mt-3">
+                    <Button onClick={handleSaveClientPricing} disabled={upsertClientPricing.isPending || !selectedClientId}>Salva</Button>
                   </div>
                   {(clientMobileRate < 0 || clientLandlineRate < 0 || clientIntlRate < 0 || clientPremiumRate < 0 || clientFlatFee < 0) && (
                     <div className="flex items-center gap-2 text-destructive text-sm font-medium">

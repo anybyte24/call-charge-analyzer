@@ -119,7 +119,8 @@ export const useExcelExport = () => {
     records: CallRecord[],
     clientName: string,
     clientNumbers: string[],
-    fileName: string
+    fileName: string,
+    clientPricingData?: { mobile_rate: number; landline_rate: number; international_rate: number; premium_rate: number; monthly_flat_fee: number; forfait_only: boolean; forfait_minutes: number }
   ) => {
     try {
       const clientRecords = records.filter(r => clientNumbers.includes(r.callerNumber));
@@ -130,34 +131,82 @@ export const useExcelExport = () => {
 
       const workbook = XLSX.utils.book_new();
 
-      const detailData = clientRecords.map(record => ({
-        'Data': record.date,
-        'Ora': record.timestamp,
-        'Chiamante': record.callerNumber,
-        'Chiamato': record.calledNumber,
-        'Durata': record.duration,
-        'Durata (secondi)': record.durationSeconds,
-        'Categoria': record.category.description,
-        'Costo': `€${record.cost?.toFixed(4) || '0.0000'}`
-      }));
+      // Determine selling rate per record
+      const getSellingRate = (record: CallRecord): number => {
+        if (!clientPricingData) return 0;
+        const t = record.category.type;
+        if (t === 'mobile') return clientPricingData.mobile_rate || 0;
+        if (t === 'landline') return clientPricingData.landline_rate || 0;
+        if (t === 'international') return clientPricingData.international_rate || 0;
+        if (t === 'special') return clientPricingData.premium_rate || 0;
+        return 0;
+      };
+
+      const detailData = clientRecords.map(record => {
+        const min = record.durationSeconds / 60;
+        const cost = record.cost || 0;
+        const revenue = clientPricingData ? min * getSellingRate(record) : 0;
+        return {
+          'Data': record.date,
+          'Ora': record.timestamp,
+          'Chiamante': record.callerNumber,
+          'Chiamato': record.calledNumber,
+          'Durata': record.duration,
+          'Durata (secondi)': record.durationSeconds,
+          'Categoria': record.category.description,
+          'Costo Operatore': `€${cost.toFixed(4)}`,
+          'Ricavo': `€${revenue.toFixed(4)}`,
+          'Margine': `€${(revenue - cost).toFixed(4)}`
+        };
+      });
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(detailData), 'Dettaglio Chiamate');
 
-      // Summary by category
-      const catMap = new Map<string, { count: number; seconds: number; cost: number }>();
+      // Summary by category with revenue/margin
+      const catMap = new Map<string, { count: number; seconds: number; cost: number; revenue: number }>();
       clientRecords.forEach(r => {
         const cat = r.category.description;
-        const existing = catMap.get(cat) || { count: 0, seconds: 0, cost: 0 };
+        const existing = catMap.get(cat) || { count: 0, seconds: 0, cost: 0, revenue: 0 };
         existing.count++;
         existing.seconds += r.durationSeconds;
         existing.cost += r.cost || 0;
+        const min = r.durationSeconds / 60;
+        existing.revenue += clientPricingData ? min * getSellingRate(r) : 0;
         catMap.set(cat, existing);
       });
+
       const summaryData = Array.from(catMap.entries()).map(([cat, v]) => ({
         'Categoria': cat,
         'Chiamate': v.count,
         'Durata Totale': formatDuration(v.seconds),
-        'Costo Totale': `€${v.cost.toFixed(2)}`
+        'Costo Operatore': `€${v.cost.toFixed(2)}`,
+        'Ricavo': `€${v.revenue.toFixed(2)}`,
+        'Margine': `€${(v.revenue - v.cost).toFixed(2)}`
       }));
+
+      // Add totals row
+      const totalCost = Array.from(catMap.values()).reduce((s, v) => s + v.cost, 0);
+      const totalRevenue = Array.from(catMap.values()).reduce((s, v) => s + v.revenue, 0);
+      const totalMinutes = clientRecords.reduce((s, r) => s + r.durationSeconds, 0);
+
+      summaryData.push({
+        'Categoria': 'TOTALE',
+        'Chiamate': clientRecords.length,
+        'Durata Totale': formatDuration(totalMinutes),
+        'Costo Operatore': `€${totalCost.toFixed(2)}`,
+        'Ricavo': `€${totalRevenue.toFixed(2)}`,
+        'Margine': `€${(totalRevenue - totalCost).toFixed(2)}`
+      });
+
+      // Forfait info
+      if (clientPricingData?.forfait_only) {
+        const totalMin = totalMinutes / 60;
+        const forfaitMin = clientPricingData.forfait_minutes || 0;
+        summaryData.push(
+          { 'Categoria': '', 'Chiamate': 0, 'Durata Totale': '', 'Costo Operatore': '', 'Ricavo': '', 'Margine': '' },
+          { 'Categoria': 'FORFAIT', 'Chiamate': 0, 'Durata Totale': `${Math.round(totalMin)} min usati`, 'Costo Operatore': `${forfaitMin} min inclusi`, 'Ricavo': `€${(clientPricingData.monthly_flat_fee || 0).toFixed(2)} canone`, 'Margine': forfaitMin > 0 && totalMin > forfaitMin ? `+${Math.round(totalMin - forfaitMin)} min esubero` : 'Nei limiti' }
+        );
+      }
+
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(summaryData), 'Riepilogo');
 
       const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });

@@ -42,10 +42,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const handleRecalculateCosts = async () => {
     try {
-      const success = await recalculateCosts();
-      if (success) {
-        window.location.reload();
-      }
+      await recalculateCosts();
     } catch (error) {
       console.error('Error during recalculation:', error);
     }

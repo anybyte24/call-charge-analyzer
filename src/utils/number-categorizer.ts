@@ -924,48 +924,23 @@ export class NumberCategorizer {
   static removeItalianPrefix(number: string): string {
     const clean = this.cleanPhoneNumber(number);
     
-    console.log('🔍 Removing Italian prefix from:', clean);
-    
-    if (clean.startsWith('+39')) {
-      const result = clean.substring(3);
-      console.log('✅ Removed +39 prefix, result:', result);
-      return result;
-    }
-    
-    if (clean.startsWith('0039')) {
-      const result = clean.substring(4);
-      console.log('✅ Removed 0039 prefix, result:', result);
-      return result;
-    }
-    
-    if (clean.startsWith('39') && clean.length >= 8) {
-      const result = clean.substring(2);
-      console.log('✅ Removed 39 prefix, result:', result);
-      return result;
-    }
-    
-    console.log('ℹ️ No Italian prefix found, using original:', clean);
+    if (clean.startsWith('+39')) return clean.substring(3);
+    if (clean.startsWith('0039')) return clean.substring(4);
+    if (clean.startsWith('39') && clean.length >= 8) return clean.substring(2);
     return clean;
   }
 
   static categorizeNumber(originalNumber: string, prefixConfig: PrefixConfig[] = this.defaultPrefixConfig) {
-    console.log('🎯 === STARTING CATEGORIZATION ===');
-    console.log('📞 Original number:', originalNumber);
-    
     const cleanNumber = this.cleanPhoneNumber(originalNumber);
-    console.log('🧽 Cleaned number:', cleanNumber);
     
     if ((cleanNumber.startsWith('00') && !cleanNumber.startsWith('0039')) ||
         (cleanNumber.startsWith('+') && !cleanNumber.startsWith('+39'))) {
-      console.log('🌍 International number detected');
       return this.categorizeInternational(cleanNumber, prefixConfig);
     }
     
     const italianNumber = this.removeItalianPrefix(cleanNumber);
-    console.log('🇮🇹 Italian number for analysis:', italianNumber);
     
     if (!italianNumber || italianNumber.length < 3) {
-      console.log('❌ Invalid Italian number');
       return { type: 'unknown' as const, description: 'Altro', costPerMinute: 0 };
     }
     
@@ -973,15 +948,12 @@ export class NumberCategorizer {
   }
 
   static categorizeInternational(number: string, prefixConfig: PrefixConfig[]) {
-    console.log('🌍 Categorizing international number:', number);
-    
     const intlPrefixes = prefixConfig
       .filter(p => p.prefix.startsWith('00') || (p.prefix.startsWith('+') && p.prefix !== '+39'))
       .sort((a, b) => b.prefix.length - a.prefix.length);
     
     for (const config of intlPrefixes) {
       if (number.startsWith(config.prefix)) {
-        console.log('✅ International match:', config.prefix, '→', config.description);
         return {
           type: config.category,
           description: config.description,
@@ -990,13 +962,10 @@ export class NumberCategorizer {
       }
     }
     
-    console.log('❓ Unknown international number');
     return { type: 'unknown' as const, description: 'Internazionale Sconosciuto', costPerMinute: 0.50 };
   }
 
   static categorizeItalianNumber(number: string, prefixConfig: PrefixConfig[]) {
-    console.log('🇮🇹 Categorizing Italian number:', number);
-    
     const italianPrefixes = prefixConfig
       .filter(p => !p.prefix.startsWith('+'))
       .sort((a, b) => {
@@ -1006,11 +975,8 @@ export class NumberCategorizer {
         return a.prefix.localeCompare(b.prefix);
       });
     
-    console.log('📋 Checking prefixes in order:', italianPrefixes.map(p => p.prefix).slice(0, 10));
-    
     for (const config of italianPrefixes) {
       if (number.startsWith(config.prefix)) {
-        console.log('✅ MATCH FOUND:', config.prefix, '→', config.description);
         return {
           type: config.category,
           description: config.description,
@@ -1019,7 +985,6 @@ export class NumberCategorizer {
       }
     }
     
-    console.log('❌ No matching prefix found for:', number);
     return { type: 'unknown' as const, description: 'Altro', costPerMinute: 0 };
   }
 

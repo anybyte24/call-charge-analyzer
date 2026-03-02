@@ -62,7 +62,7 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
       setClientFlatFee(Number(selectedClientPricing.monthly_flat_fee) || 0);
       setClientIntlRate(Number(selectedClientPricing.international_rate) || 0);
       setClientPremiumRate(Number(selectedClientPricing.premium_rate) || 0);
-      setClientForfaitMinutes(Number((selectedClientPricing as any).forfait_minutes) || 0);
+      setClientForfaitMinutes(Number(selectedClientPricing.forfait_minutes) || 0);
       setClientForfaitOnly(Boolean(selectedClientPricing.forfait_only));
     } else {
       setClientMobileRate(0);

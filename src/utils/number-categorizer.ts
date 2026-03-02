@@ -12,6 +12,8 @@ export class NumberCategorizer {
     { prefix: '192', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
     { prefix: '187', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
     { prefix: '188', category: 'special', description: 'Numero Verde', costPerMinute: 0.00 },
+    { prefix: '848', category: 'special', description: 'Numero a Costo Ripartito', costPerMinute: 0.10 },
+    { prefix: '00800', category: 'special', description: 'Numero Verde Internazionale', costPerMinute: 0.00 },
     
     // ============================================================
     // PREFISSI INTERNAZIONALI - COSTI OPERATORE ALFA (reali)
@@ -150,6 +152,17 @@ export class NumberCategorizer {
     
     // CANADA (001) - ALFA: 0.0050
     { prefix: '001', category: 'international', description: 'Canada/Stati Uniti', costPerMinute: 0.0050 },
+    
+    // REPUBBLICA CENTRAFRICANA (00236) - ALFA: fisso 0.2500
+    { prefix: '00236', category: 'international', description: 'Rep. Centrafricana', costPerMinute: 0.2500 },
+    
+    // CONGO RDC (00243) - ALFA: fisso 0.2900, mobile 0.2900
+    { prefix: '002439', category: 'international', description: 'Congo RDC Mobile', costPerMinute: 0.2900 },
+    { prefix: '00243', category: 'international', description: 'Congo RDC', costPerMinute: 0.2900 },
+    
+    // SUDAN (00249) - ALFA: fisso 0.2700, mobile 0.2700
+    { prefix: '002499', category: 'international', description: 'Sudan Mobile', costPerMinute: 0.2700 },
+    { prefix: '00249', category: 'international', description: 'Sudan', costPerMinute: 0.2700 },
     
     // CHILE (0056) - ALFA: fisso 0.0130, mobile 0.0080
     { prefix: '00569', category: 'international', description: 'Cile Mobile', costPerMinute: 0.0080 },

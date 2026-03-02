@@ -241,27 +241,67 @@ const Dashboard: React.FC<DashboardProps> = ({
       return catDesc === drillDownCategory;
     };
 
-    const numberMap = new Map<string, { number: string; calls: number; seconds: number; cost: number; category: string }>();
+    // Compute selling rates for revenue calc
+    const effRatesMap = new Map<string, { landline: number; mobile: number }>();
+    EFFECTIVE_INTERNATIONAL_RATES.forEach(r => effRatesMap.set(r.country, { landline: r.landline, mobile: r.mobile }));
+    const globalIntlRate = Number(globalPricing?.international_rate || 0);
+    const globalPremRate = Number(globalPricing?.premium_rate || 0);
+
+    const numberMap = new Map<string, { number: string; calls: number; seconds: number; cost: number; revenue: number; category: string }>();
     records.forEach(r => {
       if (!belongsToMacro(r.category.description, r.category.type)) return;
+
+      // Compute per-record revenue
+      const callerClient = numberToClientMap[r.callerNumber];
+      const cp = callerClient?.id ? clientPricing.find(p => p.client_id === callerClient.id) : null;
+      const mobileRate = Number(cp?.mobile_rate || 0) || EFFECTIVE_NATIONAL_RATES.mobile;
+      const landlineRate = Number(cp?.landline_rate || 0) || EFFECTIVE_NATIONAL_RATES.landline;
+      const intlRate = Number(cp?.international_rate || 0) || globalIntlRate;
+      const premRate = Number(cp?.premium_rate || 0) || globalPremRate;
+
+      const min = r.durationSeconds / 60;
+      const cl = r.category.description.toLowerCase();
+      let rev = 0;
+      if (r.category.type === 'mobile' || cl === 'mobile' || ['tim', 'vodafone', 'wind', 'iliad', 'fastweb', 'tre'].some(op => cl.includes(op))) {
+        rev = min * mobileRate;
+      } else if (cl === 'fisso') {
+        rev = min * landlineRate;
+      } else if (cl.includes('numero verde')) {
+        rev = 0;
+      } else if (cl.includes('numero premium') || cl.includes('numero speciale')) {
+        rev = premRate > 0 ? min * premRate : (r.cost || 0);
+      } else {
+        const resolved = resolveCountryFromCategory(r.category.description);
+        if (resolved) {
+          const eff = effRatesMap.get(resolved.countryEng);
+          if (eff) rev = min * (resolved.isMobile ? eff.mobile : eff.landline);
+          else rev = min * intlRate;
+        } else {
+          rev = min * intlRate;
+        }
+      }
+
       const existing = numberMap.get(r.calledNumber);
       if (existing) {
         existing.calls++;
         existing.seconds += r.durationSeconds;
         existing.cost += r.cost || 0;
+        existing.revenue += rev;
       } else {
         numberMap.set(r.calledNumber, {
           number: r.calledNumber,
           calls: 1,
           seconds: r.durationSeconds,
           cost: r.cost || 0,
+          revenue: rev,
           category: r.category.description,
         });
       }
     });
 
-    return Array.from(numberMap.values()).sort((a, b) => b.cost - a.cost);
-  }, [drillDownCategory, records]);
+    // Sort by margin (worst first)
+    return Array.from(numberMap.values()).sort((a, b) => (a.revenue - a.cost) - (b.revenue - b.cost));
+  }, [drillDownCategory, records, numberToClientMap, clientPricing, globalPricing]);
 
   const formatDuration = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -554,27 +594,46 @@ const Dashboard: React.FC<DashboardProps> = ({
             <p className="text-sm text-muted-foreground">
               {drillDownData.length} numeri chiamati — ordinati per costo operatore decrescente
             </p>
+            {(() => {
+              const totalLoss = drillDownData.filter(r => r.revenue - r.cost < -0.001);
+              return totalLoss.length > 0 ? (
+                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive flex items-center gap-2">
+                  <span className="font-semibold">⚠️ {totalLoss.length} numeri in perdita</span>
+                  <span className="text-xs text-destructive/70">— evidenziati in rosso, ordinati dal peggiore</span>
+                </div>
+              ) : null;
+            })()}
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-muted/50">
                     <th className="text-left p-2 font-medium">Numero Chiamato</th>
-                    <th className="text-left p-2 font-medium">Sotto-categoria</th>
-                    <th className="text-right p-2 font-medium">Chiamate</th>
+                    <th className="text-left p-2 font-medium">Sotto-cat.</th>
+                    <th className="text-right p-2 font-medium">Chiam.</th>
                     <th className="text-right p-2 font-medium">Durata</th>
                     <th className="text-right p-2 font-medium">Costo Op.</th>
+                    <th className="text-right p-2 font-medium">Ricavo</th>
+                    <th className="text-right p-2 font-medium">Margine</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {drillDownData.slice(0, 100).map((row, i) => (
-                    <tr key={i} className="border-t hover:bg-muted/30">
-                      <td className="p-2 font-mono">{row.number}</td>
-                      <td className="p-2 text-muted-foreground">{row.category}</td>
-                      <td className="p-2 text-right">{row.calls}</td>
-                      <td className="p-2 text-right">{formatDuration(row.seconds)}</td>
-                      <td className="p-2 text-right font-semibold">€{row.cost.toFixed(2)}</td>
-                    </tr>
-                  ))}
+                  {drillDownData.slice(0, 100).map((row, i) => {
+                    const margin = row.revenue - row.cost;
+                    const isLoss = margin < -0.001;
+                    return (
+                      <tr key={i} className={`border-t ${isLoss ? 'bg-destructive/5' : 'hover:bg-muted/30'}`}>
+                        <td className="p-2 font-mono">{row.number}</td>
+                        <td className="p-2 text-muted-foreground">{row.category}</td>
+                        <td className="p-2 text-right">{row.calls}</td>
+                        <td className="p-2 text-right">{formatDuration(row.seconds)}</td>
+                        <td className="p-2 text-right">€{row.cost.toFixed(2)}</td>
+                        <td className="p-2 text-right text-primary font-medium">€{row.revenue.toFixed(2)}</td>
+                        <td className={`p-2 text-right font-semibold ${isLoss ? 'text-destructive' : 'text-kpi-cost'}`}>
+                          €{margin.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

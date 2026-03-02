@@ -5,6 +5,7 @@ import { useClients } from '@/hooks/useClients';
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip as ReTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { CallerAnalysis } from '@/types/call-analysis';
 import { ALFA_NATIONAL_TARIFFS } from '@/data/alfa-operator-tariffs';
+import { NYBYTE_NATIONAL_TARIFFS } from '@/data/nybyte-tariffs';
 
 interface ClientPricingSummaryProps {
   callerAnalysis: CallerAnalysis[];
@@ -97,15 +98,18 @@ const ClientPricingSummary: React.FC<ClientPricingSummaryProps> = ({ callerAnaly
 
       // RICAVO: tariffe di vendita al cliente
       const clientRate = clientPricing.find((p) => p.client_id === key);
-      const mobileRate = Number(clientRate?.mobile_rate || 0);
-      const landlineRate = Number(clientRate?.landline_rate || 0);
+      const forfaitOnly = (clientRate as any)?.forfait_only === true;
+      const mobileRate = Number(clientRate?.mobile_rate || 0) || NYBYTE_NATIONAL_TARIFFS.mobile;
+      const landlineRate = Number(clientRate?.landline_rate || 0) || NYBYTE_NATIONAL_TARIFFS.landline;
       const clientIntlRate = Number(clientRate?.international_rate || 0) || globalIntlSellingRate;
       const clientPremRate = Number(clientRate?.premium_rate || 0) || globalPremiumSellingRate;
 
-      agg.revenue += (mobileSec / 60) * mobileRate;
-      agg.revenue += (landlineSec / 60) * landlineRate;
-      agg.revenue += (intlSec / 60) * clientIntlRate;
-      agg.revenue += (premiumSec / 60) * clientPremRate;
+      if (!forfaitOnly) {
+        agg.revenue += (mobileSec / 60) * mobileRate;
+        agg.revenue += (landlineSec / 60) * landlineRate;
+        agg.revenue += (intlSec / 60) * clientIntlRate;
+        agg.revenue += (premiumSec / 60) * clientPremRate;
+      }
     });
 
     // Forfait

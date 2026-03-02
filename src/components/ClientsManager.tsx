@@ -331,8 +331,8 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                       {filteredTariffs.map((t) => (
                         <TableRow key={t.country}>
                           <TableCell className="font-medium">{t.country}</TableCell>
-                          <TableCell className="text-right font-mono">{t.landline.toFixed(2)}</TableCell>
-                          <TableCell className="text-right font-mono">{t.mobile.toFixed(2)}</TableCell>
+                          <TableCell className="text-right font-mono">{t.landline.toFixed(4)}</TableCell>
+                          <TableCell className="text-right font-mono">{t.mobile.toFixed(4)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -353,17 +353,97 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
               <CardHeader>
                 <CardTitle>Tariffe di vendita globali (per tutti i clienti)</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-sm font-medium">Internazionali €/min (vendita)</label>
-                  <Input type="number" step="0.001" value={globalInternationalRate} onChange={(e) => setGlobalInternationalRate(parseFloat(e.target.value) || 0)} />
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-sm font-medium">Mobile €/min</label>
+                    <Input type="number" step="0.001" value={NYBYTE_NATIONAL_TARIFFS.mobile} disabled />
+                    <p className="text-xs text-muted-foreground mt-1">Default NYBYTE</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Fisso €/min</label>
+                    <Input type="number" step="0.001" value={NYBYTE_NATIONAL_TARIFFS.landline} disabled />
+                    <p className="text-xs text-muted-foreground mt-1">Default NYBYTE</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Internazionali €/min (vendita)</label>
+                    <Input type="number" step="0.001" value={globalInternationalRate} onChange={(e) => setGlobalInternationalRate(parseFloat(e.target.value) || 0)} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">899/199 €/min (vendita)</label>
+                    <Input type="number" step="0.001" value={globalPremiumRate} onChange={(e) => setGlobalPremiumRate(parseFloat(e.target.value) || 0)} />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">899/199 €/min (vendita)</label>
-                  <Input type="number" step="0.001" value={globalPremiumRate} onChange={(e) => setGlobalPremiumRate(parseFloat(e.target.value) || 0)} />
+                <Button onClick={handleSaveGlobalPricing} disabled={upsertGlobalPricing.isPending}>Salva tariffe vendita</Button>
+              </CardContent>
+            </Card>
+
+            {/* Confronto margini ALFA vs NYBYTE */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Confronto Margini: Costo ALFA vs Vendita NYBYTE</CardTitle>
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="Cerca paese..." value={tariffSearch} onChange={(e) => setTariffSearch(e.target.value)} className="pl-9" />
+                  </div>
                 </div>
-                <div className="flex items-end">
-                  <Button onClick={handleSaveGlobalPricing} disabled={upsertGlobalPricing.isPending}>Salva tariffe vendita</Button>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <Card className="p-3 border-dashed">
+                    <p className="text-sm font-medium">Margine Nazionale Mobile</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {((1 - ALFA_NATIONAL_TARIFFS.mobile / NYBYTE_NATIONAL_TARIFFS.mobile) * 100).toFixed(1)}%
+                    </p>
+                    <p className="text-xs text-muted-foreground">ALFA {ALFA_NATIONAL_TARIFFS.mobile} → NYBYTE {NYBYTE_NATIONAL_TARIFFS.mobile} €/min</p>
+                  </Card>
+                  <Card className="p-3 border-dashed">
+                    <p className="text-sm font-medium">Margine Nazionale Fisso</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {((1 - ALFA_NATIONAL_TARIFFS.landline / NYBYTE_NATIONAL_TARIFFS.landline) * 100).toFixed(1)}%
+                    </p>
+                    <p className="text-xs text-muted-foreground">ALFA {ALFA_NATIONAL_TARIFFS.landline} → NYBYTE {NYBYTE_NATIONAL_TARIFFS.landline} €/min</p>
+                  </Card>
+                </div>
+                <div className="max-h-96 overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Paese</TableHead>
+                        <TableHead className="text-right">ALFA Fisso</TableHead>
+                        <TableHead className="text-right">NYBYTE Fisso</TableHead>
+                        <TableHead className="text-right">Margine %</TableHead>
+                        <TableHead className="text-right">ALFA Mobile</TableHead>
+                        <TableHead className="text-right">NYBYTE Mobile</TableHead>
+                        <TableHead className="text-right">Margine %</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTariffs.map((alfa) => {
+                        const nybyte = NYBYTE_INTERNATIONAL_TARIFFS.find(n => n.country === alfa.country);
+                        const nybLandline = nybyte?.landline || 0;
+                        const nybMobile = nybyte?.mobile || 0;
+                        const marginLandline = nybLandline > 0 ? ((1 - alfa.landline / nybLandline) * 100) : 0;
+                        const marginMobile = nybMobile > 0 ? ((1 - alfa.mobile / nybMobile) * 100) : 0;
+                        return (
+                          <TableRow key={alfa.country}>
+                            <TableCell className="font-medium">{alfa.country}</TableCell>
+                            <TableCell className="text-right font-mono">{alfa.landline.toFixed(4)}</TableCell>
+                            <TableCell className="text-right font-mono">{nybLandline.toFixed(4)}</TableCell>
+                            <TableCell className={`text-right font-semibold ${marginLandline >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                              {marginLandline.toFixed(1)}%
+                            </TableCell>
+                            <TableCell className="text-right font-mono">{alfa.mobile.toFixed(4)}</TableCell>
+                            <TableCell className="text-right font-mono">{nybMobile.toFixed(4)}</TableCell>
+                            <TableCell className={`text-right font-semibold ${marginMobile >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                              {marginMobile.toFixed(1)}%
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
@@ -380,10 +460,12 @@ const ClientsManager: React.FC<ClientsManagerProps> = ({ availableCallerNumbers 
                   <div>
                     <label className="text-sm font-medium">Mobile €/min</label>
                     <Input type="number" step="0.001" value={clientMobileRate} onChange={(e) => setClientMobileRate(parseFloat(e.target.value) || 0)} />
+                    <p className="text-xs text-muted-foreground mt-1">Default: {NYBYTE_NATIONAL_TARIFFS.mobile}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium">Fisso €/min</label>
                     <Input type="number" step="0.001" value={clientLandlineRate} onChange={(e) => setClientLandlineRate(parseFloat(e.target.value) || 0)} />
+                    <p className="text-xs text-muted-foreground mt-1">Default: {NYBYTE_NATIONAL_TARIFFS.landline}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium">Internaz. €/min</label>

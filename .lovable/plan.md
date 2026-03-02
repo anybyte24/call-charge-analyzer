@@ -1,95 +1,80 @@
 
 
-## Piano: Forfait con Limite Minuti, Prefissi Mancanti, Numeri Non Riconosciuti
+## Revisione Completa - Miglioramenti e Implementazioni Possibili
 
-### Analisi del CSV
-
-Il CSV contiene dati dal 01-09-2025 al 29-12-2025 (4 mesi). I numeri chiamati hanno formato `39XXXX#`. Dopo l'analisi:
-- Numeri `390575xxx` (Arezzo), `390586xxx` (Livorno), `390583xxx` (Lucca) - gia' coperti
-- Numeri `397xxxx` (es. `397473333525#`) - strippato 39, diventa `747xxx` - catturato dal generico `7` come "Mobile"
-- Numeri `39800xxx` (Numero Verde) e `39199xxx` (Numero Premium) - coperti
-- Numeri `3908118491#` - diventa `08118491` (Napoli) - catturato dal generico `0` come "Fisso" ma SENZA il nome citta'
-
-### Problemi trovati
-
-**1. Prefissi italiani fissi MANCANTI (tutto il Centro-Sud)**
-L'elenco copre solo Nord e Toscana. Mancano circa 80 prefissi tra cui:
-- 081 Napoli, 089 Salerno, 0823 Caserta, 0824 Benevento, 0825 Avellino
-- 085 Pescara, 0861 Teramo, 0862 L'Aquila, 0863 Avezzano
-- 091 Palermo, 090 Messina, 095 Catania, 092x Agrigento/Trapani
-- 070 Cagliari, 079 Sassari, 071 Ancona, 075 Perugia
-- 096x Calabria, 097x Basilicata, 099 Taranto, 080 Bari
-- 074x Lazio sud (Viterbo, Rieti, Frosinone, Latina)
-- 073x Macerata, Ascoli, Fermo
-
-I numeri vengono comunque tariffati correttamente (generico `0` = 0.0059 EUR/min) ma con descrizione "Fisso" invece del nome citta'.
-
-**2. Prefissi mobili mancanti**
-- `397` (Iliad nuove assegnazioni) - catturato dal generico `7` ma senza operatore
-- `377`, `378`, `379` sono assegnati a Fastweb ma `397` no
-
-**3. Forfait senza limite minuti**
-Il campo `forfait_only` esiste ma non c'e' un campo `forfait_minutes` per impostare un tetto. Se un cliente sfora, l'esubero dovrebbe essere fatturato a tariffe di vendita.
-
-**4. Nessun filtro per mese**
-Il CSV contiene piu' mesi ma l'analisi li aggrega tutti insieme. Per i clienti forfait serve analizzare mese per mese.
+### Stato Attuale
+L'app e' un sistema maturo di analisi/fatturazione chiamate con: upload CSV, categorizzazione prefissi (nazionali + internazionali), gestione clienti con pricing, forfait con esubero, filtro mensile, export Excel, e confronto margini ALFA vs NYBYTE.
 
 ---
 
-### Implementazioni
+### BUG DA CORREGGERE
 
-**A. Aggiungere ~80 prefissi italiani mancanti in `number-categorizer.ts`**
-Aggiungere tutti i prefissi delle province italiane mancanti (Centro, Sud, Isole) con il costo operatore ALFA 0.0059 EUR/min. Questo migliorera' la descrizione nelle analisi senza impattare i costi.
+**1. Console.log di debug ovunque (Produzione)**
+`number-categorizer.ts` ha decine di `console.log` con emoji (righe 927, 928, 931, 936, 941, 945, 948, 952-965, 976, 984, 993, 998, 1009, 1013, 1022). Questi rallentano significativamente l'analisi di CSV grandi (migliaia di record) e sporcano la console. Vanno rimossi o sostituiti con un flag `DEBUG`.
 
-**B. Aggiungere campo `forfait_minutes` al DB e alla logica**
-- Aggiungere colonna `forfait_minutes` (integer, default 0) alla tabella `client_pricing`
-- Aggiornare `ClientPricing` interface in `useClients.ts`
-- Aggiornare `upsertClientPricing` per salvare il valore
-- In `ClientsManager.tsx`: aggiungere input "Minuti inclusi" quando forfait_only e' attivo
-- In `ClientPricingSummary.tsx`: se forfait_only=true E totalMinutes > forfait_minutes, calcolare l'esubero come `(totalMinutes - forfait_minutes) * tariffe_vendita`
+**2. `CostAlertsManager` non collegato**
+Il componente esiste ma non e' usato da nessuna parte nell'app. Gli alert sono solo in-memory (stato locale), non persistiti su Supabase.
 
-**C. Filtro per mese nell'analisi clienti**
-- In `ClientPricingSummary.tsx`: aggiungere un selettore mese basato sulle date presenti nei records
-- Filtrare i record per mese prima di calcolare costi/ricavi
-- Fondamentale per il calcolo corretto del forfait (che e' mensile)
+**3. Esubero forfait usa solo tariffa mobile**
+In `ClientPricingSummary.tsx` riga 238-239, l'esubero forfait viene calcolato usando solo `clientMobileRate`. Dovrebbe distinguere tra minuti mobile, fisso e internazionale nell'esubero per un calcolo accurato.
 
-**D. Aggiornare prefissi mobili `397` (Iliad nuove assegnazioni)**
-Aggiungere `397` come prefisso mobile Iliad a 0.0159 EUR/min.
+**4. `forfait_minutes` castato con `as any`**
+In `ClientPricingSummary.tsx` riga 165 e `ClientsManager.tsx` riga 65, `forfait_minutes` viene acceduto con `(clientRate as any)?.forfait_minutes`. Il tipo `ClientPricing` in `useClients.ts` ha gia' il campo ma il cast suggerisce un disallineamento.
 
 ---
 
-### Dettagli tecnici
+### MIGLIORAMENTI FUNZIONALI
 
-**File: `supabase/migrations/` (nuova migrazione)**
-```sql
-ALTER TABLE client_pricing ADD COLUMN IF NOT EXISTS forfait_minutes integer NOT NULL DEFAULT 0;
-```
+**5. Report Excel cliente: includere ricavo e margine**
+Il report Excel per cliente (`exportClientReport`) esporta solo costo operatore. Manca:
+- Colonna "Ricavo" calcolata con le tariffe di vendita del cliente
+- Colonna "Margine" (ricavo - costo)
+- Foglio riepilogo con totali margine
+- Info forfait (minuti usati, inclusi, esubero)
 
-**File: `src/utils/number-categorizer.ts`**
-Aggiungere tutti i prefissi italiani mancanti prima del generico `0`:
-- 070-079 (Sardegna, Marche, Umbria, Lazio)
-- 080-089 (Puglia, Campania, Abruzzo, Molise)
-- 090-099 (Sicilia, Calabria, Basilicata)
-- Aggiungere `397` come Iliad mobile
+**6. Dashboard riepilogo margini globale**
+Non esiste un riepilogo immediato dei margini totali nella dashboard principale. Aggiungere:
+- KPI card "Margine Totale" nel header con colore verde/rosso
+- KPI card "Clienti in Perdita" con conteggio
+- Mini-grafico trend margine per mese
 
-**File: `src/hooks/useClients.ts`**
-- Aggiungere `forfait_minutes: number` a `ClientPricing` interface
-- Aggiornare `upsertClientPricing` per includere `forfait_minutes`
+**7. Confronto multi-mese nella tab Clienti**
+Il filtro mese mostra un mese alla volta. Sarebbe utile:
+- Vista comparativa: tabella con colonne mese-per-mese per ogni cliente
+- Trend: grafico a linee del costo/ricavo per cliente nei mesi
 
-**File: `src/components/ClientsManager.tsx`**
-- Aggiungere input "Minuti inclusi nel forfait" visibile quando `forfait_only` e' attivo
-- Salvare il valore con `upsertClientPricing`
+**8. Esportazione fattura/preventivo per cliente**
+Oltre al report Excel dettagliato, generare un documento di fatturazione con:
+- Riepilogo: forfait + esubero + totale
+- Dettaglio per categoria (mobile, fisso, internazionale)
+- Formato stampabile
 
-**File: `src/components/ClientPricingSummary.tsx`**
-- Aggiungere selettore mese (dropdown con mesi estratti dai record)
-- Filtrare `callerAnalysis` per mese selezionato
-- Logica forfait con esubero: se `forfait_only` e `forfait_minutes > 0`, calcolare i minuti totali del mese. Se eccedono `forfait_minutes`, i minuti in esubero generano ricavo a tariffe di vendita.
-- Mostrare nella riga cliente: "Forfait: X min usati / Y inclusi" con warning se in esubero
+---
 
-### Risultato atteso
+### MIGLIORAMENTI TECNICI
 
-- Tutti i numeri italiani avranno la citta' corretta invece di "Fisso" generico
-- I clienti forfait potranno avere un tetto mensile di minuti
-- L'esubero forfait sara' fatturato automaticamente a tariffe di vendita
-- L'analisi potra' essere filtrata mese per mese per un controllo accurato
+**9. Rimuovere il `window.location.reload()` dopo ricalcolo**
+In `Dashboard.tsx` riga 49, dopo il ricalcolo costi viene fatto un reload della pagina. Bisognerebbe invalidare le query React Query e aggiornare lo stato senza ricaricare.
+
+**10. Persistenza alert costi su Supabase**
+`CostAlertsManager` usa stato locale. Per essere utile dovrebbe:
+- Salvare gli alert su una tabella `cost_alerts` in Supabase
+- Verificare automaticamente le soglie quando si carica un CSV
+- Mostrare notifiche quando una soglia viene superata
+
+**11. Limite 1000 righe Supabase**
+`loadSessions` non gestisce il limite di 1000 righe di Supabase. Per utenti con molte sessioni, alcune potrebbero non essere caricate.
+
+---
+
+### PRIORITA' CONSIGLIATA
+
+1. **Rimuovere console.log di debug** - Impatto immediato sulle performance
+2. **Rimuovere `as any` per forfait_minutes** - Pulizia tipo
+3. **Rimuovere `window.location.reload()`** - UX migliore
+4. **Migliorare export Excel cliente con margini** - Valore business alto
+5. **KPI margine nella dashboard principale** - Visibilita' immediata
+6. **Confronto multi-mese** - Analisi avanzata
+7. **Esubero forfait per categoria** - Accuratezza fatturazione
+8. **Collegare CostAlertsManager** - Feature completata
 
